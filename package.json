@@ -1,0 +1,19 @@
+{
+  "name": "doros-supa",
+  "version": "1.0.0",
+  "description": "Crush Quest (Doros) - Supabase Migration",
+  "type": "module",
+  "scripts": {
+    "setup:storage": "tsx scripts/setup-storage.ts",
+    "migrate:export": "tsx scripts/export-from-sanity.ts",
+    "migrate:download": "tsx scripts/download-sanity-images.ts",
+    "migrate:import": "tsx scripts/import-to-supabase.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.7.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}

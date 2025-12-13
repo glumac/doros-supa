@@ -24,10 +24,10 @@ BEGIN
   ORDER BY completion_count DESC, u.user_name ASC
   LIMIT 50;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Friends Leaderboard (followed users only)
-CREATE OR REPLACE FUNCTION get_friends_leaderboard(user_id UUID)
+CREATE OR REPLACE FUNCTION get_friends_leaderboard(p_user_id UUID)
 RETURNS TABLE (
   user_id UUID,
   user_name TEXT,
@@ -48,14 +48,14 @@ BEGIN
   WHERE p.completed = true
     AND p.created_at >= DATE_TRUNC('week', NOW())
     AND (
-      u.id = user_id OR  -- Include self
-      u.id IN (SELECT following_id FROM follows WHERE follower_id = user_id)
+      u.id = p_user_id OR  -- Include self
+      u.id IN (SELECT following_id FROM follows WHERE follower_id = p_user_id)
     )
   GROUP BY u.id, u.user_name, u.avatar_url
   ORDER BY completion_count DESC, u.user_name ASC
   LIMIT 20;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- User Search (find users by name)
 CREATE OR REPLACE FUNCTION search_users(
@@ -96,7 +96,7 @@ BEGIN
   ORDER BY follower_count DESC, u.user_name ASC
   LIMIT 20;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Public User Profile (view stats without pomodoros)
 CREATE OR REPLACE FUNCTION get_public_user_profile(
@@ -147,4 +147,4 @@ BEGIN
   FROM users u
   WHERE u.id = profile_user_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
