@@ -59,6 +59,7 @@ Settings:
 **Migration executed successfully on December 13, 2025**
 
 ### What Was Migrated:
+
 - ✅ **56 users** (1 skipped - missing email)
 - ✅ **5,226 pomodoros** (5 skipped - orphaned data)
 - ✅ **1,684 likes**
@@ -66,11 +67,13 @@ Settings:
 - ✅ **425 images** downloaded from Sanity CDN
 
 ### Migration Scripts Created:
+
 1. ✅ `scripts/export-from-sanity.ts` - Exports data from Sanity
 2. ✅ `scripts/download-sanity-images.ts` - Downloads images
 3. ✅ `scripts/import-to-supabase.ts` - Imports to Supabase
 
 ### Commands Used:
+
 ```bash
 npm run migrate:export    # Exported all Sanity data
 npm run migrate:download  # Downloaded 425 images
@@ -78,6 +81,7 @@ npm run migrate:import    # Imported to Supabase
 ```
 
 ### Data Location:
+
 - ✅ All data in Supabase database
 - ✅ Local backup in `migration-data/` folder
 - ✅ Images ready for upload (pending bucket creation)
@@ -89,10 +93,12 @@ npm run migrate:import    # Imported to Supabase
 **What Needs to Be Done:**
 
 1. **Create Storage Bucket** (if not done yet)
+
    - Required for image uploads to work
    - See manual step above ⬆️
 
 2. **Start Frontend Development**
+
    - Replace Sanity client with Supabase client
    - Implement Google OAuth with Supabase Auth
    - Update all data queries to use Supabase

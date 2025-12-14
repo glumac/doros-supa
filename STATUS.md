@@ -7,10 +7,12 @@
 ## ✅ COMPLETED PHASES
 
 ### Phase 1: Database Setup ✅ COMPLETE
+
 - **Status:** 100% Complete
 - **Date:** December 13, 2025
 
 **What's Done:**
+
 - ✅ 5 tables created (users, pomodoros, likes, comments, follows)
 - ✅ 16 Row-Level Security policies
 - ✅ 9 performance indexes
@@ -20,16 +22,19 @@
 - ✅ 0 security advisories
 
 **Files:**
+
 - ✅ 6 migration files applied
 - ✅ Documentation: `PHASE1_COMPLETE.md`
 
 ---
 
 ### Phase 2: Data Migration ✅ COMPLETE
+
 - **Status:** 100% Complete
 - **Date:** December 13, 2025
 
 **What's Done:**
+
 - ✅ Exported all data from Sanity CMS
 - ✅ Downloaded 425 images from Sanity CDN
 - ✅ Imported 56 users to Supabase
@@ -39,6 +44,7 @@
 - ✅ Data validated and verified
 
 **Migration Results:**
+
 ```
 Users:      56/57  (1 skipped - missing email)
 Pomodoros:  5,226/5,231 (5 skipped - orphaned data)
@@ -48,6 +54,7 @@ Images:     425 downloaded (pending upload to bucket)
 ```
 
 **Files:**
+
 - ✅ `scripts/export-from-sanity.ts` - Working
 - ✅ `scripts/download-sanity-images.ts` - Working
 - ✅ `scripts/import-to-supabase.ts` - Working
@@ -55,6 +62,7 @@ Images:     425 downloaded (pending upload to bucket)
 - ✅ Documentation: `PHASE2_GUIDE.md`
 
 **Environment:**
+
 - ✅ `.env` configured with all credentials
 - ✅ Node.js v23.6.1 with `--env-file` flag working
 - ✅ TypeScript migration scripts working without dotenv dependency
@@ -66,16 +74,18 @@ Images:     425 downloaded (pending upload to bucket)
 ### Required Before Phase 3:
 
 1. **Create Storage Bucket** ⚠️ NOT DONE YET
+
    ```
    Location: https://gwiwnpawhribxvjfxkiw.supabase.co
    Path: Storage → New Bucket
-   
+
    Settings:
    - Name: pomodoro-images
    - Public: false
    - Max file size: 5MB
    - Allowed types: PNG, JPEG, JPG, GIF, WebP, HEIC
    ```
+
    **Why:** Required for image uploads and displaying migrated images
 
 2. **Configure Google OAuth** ⏸️ OPTIONAL
@@ -94,6 +104,7 @@ Images:     425 downloaded (pending upload to bucket)
 **Goal:** Replace Sanity client with Supabase in React app
 
 **Major Tasks:**
+
 1. Replace `@sanity/client` with `@supabase/supabase-js`
 2. Implement Google OAuth with Supabase Auth
 3. Update all GROQ queries to Supabase queries
@@ -105,6 +116,7 @@ Images:     425 downloaded (pending upload to bucket)
 **Estimated Effort:** Multiple sessions
 
 **Reference:**
+
 - See `plan-supabaseMigration.prompt.md` for full frontend roadmap
 - Section 5: Frontend Changes Required
 
@@ -113,12 +125,14 @@ Images:     425 downloaded (pending upload to bucket)
 ## 📊 Project Stats
 
 **Database:**
+
 - Tables: 5
 - Functions: 6
 - Migrations: 6 applied
 - Security Policies: 16
 
 **Data:**
+
 - Users: 56
 - Pomodoros: 5,226
 - Likes: 1,684
@@ -126,6 +140,7 @@ Images:     425 downloaded (pending upload to bucket)
 - Images: 425
 
 **URLs:**
+
 - Supabase Project: https://gwiwnpawhribxvjfxkiw.supabase.co
 - Project ID: gwiwnpawhribxvjfxkiw
 
@@ -134,6 +149,7 @@ Images:     425 downloaded (pending upload to bucket)
 ## 🔗 Quick Links
 
 **Documentation:**
+
 - [QUICKSTART.md](./QUICKSTART.md) - Quick reference
 - [PHASE1_COMPLETE.md](./PHASE1_COMPLETE.md) - Phase 1 details
 - [PHASE2_GUIDE.md](./PHASE2_GUIDE.md) - Phase 2 guide
@@ -141,6 +157,7 @@ Images:     425 downloaded (pending upload to bucket)
 - [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
 
 **Commands:**
+
 ```bash
 # Data migration (already done)
 npm run migrate:export    # Export from Sanity
@@ -162,6 +179,7 @@ npm run setup:storage     # Create bucket via script
 3. **Begin Phase 3:** Start replacing Sanity client in the frontend
 
 **Everything is backed up:**
+
 - ✅ All data in Supabase database
 - ✅ Local backup in `migration-data/` folder
 - ✅ Original Sanity data untouched

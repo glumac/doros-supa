@@ -6,8 +6,8 @@
 
 ## 🚀 Quick Status
 
-**✅ Phase 1 Complete:** Database schema, RLS policies, functions  
-**✅ Phase 2 Complete:** Data migration (56 users, 5,226 pomodoros, 1,684 likes, 313 comments)  
+**✅ Phase 1 Complete:** Database schema, RLS policies, functions
+**✅ Phase 2 Complete:** Data migration (56 users, 5,226 pomodoros, 1,684 likes, 313 comments)
 **🔄 Phase 3 Next:** Frontend development (replace Sanity client)
 
 📖 **[Read STATUS.md for complete progress →](./STATUS.md)**
@@ -17,6 +17,7 @@
 ## What This Project Does
 
 Migrates the Crush Quest Pomodoro timer app from Sanity CMS to Supabase with:
+
 - Privacy-focused friends/following system
 - Dual leaderboards (Global & Friends)
 - Secure image storage
@@ -46,7 +47,7 @@ Migrates the Crush Quest Pomodoro timer app from Sanity CMS to Supabase with:
 ```bash
 # Data migration (already completed)
 npm run migrate:export    # Export from Sanity
-npm run migrate:download  # Download images  
+npm run migrate:download  # Download images
 npm run migrate:import    # Import to Supabase
 
 # Storage setup (pending)
@@ -58,6 +59,7 @@ npm run setup:storage     # Create pomodoro-images bucket
 ## Environment
 
 All credentials configured in `.env`:
+
 - ✅ Supabase API keys
 - ✅ Sanity credentials
 - ✅ Project IDs

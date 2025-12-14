@@ -1,0 +1,23 @@
+import React from 'react';
+import Doro from './Doro';
+import { Doro as DoroType } from '../types/models';
+
+interface DorosProps {git 
+  doros?: DoroType[] | undefined;
+  reloadFeed?: ((clearCache: boolean) => void) | undefined;
+}
+
+const Doros = ({ doros, reloadFeed }: DorosProps) => (
+  <div className="animate-slide-fwd max-w-lg lg:max-w-2xl mx-auto">
+    {doros?.map((doro) => (
+      <Doro
+        key={doro._id}
+        doro={doro}
+        reloadFeed={reloadFeed || undefined}
+        className="w-max"
+      />
+    ))}
+  </div>
+);
+
+export default Doros;
