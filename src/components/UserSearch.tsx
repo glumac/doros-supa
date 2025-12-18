@@ -159,7 +159,7 @@ export default function UserSearch() {
                 </div>
                 <div style={{ color: '#666', fontSize: '14px' }}>
                   {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
-                  {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''} this week
+                  {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
                 </div>
               </div>
 

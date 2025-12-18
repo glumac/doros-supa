@@ -3,10 +3,10 @@
 [build]
   # Build command for Vite
   command = "npm run build"
-  
+
   # Directory with build output (Vite default)
   publish = "dist"
-  
+
   # Node version
   environment = { NODE_VERSION = "18" }
 

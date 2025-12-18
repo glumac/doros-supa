@@ -31,7 +31,6 @@ BEGIN
       SELECT COUNT(*) FROM pomodoros p
       WHERE p.user_id = u.id
       AND p.completed = true
-      AND p.created_at >= DATE_TRUNC('week', NOW())
     ) AS completion_count
   FROM users u
   WHERE u.id != current_user_id
