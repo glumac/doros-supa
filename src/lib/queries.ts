@@ -154,7 +154,7 @@ export async function getGlobalLeaderboard() {
 // Get friends leaderboard (followed users + self)
 export async function getFriendsLeaderboard(userId: string) {
   const { data, error } = await supabase.rpc("get_friends_leaderboard", {
-    user_id: userId,
+    p_user_id: userId,
   });
   return { data, error };
 }
@@ -175,7 +175,7 @@ export async function getPublicUserProfile(
 ) {
   const { data, error } = await supabase.rpc("get_public_user_profile", {
     profile_user_id: userId,
-    current_user_id: currentUserId,
+    current_user_id: currentUserId || '',
   });
   return { data, error };
 }

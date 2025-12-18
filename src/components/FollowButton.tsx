@@ -8,10 +8,10 @@ interface FollowButtonProps {
   onFollowChange?: (isFollowing: boolean) => void;
 }
 
-export default function FollowButton({ 
-  userId, 
-  className = '', 
-  onFollowChange 
+export default function FollowButton({
+  userId,
+  className = '',
+  onFollowChange
 }: FollowButtonProps) {
   const { user } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);

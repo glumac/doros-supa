@@ -24,13 +24,13 @@ export default function GlobalLeaderboard() {
   async function loadLeaderboard() {
     setLoading(true);
     const { data, error } = await getGlobalLeaderboard();
-    
+
     if (error) {
       console.error('Error loading global leaderboard:', error);
     } else if (data) {
       setLeaderboard(data);
     }
-    
+
     setLoading(false);
   }
 
@@ -58,7 +58,7 @@ export default function GlobalLeaderboard() {
       <p style={{ color: '#666', marginBottom: '20px' }}>
         Top performers this week - discover new users to follow!
       </p>
-      
+
       <div className="leaderboard-list">
         {leaderboard.map((item, index) => (
           <div
@@ -126,7 +126,7 @@ export default function GlobalLeaderboard() {
 
             {/* Follow Button */}
             <div onClick={(e) => e.stopPropagation()}>
-              <FollowButton 
+              <FollowButton
                 userId={item.user_id}
                 onFollowChange={() => {
                   // Optionally refresh leaderboard or update UI

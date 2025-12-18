@@ -69,115 +69,152 @@ Images:     425 downloaded (pending upload to bucket)
 
 ---
 
-## ⏳ PENDING MANUAL STEPS
+## ⚡ CURRENT STATUS
 
-### Required Before Phase 5:
+**App State:**
 
-1. **Integrate New UI Components** ⚠️ IN PROGRESS
+- ✅ Running at http://localhost:5173/
+- ✅ All core features migrated and functional
+- ✅ Following system UI integrated
+- ✅ UserSearch working (SQL fix applied)
+- ✅ TypeScript compilation clean
 
-   **What to do:**
-   - Add routes for `/discover` (UserSearch page)
-   - Add routes for `/leaderboard` (LeaderboardTabs page)
-   - Update existing UserProfile to include FollowButton
-   - Optionally replace Sidebar leaderboard with LeaderboardTabs
+**Migration Progress:** 95% Complete
 
-2. **Upload Migrated Images to Storage** ⏸️ OPTIONAL
-   ```
-   Location: migration-data/images/
-   Count: 425 images
-   Script: Upload script needs to be created
-   ```
-   **Why:** To display historical images from Sanity migration
-
-3. **Test Following System** ⚠️ REQUIRED
-   ```
-   - Create test users
-   - Verify follow/unfollow works
-   - Check RLS policies (users see only followed content)
-   - Test leaderboard filtering
-   ```
+- ✅ Phase 1: Database (100%)
+- ✅ Phase 2: Data Migration (100%)
+- ✅ Phase 3: Frontend (100%)
+- ⏳ Phase 4: Testing (0% - ready to begin)
+- ⏳ Phase 5: Deployment (0% - pending)
 
 ---
 
-### Phase 4: Testing 🔄 IN PROGRESS
+### Phase 3: Frontend Development ✅ COMPLETE
 
-**Status:** December 17, 2025
+- **Status:** 100% Complete
+- **Date:** December 17, 2025
 
 **What's Done:**
 
-- ✅ Google OAuth login verified (user logged in successfully)
-- ✅ App renders at http://localhost:5173/
-- ✅ Feed displays with Supabase data
-- ✅ TypeScript compilation successful (no errors)
-- ✅ Data transformation layer removed
-- ✅ Storage bucket created (pomodoro-images)
-- ✅ Following system UI implemented (5 new components)
+- ✅ Replaced `@sanity/client` with `@supabase/supabase-js`
+- ✅ Implemented Google OAuth with Supabase Auth
+- ✅ Updated all GROQ queries to Supabase queries
+- ✅ Migrated 10/10 components to Supabase native format
+- ✅ Removed transformation layer (direct Supabase data)
+- ✅ Updated type system to match Supabase schema
+- ✅ Created storage bucket (pomodoro-images)
+- ✅ Built 5 following system UI components
+- ✅ Integrated components into routing (/discover, /leaderboard)
+- ✅ Fixed SQL ambiguity in search_users function
+- ✅ UserSearch working at /discover
+- ✅ LeaderboardTabs working at /leaderboard
 
-**In Progress:**
+**New Components:**
 
-- 🔄 Manual feature testing (feed functional)
-- ⏳ RLS policy validation (pending)
-- ⏳ Image upload testing (storage bucket ready)
-- ⏳ Performance testing (pending)
-- ⏳ User acceptance testing (pending)
+- ✅ `FollowButton.tsx` - Follow/unfollow toggle
+- ✅ `GlobalLeaderboard.tsx` - All users ranked
+- ✅ `FriendsLeaderboard.tsx` - Followed users
+- ✅ `UserSearch.tsx` - Search by name
+- ✅ `LeaderboardTabs.tsx` - Toggle views
 
-**Known Issues:**
+**Files:**
 
-- ℹ️ Minor CSS warnings (non-blocking)
-- ℹ️ Following system components created but not integrated into routing yet
+- ✅ 7 migration files (including search_users fix)
+- ✅ All components exported and integrated
+- ✅ Documentation: Plan and STATUS updated
+
+---
+
+### Phase 4: Testing ⏳ NEXT
+
+- **Status:** Ready to Begin
+- **Priority:** Multi-user RLS testing
+
+**Ready to Test:**
+
+- ✅ App running at http://localhost:5173/
+- ✅ Google OAuth working
+- ✅ Feed displaying data
+- ✅ Following system UI integrated
+- ✅ UserSearch functional
+
+**Testing Objectives:**
+
+1. **RLS Policy Validation** (Requires 3+ test users)
+
+   - Verify feed shows only followed users' pomodoros
+   - Test follow/unfollow immediately updates feed
+   - Confirm users can't see unfollowed users' content
+   - Validate likes/comments respect RLS
+
+2. **Following System Functionality**
+
+   - Test UserSearch at /discover (working)
+   - Test LeaderboardTabs at /leaderboard (working)
+   - Verify FollowButton state management
+   - Test follower/following counts
+
+3. **Image Upload & Storage**
+
+   - Test CreateDoro image upload
+   - Verify storage RLS policies
+   - Optional: Upload 425 migrated images
+
+4. **Performance Testing**
+   - Monitor query performance in Supabase dashboard
+   - Test with larger datasets
+   - Optimize slow queries if needed
+
+**Known Limitations:**
+
+- Leaderboards filter by current week (historical data won't show)
+- Storage bucket created but images not yet uploaded
 
 ---
 
 ## 📋 NEXT STEPS
 
-### Phase 3: Frontend Development ✅ 100% COMPLETE
+### Immediate Priority: Multi-User Testing
 
-**Status:** December 17, 2025
+**Required:** 3+ Google accounts for testing
 
-**What's Done:**
+**Test Plan:**
 
-- ✅ Replaced `@sanity/client` with `@supabase/supabase-js`
-- ✅ Implemented Google OAuth with Supabase Auth (login working)
-- ✅ Updated all GROQ queries to Supabase queries (queries.ts)
-- ✅ Migrated 10/10 components to Supabase native format
-- ✅ Removed transformation layer (Feed.tsx)
-- ✅ Updated type system to match Supabase schema
-- ✅ Fixed date validation in Doro.tsx
-- ✅ Fixed TypeScript errors in storage.ts
-- ✅ App renders successfully at http://localhost:5173/
-- ✅ Created storage bucket (pomodoro-images)
-- ✅ Built following system UI components (5 new components)
+1. **Create Test Users** (15 minutes)
 
-**New Components Created:**
+   - Login with 3 different Google accounts
+   - Create 1-2 pomodoros per user (this week's data)
+   - Note: Historical data won't appear on leaderboards (weekly filter)
 
-- ✅ `FollowButton.tsx` - Follow/unfollow toggle with state management
-- ✅ `GlobalLeaderboard.tsx` - All users ranked by completions
-- ✅ `FriendsLeaderboard.tsx` - Followed users + self
-- ✅ `UserSearch.tsx` - Search users by name with debouncing
-- ✅ `LeaderboardTabs.tsx` - Toggle between Global/Friends views
+2. **Test Following System** (30 minutes)
 
-**Remaining Integration:**
+   - User A follows User B
+   - Verify User B's pomodoros appear in User A's feed
+   - User A unfollows User B
+   - Verify User B's pomodoros disappear from feed
+   - Test UserSearch at /discover
+   - Test Leaderboard at /leaderboard (Global & Friends tabs)
 
-- ⏳ Add routing for new components (UserSearch, Leaderboard pages)
-- ⏳ Update Sidebar to optionally use new LeaderboardTabs
-- ⏳ Create UserProfile page to display user stats + FollowButton
+3. **RLS Policy Validation** (30 minutes)
 
-**Files Updated:**
+   - Verify unfollowed users' content is hidden
+   - Test likes/comments on visible pomodoros only
+   - Confirm privacy model works correctly
 
-- ✅ `src/lib/supabaseClient.ts` - Supabase client setup
-- ✅ `src/lib/queries.ts` - TypeScript query functions
-- ✅ `src/lib/storage.ts` - Image upload functions
-- ✅ `src/contexts/AuthContext.tsx` - Authentication context
-- ✅ `src/types/models.ts` - Supabase native types
-- ✅ `src/components/Feed.tsx` - Direct Supabase data usage
-- ✅ `src/components/Doro.tsx` - Updated field names
-- ✅ `src/components/DoroDetail.tsx` - Updated rendering
-- ✅ `src/components/Doros.tsx` - Fixed interface
+4. **Image Upload** (15 minutes)
+   - Test CreateDoro with image upload
+   - Verify storage RLS policies
+   - Check image display in feed
+
+**Optional Tasks:**
+
+- Upload 425 migrated images from migration-data/images/
+- Remove weekly filter from leaderboards to show historical data
+- Performance testing with larger datasets
 
 **Reference:**
 
-- See `plan-supabaseMigration.prompt.md` for full frontend roadmap
-- Section 5: Frontend Changes Required
+- See `plan-supabaseMigration.prompt.md` for complete migration roadmap
 
 ---
 
@@ -209,82 +246,54 @@ Images:     425 downloaded (pending upload to bucket)
 
 **Documentation:**
 
-- [QUICKSTART.md](./QUICKSTART.md) - Quick reference
-- [PHASE1_COMPLETE.md](./PHASE1_COMPLETE.md) - Phase 1 details
-- [PHASE2_GUIDE.md](./PHASE2_GUIDE.md) - Phase 2 guide
-- [README.md](./README.md) - Full project overview
 - [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
+- [STATUS.md](./STATUS.md) - Current progress (this file)
+- [README.md](./README.md) - Project overview
+- [QUICKSTART.md](./QUICKSTART.md) - Quick reference
+- [PHASE1_COMPLETE.md](./PHASE1_COMPLETE.md) - Database setup details
+- [PHASE2_GUIDE.md](./PHASE2_GUIDE.md) - Data migration guide
 
-**Quick Links:**
+**Quick Commands:**
 
 ```bash
-# Data migration (already done)
-npm run migrate:export    # Export from Sanity
-npm run migrate:download  # Download images
-npm run migrate:import    # Import to Supabase
-
-# Storage setup (already done)
-npm run setup:storage     # Create bucket via script
-
 # Development
 npm run dev              # Start dev server at http://localhost:5173/
 npm run build            # Production build
 npm run type-check       # TypeScript validation
+
+# Data migration (completed)
+npm run migrate:export    # Export from Sanity
+npm run migrate:download  # Download images
+npm run migrate:import    # Import to Supabase
 ```
-
-**Important Files:**
-
-- [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) - Complete progress overview
-- [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) - How to add new UI components
-- [TESTING_PLAN.md](./TESTING_PLAN.md) - Complete testing procedures
-- [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
-- [QUICKSTART.md](./QUICKSTART.md) - Quick reference
-- [README.md](./README.md) - Full project overview
 
 ---
 
-## ⚡ Current State
+## 🎯 Ready for Testing
 
-**App Status:**
+**What Works:**
 
-- ✅ Running at http://localhost:5173/
-- ✅ Google Auth working (user logged in)
-- ✅ Feed rendering with Supabase data
-- ✅ All core components migrated to Supabase
+- ✅ Google OAuth authentication
+- ✅ Feed displays pomodoros from Supabase
+- ✅ Create new pomodoros
+- ✅ Like/unlike functionality
+- ✅ Comment system
+- ✅ User profiles
+- ✅ Search users at /discover
+- ✅ Leaderboards at /leaderboard
+- ✅ Follow/unfollow users
 
-**Next Priority Tasks:**
+**What Needs Testing:**
 
-1. **Integrate following system UI** (15-30 minutes)
-   - Add routes for `/discover` and `/leaderboard` in Home.tsx
-   - Add navigation links to Sidebar
-   - Add FollowButton to UserProfile component
-   - See: `INTEGRATION_GUIDE.md` for step-by-step instructions
+- ⏳ RLS policies (requires multiple test users)
+- ⏳ Feed filtering (only followed users)
+- ⏳ Privacy model validation
+- ⏳ Image upload to storage
+- ⏳ Performance with concurrent users
 
-2. **Test following system** (2-3 hours)
-   - Create test user accounts (need 3+ Google accounts)
-   - Verify RLS policies work correctly
-   - Test follow/unfollow functionality
-   - Validate feed filtering (only shows followed users)
-   - See: `TESTING_PLAN.md` for complete test checklist
+**Data Backup:**
 
-3. **Upload migrated images** (optional, 1-2 hours)
-   - Create upload script for 425 images in migration-data/
-   - Upload to Supabase storage bucket
-   - Update pomodoro records with new image URLs
-
-4. **Performance testing & optimization**
-   - Monitor query performance in Supabase dashboard
-   - Optimize slow queries if needed
-   - Test with larger datasets
-
-**Documentation Created:**
-
-- ✅ `TESTING_PLAN.md` - Complete testing checklist and procedures
-- ✅ `INTEGRATION_GUIDE.md` - Step-by-step integration instructions
-
-**Everything is backed up:**
-
-- ✅ All data in Supabase database (56 users, 5,226 pomodoros)
-- ✅ Local backup in `migration-data/` folder
-- ✅ Original Sanity data untouched
-- ✅ Recent refactoring committed to git
+- ✅ Supabase database: 56 users, 5,226 pomodoros, 1,684 likes, 313 comments
+- ✅ Local backup: migration-data/ folder
+- ✅ Original Sanity data: Untouched
+- ✅ Git history: All changes committed

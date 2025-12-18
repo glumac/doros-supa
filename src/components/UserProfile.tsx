@@ -6,6 +6,7 @@ import { getUserProfile, getUserPomodoros } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
+import FollowButton from "./FollowButton";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { User, Doro, DecodedJWT } from "../types/models";
 
@@ -70,8 +71,8 @@ const UserProfile = () => {
           <h1 className=" text-green-700 font-medium text-5xl text-center mt-3">
             {user?.userName}
           </h1>
-          <div className="text-red-600 p-2 flex justify-center">
-            {userId === authUser?.id && (
+          <div className="text-red-600 p-2 flex justify-center items-center gap-3">
+            {userId === authUser?.id ? (
               <div>
                 <button
                   type="button"
@@ -81,6 +82,8 @@ const UserProfile = () => {
                   Log out
                 </button>
               </div>
+            ) : (
+              <FollowButton userId={userId!} />
             )}
           </div>
         </div>

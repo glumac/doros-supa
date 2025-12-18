@@ -128,6 +128,30 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
           </div>
 
           <div>
+            <NavLink
+              to="/discover"
+              className={({ isActive }) =>
+                isActive ? isActiveStyle : isNotActiveStyle
+              }
+              onClick={handleCloseSidebar}
+            >
+              🔍 Find Friends
+            </NavLink>
+          </div>
+
+          <div>
+            <NavLink
+              to="/leaderboard"
+              className={({ isActive }) =>
+                isActive ? isActiveStyle : isNotActiveStyle
+              }
+              onClick={handleCloseSidebar}
+            >
+              🏆 Leaderboard
+            </NavLink>
+          </div>
+
+          <div>
             <h3 className="mt-2 px-5 font-semibold text-base 2xl:text-xl">
               This Week's Leaders
             </h3>

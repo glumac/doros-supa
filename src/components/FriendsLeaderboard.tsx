@@ -25,16 +25,16 @@ export default function FriendsLeaderboard() {
 
   async function loadLeaderboard() {
     if (!user) return;
-    
+
     setLoading(true);
     const { data, error } = await getFriendsLeaderboard(user.id);
-    
+
     if (error) {
       console.error('Error loading friends leaderboard:', error);
     } else if (data) {
       setLeaderboard(data);
     }
-    
+
     setLoading(false);
   }
 
@@ -73,11 +73,11 @@ export default function FriendsLeaderboard() {
       <p style={{ color: '#666', marginBottom: '20px' }}>
         Your accountability circle - people you follow (and yourself)
       </p>
-      
+
       <div className="leaderboard-list">
         {leaderboard.map((item, index) => {
           const isCurrentUser = item.user_id === user.id;
-          
+
           return (
             <div
               key={item.user_id}
@@ -138,9 +138,9 @@ export default function FriendsLeaderboard() {
                 <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
                   {item.user_name}
                   {isCurrentUser && (
-                    <span style={{ 
-                      marginLeft: '8px', 
-                      fontSize: '12px', 
+                    <span style={{
+                      marginLeft: '8px',
+                      fontSize: '12px',
                       color: '#007bff',
                       fontWeight: '400'
                     }}>

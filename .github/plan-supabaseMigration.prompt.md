@@ -2200,7 +2200,7 @@ VITE_GOOGLE_CLIENT_ID=...
 **Key Milestones**:
 
 1. ✅ Vite + TypeScript project setup
-2. ✅ Database schema + RLS policies (5 migrations)
+2. ✅ Database schema + RLS policies (7 migrations including SQL fixes)
 3. ✅ Data migration (56 users, 5,226 pomodoros, 1,684 likes, 313 comments)
 4. ✅ TypeScript migration scripts (export/import complete)
 5. ✅ Google Auth integration (configured and working)
@@ -2210,10 +2210,13 @@ VITE_GOOGLE_CLIENT_ID=...
 9. ✅ Type system updated to match Supabase schema
 10. ✅ Authentication working (user successfully logged in)
 11. ✅ App rendering successfully at http://localhost:5173/
-12. ⏳ Storage bucket creation (pending manual step)
-13. ⏳ Following system UI (backend code ready, UI pending)
-14. ⏳ End-to-end testing (in progress)
-15. ⏳ Documentation & deployment (pending)
+12. ✅ Storage bucket created (pomodoro-images)
+13. ✅ Following system UI (5 components built and integrated)
+14. ✅ Routes integrated (/discover, /leaderboard)
+15. ✅ SQL ambiguity fixed (search_users function)
+16. ⏳ Multi-user RLS testing (requires 3+ test accounts)
+17. ⏳ Image upload testing (storage bucket ready)
+18. ⏳ Documentation & deployment (pending)
 
 **Risk Factors**:
 
@@ -2226,11 +2229,13 @@ VITE_GOOGLE_CLIENT_ID=...
 
 - ✅ All migrated data accessible in Supabase (56 users, 5,226 pomodoros)
 - ✅ Zero data loss from Sanity (validated)
-- ✅ Authentication seamless with Google (working - user logged in)
+- ✅ Authentication seamless with Google (working)
 - ✅ Type-safe codebase with TypeScript (all components migrated)
 - ✅ Faster development builds with Vite (dev server running)
-- ⏳ Feed shows followed users' content (requires following system)
-- ⏳ Image uploads working (requires storage bucket creation)
+- ✅ Following system UI integrated (/discover, /leaderboard)
+- ✅ Storage bucket created and configured
+- ⏳ Feed shows followed users' content (RLS testing pending)
+- ⏳ Image uploads working (storage ready, testing pending)
 - ⏳ App performance equal or better than before (testing in progress)
 - ⏳ User engagement maintained/increased with following feature (pending)
 

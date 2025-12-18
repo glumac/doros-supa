@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
-import { Navbar, Feed, DoroDetail, CreateDoro, Search } from "../components";
+import {
+  Navbar,
+  Feed,
+  DoroDetail,
+  CreateDoro,
+  Search,
+  UserSearch,
+  LeaderboardTabs
+} from "../components";
 import { User } from "../types/models";
 
 interface DoroWrapperProps {
@@ -35,6 +43,14 @@ const DoroWrapper = ({ user }: DoroWrapperProps) => {
             element={
               <Search searchTerm={searchTerm} />
             }
+          />
+          <Route
+            path="/discover"
+            element={<UserSearch />}
+          />
+          <Route
+            path="/leaderboard"
+            element={<LeaderboardTabs />}
           />
         </Routes>
       </div>

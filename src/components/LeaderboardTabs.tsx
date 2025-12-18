@@ -8,9 +8,9 @@ export default function LeaderboardTabs() {
   return (
     <div className="leaderboard-tabs" style={{ width: '100%' }}>
       {/* Tab Headers */}
-      <div 
-        style={{ 
-          display: 'flex', 
+      <div
+        style={{
+          display: 'flex',
           borderBottom: '2px solid #e0e0e0',
           marginBottom: '24px'
         }}

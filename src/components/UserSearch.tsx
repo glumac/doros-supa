@@ -38,18 +38,18 @@ export default function UserSearch() {
 
   async function performSearch() {
     if (!user || !searchTerm.trim()) return;
-    
+
     setLoading(true);
     setHasSearched(true);
-    
+
     const { data, error } = await searchUsers(searchTerm, user.id);
-    
+
     if (error) {
       console.error('Error searching users:', error);
     } else if (data) {
       setResults(data);
     }
-    
+
     setLoading(false);
   }
 
@@ -66,7 +66,7 @@ export default function UserSearch() {
       <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
         🔍 Find Friends
       </h2>
-      
+
       {/* Search Input */}
       <div style={{ marginBottom: '20px' }}>
         <input
@@ -113,7 +113,7 @@ export default function UserSearch() {
           <p style={{ color: '#666', marginBottom: '15px' }}>
             Found {results.length} user{results.length !== 1 ? 's' : ''}
           </p>
-          
+
           {results.map((result) => (
             <div
               key={result.user_id}
@@ -165,13 +165,13 @@ export default function UserSearch() {
 
               {/* Follow Button */}
               <div onClick={(e) => e.stopPropagation()}>
-                <FollowButton 
+                <FollowButton
                   userId={result.user_id}
                   onFollowChange={(isFollowing) => {
                     // Update the search result to reflect new follow state
-                    setResults(prev => 
-                      prev.map(r => 
-                        r.user_id === result.user_id 
+                    setResults(prev =>
+                      prev.map(r =>
+                        r.user_id === result.user_id
                           ? { ...r, is_following: isFollowing }
                           : r
                       )
