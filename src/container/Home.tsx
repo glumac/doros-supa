@@ -44,7 +44,7 @@ const Home = () => {
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
-  });
+  }, []);
 
   const contextStuff = {
     inProgress: homeInProgress,
