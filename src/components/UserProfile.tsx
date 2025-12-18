@@ -53,9 +53,9 @@ const UserProfile = () => {
         <div className="relative flex flex-col mb-4">
           <div className="flex flex-col justify-center items-center">
             <img
-              className=" w-full h-340 2xl:h-510 shadow-lg object-cover"
-              src="https://source.unsplash.com/1600x900/?tomato"
-              alt="user-pic"
+              className="w-full h-56 2xl:h-80 shadow-lg object-cover"
+              src="/tomatoes-header.jpg"
+              alt="Profile banner"
             />
             <img
               className="rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
