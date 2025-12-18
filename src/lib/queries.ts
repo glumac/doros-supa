@@ -88,3 +88,94 @@ export async function getWeeklyLeaderboard() {
   const { data, error } = await supabase.rpc("get_global_leaderboard");
   return { data, error };
 }
+
+// ============================================
+// Following System Functions
+// ============================================
+
+// Get users I'm following
+export async function getFollowing(userId: string) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("following_id, users:following_id(*)")
+    .eq("follower_id", userId);
+
+  return { data, error };
+}
+
+// Get my followers
+export async function getFollowers(userId: string) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id, users:follower_id(*)")
+    .eq("following_id", userId);
+
+  return { data, error };
+}
+
+// Check if following a user
+export async function isFollowingUser(myUserId: string, theirUserId: string) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("id")
+    .eq("follower_id", myUserId)
+    .eq("following_id", theirUserId)
+    .maybeSingle();
+
+  return { isFollowing: !!data, error };
+}
+
+// Follow a user
+export async function followUser(myUserId: string, theirUserId: string) {
+  const { data, error } = await supabase
+    .from("follows")
+    .insert({ follower_id: myUserId, following_id: theirUserId });
+
+  return { data, error };
+}
+
+// Unfollow a user
+export async function unfollowUser(myUserId: string, theirUserId: string) {
+  const { error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", myUserId)
+    .eq("following_id", theirUserId);
+
+  return { error };
+}
+
+// Get global leaderboard (all users)
+export async function getGlobalLeaderboard() {
+  const { data, error } = await supabase.rpc("get_global_leaderboard");
+  return { data, error };
+}
+
+// Get friends leaderboard (followed users + self)
+export async function getFriendsLeaderboard(userId: string) {
+  const { data, error } = await supabase.rpc("get_friends_leaderboard", {
+    user_id: userId,
+  });
+  return { data, error };
+}
+
+// Search users by name
+export async function searchUsers(searchTerm: string, currentUserId: string) {
+  const { data, error } = await supabase.rpc("search_users", {
+    search_term: searchTerm,
+    current_user_id: currentUserId,
+  });
+  return { data, error };
+}
+
+// Get public user profile
+export async function getPublicUserProfile(
+  userId: string,
+  currentUserId: string | null
+) {
+  const { data, error } = await supabase.rpc("get_public_user_profile", {
+    profile_user_id: userId,
+    current_user_id: currentUserId,
+  });
+  return { data, error };
+}

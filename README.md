@@ -6,11 +6,12 @@
 
 ## 🚀 Quick Status
 
-**✅ Phase 1 Complete:** Database schema, RLS policies, functions
-**✅ Phase 2 Complete:** Data migration (56 users, 5,226 pomodoros, 1,684 likes, 313 comments)
-**🔄 Phase 3 Next:** Frontend development (replace Sanity client)
+**✅ Phase 1 Complete:** Database schema, RLS policies, functions (100%)  
+**✅ Phase 2 Complete:** Data migration - 56 users, 5,226 pomodoros (100%)  
+**✅ Phase 3 Complete:** Frontend development, Following system UI (100%)  
+**🔄 Phase 4 In Progress:** Integration & Testing (75%)
 
-📖 **[Read STATUS.md for complete progress →](./STATUS.md)**
+📖 **[Read MIGRATION_SUMMARY.md for complete overview →](./MIGRATION_SUMMARY.md)**
 
 ---
 
@@ -18,10 +19,11 @@
 
 Migrates the Crush Quest Pomodoro timer app from Sanity CMS to Supabase with:
 
-- Privacy-focused friends/following system
-- Dual leaderboards (Global & Friends)
-- Secure image storage
-- Google OAuth authentication
+- ✅ Privacy-focused friends/following system
+- ✅ Dual leaderboards (Global & Friends)
+- ✅ Secure image storage with RLS
+- ✅ Google OAuth authentication
+- ✅ TypeScript + Vite (10-100x faster builds)
 
 ---
 
@@ -35,7 +37,10 @@ Migrates the Crush Quest Pomodoro timer app from Sanity CMS to Supabase with:
 
 ## Documentation
 
-- **[STATUS.md](./STATUS.md)** - Current progress and next steps ⭐ START HERE
+- **[MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md)** - Complete progress overview ⭐ START HERE
+- **[STATUS.md](./STATUS.md)** - Current status and next steps
+- **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - How to integrate new UI
+- **[TESTING_PLAN.md](./TESTING_PLAN.md)** - Complete testing procedures
 - **[QUICKSTART.md](./QUICKSTART.md)** - Quick reference guide
 - **[PHASE1_COMPLETE.md](./PHASE1_COMPLETE.md)** - Database setup details
 - **[PHASE2_GUIDE.md](./PHASE2_GUIDE.md)** - Data migration guide

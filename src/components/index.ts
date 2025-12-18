@@ -8,3 +8,8 @@ export { default as Search } from "./Search";
 export { default as Login } from "./Login";
 export { default as Doros } from "./Doros";
 export { default as TimerStyled } from "./TimerStyled";
+export { default as FollowButton } from "./FollowButton";
+export { default as GlobalLeaderboard } from "./GlobalLeaderboard";
+export { default as FriendsLeaderboard } from "./FriendsLeaderboard";
+export { default as UserSearch } from "./UserSearch";
+export { default as LeaderboardTabs } from "./LeaderboardTabs";

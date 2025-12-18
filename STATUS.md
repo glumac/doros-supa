@@ -71,29 +71,31 @@ Images:     425 downloaded (pending upload to bucket)
 
 ## ⏳ PENDING MANUAL STEPS
 
-### Required Before Phase 3:
+### Required Before Phase 5:
 
-1. **Create Storage Bucket** ⚠️ NOT DONE YET
+1. **Integrate New UI Components** ⚠️ IN PROGRESS
 
+   **What to do:**
+   - Add routes for `/discover` (UserSearch page)
+   - Add routes for `/leaderboard` (LeaderboardTabs page)
+   - Update existing UserProfile to include FollowButton
+   - Optionally replace Sidebar leaderboard with LeaderboardTabs
+
+2. **Upload Migrated Images to Storage** ⏸️ OPTIONAL
    ```
-   Location: https://gwiwnpawhribxvjfxkiw.supabase.co
-   Path: Storage → New Bucket
-
-   Settings:
-   - Name: pomodoro-images
-   - Public: false
-   - Max file size: 5MB
-   - Allowed types: PNG, JPEG, JPG, GIF, WebP, HEIC
+   Location: migration-data/images/
+   Count: 425 images
+   Script: Upload script needs to be created
    ```
+   **Why:** To display historical images from Sanity migration
 
-   **Why:** Required for image uploads and displaying migrated images
-
-2. **Configure Google OAuth** ⏸️ OPTIONAL
+3. **Test Following System** ⚠️ REQUIRED
    ```
-   Location: Authentication → Providers → Google
-   Callback: https://gwiwnpawhribxvjfxkiw.supabase.co/auth/v1/callback
+   - Create test users
+   - Verify follow/unfollow works
+   - Check RLS policies (users see only followed content)
+   - Test leaderboard filtering
    ```
-   **Why:** Needed for user authentication in the app
 
 ---
 
@@ -108,26 +110,27 @@ Images:     425 downloaded (pending upload to bucket)
 - ✅ Feed displays with Supabase data
 - ✅ TypeScript compilation successful (no errors)
 - ✅ Data transformation layer removed
+- ✅ Storage bucket created (pomodoro-images)
+- ✅ Following system UI implemented (5 new components)
 
 **In Progress:**
 
 - 🔄 Manual feature testing (feed functional)
 - ⏳ RLS policy validation (pending)
-- ⏳ Image upload testing (requires storage bucket)
+- ⏳ Image upload testing (storage bucket ready)
 - ⏳ Performance testing (pending)
 - ⏳ User acceptance testing (pending)
 
 **Known Issues:**
 
-- ⚠️ Storage bucket not created (manual step required)
-- ⚠️ Following system UI not implemented yet
 - ℹ️ Minor CSS warnings (non-blocking)
+- ℹ️ Following system components created but not integrated into routing yet
 
 ---
 
 ## 📋 NEXT STEPS
 
-### Phase 3: Frontend Development ✅ 95% COMPLETE
+### Phase 3: Frontend Development ✅ 100% COMPLETE
 
 **Status:** December 17, 2025
 
@@ -142,13 +145,22 @@ Images:     425 downloaded (pending upload to bucket)
 - ✅ Fixed date validation in Doro.tsx
 - ✅ Fixed TypeScript errors in storage.ts
 - ✅ App renders successfully at http://localhost:5173/
+- ✅ Created storage bucket (pomodoro-images)
+- ✅ Built following system UI components (5 new components)
 
-**Remaining:**
+**New Components Created:**
 
-- ⏳ Build following system UI components
-- ⏳ Implement dual leaderboards (Global/Friends)
-- ⏳ Update image handling (requires storage bucket creation)
-- ⏳ Add user search and discovery features
+- ✅ `FollowButton.tsx` - Follow/unfollow toggle with state management
+- ✅ `GlobalLeaderboard.tsx` - All users ranked by completions
+- ✅ `FriendsLeaderboard.tsx` - Followed users + self
+- ✅ `UserSearch.tsx` - Search users by name with debouncing
+- ✅ `LeaderboardTabs.tsx` - Toggle between Global/Friends views
+
+**Remaining Integration:**
+
+- ⏳ Add routing for new components (UserSearch, Leaderboard pages)
+- ⏳ Update Sidebar to optionally use new LeaderboardTabs
+- ⏳ Create UserProfile page to display user stats + FollowButton
 
 **Files Updated:**
 
@@ -203,7 +215,7 @@ Images:     425 downloaded (pending upload to bucket)
 - [README.md](./README.md) - Full project overview
 - [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
 
-**Commands:**
+**Quick Links:**
 
 ```bash
 # Data migration (already done)
@@ -211,9 +223,23 @@ npm run migrate:export    # Export from Sanity
 npm run migrate:download  # Download images
 npm run migrate:import    # Import to Supabase
 
-# Storage setup (pending bucket creation)
+# Storage setup (already done)
 npm run setup:storage     # Create bucket via script
+
+# Development
+npm run dev              # Start dev server at http://localhost:5173/
+npm run build            # Production build
+npm run type-check       # TypeScript validation
 ```
+
+**Important Files:**
+
+- [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) - Complete progress overview
+- [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) - How to add new UI components
+- [TESTING_PLAN.md](./TESTING_PLAN.md) - Complete testing procedures
+- [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
+- [QUICKSTART.md](./QUICKSTART.md) - Quick reference
+- [README.md](./README.md) - Full project overview
 
 ---
 
@@ -228,23 +254,33 @@ npm run setup:storage     # Create bucket via script
 
 **Next Priority Tasks:**
 
-1. **Create storage bucket** in Supabase Dashboard
+1. **Integrate following system UI** (15-30 minutes)
+   - Add routes for `/discover` and `/leaderboard` in Home.tsx
+   - Add navigation links to Sidebar
+   - Add FollowButton to UserProfile component
+   - See: `INTEGRATION_GUIDE.md` for step-by-step instructions
 
-   - Name: `pomodoro-images`
-   - Settings: Private, 5MB max, image types only
-   - Apply RLS policies from migration plan
-
-2. **Implement following system UI:**
-
-   - Create FollowButton.tsx component
-   - Create GlobalLeaderboard.tsx (all users)
-   - Create FriendsLeaderboard.tsx (followed users)
-   - Add user search functionality
-
-3. **Test all features:**
+2. **Test following system** (2-3 hours)
+   - Create test user accounts (need 3+ Google accounts)
    - Verify RLS policies work correctly
-   - Test image uploads (after bucket creation)
-   - Validate privacy model (feed shows only followed users)
+   - Test follow/unfollow functionality
+   - Validate feed filtering (only shows followed users)
+   - See: `TESTING_PLAN.md` for complete test checklist
+
+3. **Upload migrated images** (optional, 1-2 hours)
+   - Create upload script for 425 images in migration-data/
+   - Upload to Supabase storage bucket
+   - Update pomodoro records with new image URLs
+
+4. **Performance testing & optimization**
+   - Monitor query performance in Supabase dashboard
+   - Optimize slow queries if needed
+   - Test with larger datasets
+
+**Documentation Created:**
+
+- ✅ `TESTING_PLAN.md` - Complete testing checklist and procedures
+- ✅ `INTEGRATION_GUIDE.md` - Step-by-step integration instructions
 
 **Everything is backed up:**
 
