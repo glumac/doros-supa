@@ -29,7 +29,7 @@ const TimerBanner = () => {
   return (
     <div
       onClick={() => navigate("/create-doro")}
-      className="bg-red-600 hover:bg-red-700 text-white py-3 px-4 mb-4 rounded-lg shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.01]"
+      className="bg-red-600 hover:bg-red-700 text-white py-3 px-4 mt-2 mb-4 rounded-lg shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.01]"
     >
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
