@@ -22,12 +22,7 @@ const UserProfile = () => {
 
     getUserProfile(userId).then(({ data, error }) => {
       if (data && !error) {
-        // Transform Supabase user to match User interface
-        setUser({
-          _id: data.id,
-          userName: data.user_name,
-          image: data.avatar_url || '',
-        } as User);
+        setUser(data);
       }
     });
   }, [userId]);
@@ -64,12 +59,12 @@ const UserProfile = () => {
             />
             <img
               className="rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
-              src={user?.image}
+              src={user?.avatar_url || ''}
               alt="user-pic"
             />
           </div>
           <h1 className=" text-green-700 font-medium text-5xl text-center mt-3">
-            {user?.userName}
+            {user?.user_name}
           </h1>
           <div className="text-red-600 p-2 flex justify-center items-center gap-3">
             {userId === authUser?.id ? (

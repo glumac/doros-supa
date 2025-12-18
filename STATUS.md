@@ -73,18 +73,20 @@ Images:     425 downloaded (pending upload to bucket)
 
 **App State:**
 
-- ✅ Running at http://localhost:5173/
+- ✅ Running at http://localhost:5174/
 - ✅ All core features migrated and functional
 - ✅ Following system UI integrated
-- ✅ UserSearch working (SQL fix applied)
+- ✅ UserSearch working at /discover
+- ✅ Leaderboards working at /leaderboard
 - ✅ TypeScript compilation clean
+- ✅ Ready for multi-user testing
 
 **Migration Progress:** 95% Complete
 
 - ✅ Phase 1: Database (100%)
 - ✅ Phase 2: Data Migration (100%)
 - ✅ Phase 3: Frontend (100%)
-- ⏳ Phase 4: Testing (0% - ready to begin)
+- 🧪 Phase 4: Testing (5% - ready to begin)
 - ⏳ Phase 5: Deployment (0% - pending)
 
 ---
@@ -125,96 +127,117 @@ Images:     425 downloaded (pending upload to bucket)
 
 ---
 
-### Phase 4: Testing ⏳ NEXT
+### Phase 4: Testing 🧪 IN PROGRESS
 
-- **Status:** Ready to Begin
+- **Status:** Ready to Begin Testing
 - **Priority:** Multi-user RLS testing
+- **Updated:** December 17, 2025
 
-**Ready to Test:**
+**Testing Environment:**
 
-- ✅ App running at http://localhost:5173/
-- ✅ Google OAuth working
-- ✅ Feed displaying data
-- ✅ Following system UI integrated
-- ✅ UserSearch functional
+- ✅ App running at http://localhost:5174/
+- ✅ TypeScript errors fixed
+- ✅ All components functional
+- ✅ Security advisors checked
+- ✅ Testing guide created
 
 **Testing Objectives:**
 
-1. **RLS Policy Validation** (Requires 3+ test users)
+1. **RLS Policy Validation** ⏳ (Requires 3+ Google accounts)
 
    - Verify feed shows only followed users' pomodoros
    - Test follow/unfollow immediately updates feed
    - Confirm users can't see unfollowed users' content
    - Validate likes/comments respect RLS
 
-2. **Following System Functionality**
+2. **Following System Functionality** ⏳
 
-   - Test UserSearch at /discover (working)
-   - Test LeaderboardTabs at /leaderboard (working)
+   - Test UserSearch at /discover
+   - Test LeaderboardTabs at /leaderboard
    - Verify FollowButton state management
    - Test follower/following counts
 
-3. **Image Upload & Storage**
+3. **Image Upload & Storage** ⏳
 
    - Test CreateDoro image upload
    - Verify storage RLS policies
    - Optional: Upload 425 migrated images
 
-4. **Performance Testing**
+4. **Performance Testing** ⏳
    - Monitor query performance in Supabase dashboard
    - Test with larger datasets
-   - Optimize slow queries if needed
+   - Address performance warnings if needed
 
-**Known Limitations:**
+**Resources Created:**
 
-- Leaderboards filter by current week (historical data won't show)
-- Storage bucket created but images not yet uploaded
+- ✅ [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Comprehensive test plan
+- ✅ [ADVISOR_REPORT.md](./ADVISOR_REPORT.md) - Security & performance analysis
+
+**Known Advisories:**
+
+- ⚠️ Security: Leaked password protection disabled (enable before production)
+- ⚠️ Performance: 15 RLS policies need optimization (non-critical)
+- ⚠️ Performance: Multiple permissive policies on pomodoros (can combine)
+- ℹ️ Performance: 2 unindexed foreign keys (minor impact)
+- ℹ️ Performance: 3 unused indexes (cleanup item)
+
+**See:** [ADVISOR_REPORT.md](./ADVISOR_REPORT.md) for full details and fixes
 
 ---
 
-## 📋 NEXT STEPS
+## 📋 NEXT STEPS - START TESTING NOW!
 
-### Immediate Priority: Multi-User Testing
+### 🧪 Phase 4: Multi-User Testing (Ready to Begin)
 
-**Required:** 3+ Google accounts for testing
+**What You Need:**
 
-**Test Plan:**
+- ✅ Dev server running at http://localhost:5174/
+- 📱 3+ Google accounts for testing
+- ⏱️ ~2 hours for comprehensive testing
 
-1. **Create Test Users** (15 minutes)
+**Step-by-Step Testing Process:**
+
+**See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for detailed instructions.**
+
+**Quick Test Sequence:**
+
+1. **RLS Validation** (45 min) - **CRITICAL**
 
    - Login with 3 different Google accounts
-   - Create 1-2 pomodoros per user (this week's data)
-   - Note: Historical data won't appear on leaderboards (weekly filter)
+   - Create fresh pomodoros (this week only shows on leaderboard)
+   - Test follow/unfollow feed filtering
+   - Verify privacy boundaries
 
-2. **Test Following System** (30 minutes)
+2. **Following System** (30 min)
 
-   - User A follows User B
-   - Verify User B's pomodoros appear in User A's feed
-   - User A unfollows User B
-   - Verify User B's pomodoros disappear from feed
-   - Test UserSearch at /discover
-   - Test Leaderboard at /leaderboard (Global & Friends tabs)
+   - Test /discover search
+   - Test /leaderboard tabs
+   - Verify FollowButton states
 
-3. **RLS Policy Validation** (30 minutes)
+3. **Image Upload** (20 min)
 
-   - Verify unfollowed users' content is hidden
-   - Test likes/comments on visible pomodoros only
-   - Confirm privacy model works correctly
+   - Test CreateDoro with images
+   - Verify storage RLS
 
-4. **Image Upload** (15 minutes)
-   - Test CreateDoro with image upload
-   - Verify storage RLS policies
-   - Check image display in feed
+4. **Core Features** (30 min)
 
-**Optional Tasks:**
+   - Test likes, comments, profiles
+   - Verify all CRUD operations
 
-- Upload 425 migrated images from migration-data/images/
-- Remove weekly filter from leaderboards to show historical data
-- Performance testing with larger datasets
+5. **Performance** (20 min)
+   - Monitor Supabase dashboard
+   - Check for slow queries
 
-**Reference:**
+**After Testing:**
 
-- See `plan-supabaseMigration.prompt.md` for complete migration roadmap
+✅ If all tests pass → Proceed to Phase 5 (Deployment)
+⚠️ If issues found → Document, fix, retest
+
+**Optional Optimizations:**
+
+- Enable leaked password protection (see [ADVISOR_REPORT.md](./ADVISOR_REPORT.md))
+- Optimize RLS policies (after testing complete)
+- Upload 425 historical images
 
 ---
 
@@ -245,7 +268,10 @@ Images:     425 downloaded (pending upload to bucket)
 ## 🔗 Quick Links
 
 **Documentation:**
+TESTING_GUIDE.md](./TESTING_GUIDE.md) - Phase 4 testing instructions
 
+- [ADVISOR_REPORT.md](./ADVISOR_REPORT.md) - Security & performance analysis
+- [
 - [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
 - [STATUS.md](./STATUS.md) - Current progress (this file)
 - [README.md](./README.md) - Project overview

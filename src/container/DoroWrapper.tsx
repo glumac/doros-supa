@@ -9,7 +9,7 @@ import {
   UserSearch,
   LeaderboardTabs
 } from "../components";
-import { User } from "../types/models";
+import type { User } from "../types/supabase";
 
 interface DoroWrapperProps {
   user: User | null;
