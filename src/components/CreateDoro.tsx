@@ -3,14 +3,15 @@ import { AiOutlineCloudUpload } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import { MdDelete } from "react-icons/md";
 import { format, previousMonday, nextSunday, isMonday } from "date-fns";
-import { client } from "../client";
+import { supabase } from "../lib/supabaseClient";
+import { uploadPomodoroImage, deletePomodoroImage } from "../lib/storage";
+import { getWeeklyLeaderboard } from "../lib/queries";
 import Spinner from "./Spinner";
 import whoosh from "../assets/whoosh.mp3";
 import DoroContext from "../utils/DoroContext";
 import { removeStyle } from "../utils/styleDefs";
 import TimerStyled from "./TimerStyled";
 import { GiTomato } from "react-icons/gi";
-import { lastWeek } from "../utils/data";
 import { User, Doro } from "../types/models";
 
 interface FormatTimeResult {
@@ -274,40 +275,18 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   };
 
-  const getUpdatedLeaders = () => {
-    client.fetch<Doro[]>(lastWeek).then((data) => {
-      // TO DO: not filter by date on the front end
-      const users = data.reduce((acc: Record<string, Leader>, curr) => {
-        let launchAt = new Date(curr.launchAt);
-        // console.log("coolDate", launchAt);
-        if (launchAt < getPreviousMonday()) {
-          // console.log("skipping");
-        } else {
-          // console.log("not skipping");
-          const posterId = curr.postedBy?._id;
-          if (posterId) {
-            if (!acc[posterId]) {
-              acc[posterId] = {
-                ...curr.postedBy,
-                count: 1,
-              };
-            } else {
-              acc[posterId].count++;
-            }
-          }
-        }
-
-        return acc;
-      }, {});
-
-      const usersArray = Object.values(users);
-
-      const sortedUsers = usersArray.sort((a, b) => {
-        return b.count - a.count;
-      });
-      // console.log("sortedUsers", sortedUsers);
-      doroContext.setLeaderBoard(sortedUsers);
-    });
+  const getUpdatedLeaders = async () => {
+    const { data, error } = await getWeeklyLeaderboard();
+    if (data && !error) {
+      // Transform Supabase data to match Leader interface
+      const leaders = data.map((item: any) => ({
+        _id: item.user_id,
+        userName: item.user_name,
+        image: item.avatar_url,
+        count: item.completion_count,
+      }));
+      doroContext.setLeaderBoard(leaders);
+    }
   };
 
   const clearAll = () => {
@@ -321,14 +300,14 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     setWrongImageType(false);
   };
 
-  const uploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
 
     if (!selectedFile) return;
 
     console.log("FILE TYPE", selectedFile.type);
 
-    // uploading asset to sanity
+    // uploading asset to Supabase Storage
     if (
       selectedFile.type === "image/png" ||
       selectedFile.type === "image/svg" ||
@@ -341,22 +320,25 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     ) {
       setWrongImageType(false);
       setLoading(true);
-      client.assets
-        .upload("image", selectedFile, {
-          contentType: selectedFile.type,
-          filename: selectedFile.name,
-        })
-        .then((document) => {
-          setImageAsset(document as SanityAsset);
-          setLoading(false);
-        })
-        .catch((error) => {
-          setLoading(false);
-          alert(
-            "Sorry, that image did not work. (Note: HEIC - some iPhone- images are not supported yet if you upload from a computer and not iPhone :/)"
-          );
-          console.log("Upload failed:", error.message);
-        });
+
+      if (!user?._id) {
+        setLoading(false);
+        alert("You must be logged in to upload images");
+        return;
+      }
+
+      const { imageUrl, error } = await uploadPomodoroImage(selectedFile, user._id);
+
+      if (error) {
+        setLoading(false);
+        alert(
+          "Sorry, that image did not work. (Note: HEIC - some iPhone- images are not supported yet if you upload from a computer and not iPhone :/)"
+        );
+        console.log("Upload failed:", error);
+      } else if (imageUrl) {
+        setImageAsset({ _id: imageUrl, url: imageUrl });
+        setLoading(false);
+      }
     } else {
       setLoading(false);
       setWrongImageType(true);
@@ -377,34 +359,34 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   };
 
-  const saveDoro = () => {
-    if (task) {
-      const doc = {
-        _type: "pomodoro",
-        launchAt,
-        task,
-        notes,
-        completed,
-        image: {
-          _type: "image",
-          asset: {
-            _type: "reference",
-            _ref: imageAsset?._id,
-          },
-        },
-        userId: user?._id,
-        postedBy: {
-          _type: "postedBy",
-          _ref: user?._id,
-        },
-      };
+  const saveDoro = async () => {
+    if (task && user?._id) {
       setSaving(true);
-      client.create(doc).then(() => {
+
+      try {
+        const { error } = await supabase.from("pomodoros").insert({
+          user_id: user._id,
+          launch_at: launchAt || new Date().toISOString(),
+          task,
+          notes: notes || null,
+          completed,
+          image_url: imageAsset?.url || null,
+        });
+
+        if (error) {
+          console.error("Error saving pomodoro:", error);
+          alert("Failed to save pomodoro. Please try again.");
+        } else {
+          await getUpdatedLeaders();
+          navigate("/");
+          clearAll();
+        }
+      } catch (error) {
+        console.error("Error saving pomodoro:", error);
+        alert("Failed to save pomodoro. Please try again.");
+      } finally {
         setSaving(false);
-        getUpdatedLeaders();
-        navigate("/");
-        clearAll();
-      });
+      }
     } else {
       setFields(true);
 

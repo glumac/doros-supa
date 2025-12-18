@@ -3,39 +3,43 @@ import './App.css';
 import { Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./container/Home";
 import Login from "./components/Login";
-import { GoogleOAuthProvider } from "@react-oauth/google";
+import { AuthProvider } from "./contexts/AuthContext";
+import { supabase } from "./lib/supabaseClient";
 
 function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userItem = localStorage.getItem("user");
-    const User =
-      userItem !== "undefined" && userItem
-        ? JSON.parse(userItem)
-        : null;
-
-    if (!User) {
-      localStorage.clear();
-      navigate("/login");
-    } else {
-      // get pomInProgress from localstorage
-      const pomInProgress = localStorage.getItem("timerState");
-      console.log("pomInProgress", pomInProgress);
-
-      if (pomInProgress) {
-        navigate('/create-doro');
+    // Check for Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/login");
+      } else {
+        // Check for timer in progress
+        const pomInProgress = localStorage.getItem("timerState");
+        if (pomInProgress) {
+          navigate('/create-doro');
+        }
       }
-    }
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session && window.location.pathname !== "/login") {
+        navigate("/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   return (
-      <GoogleOAuthProvider clientId={import.meta.env.REACT_APP_GOOGLE_API_TOKEN as string}>
+    <AuthProvider>
       <Routes>
         <Route path="login" element={<Login />} />
         <Route path="/*" element={<Home />} />
       </Routes>
-    </GoogleOAuthProvider>
+    </AuthProvider>
   );
 }
 

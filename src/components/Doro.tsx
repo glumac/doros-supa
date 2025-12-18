@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
 import { format, isToday } from "date-fns";
-import { client, urlFor } from "../client";
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
 
@@ -21,30 +22,18 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   const [addingComment, setAddingComment] = useState(false);
   const [comment, setComment] = useState("");
 
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
 
   const { postedBy, image, _id, task, notes, launchAt } = doro;
 
-  console.log("image", image);
+  const imageURL = image || doro.imageUrl || null;
 
-  const imageURL = image && image.asset ? urlFor(image).url() : null;
-
-  // console.log("doro", doro);
-
-  const userItem = localStorage.getItem("user");
-  const user: DecodedJWT | null =
-    userItem && userItem !== "undefined"
-      ? JSON.parse(userItem)
-      : localStorage.clear();
-
-  // console.log("user", user);
-  // console.log("likes", doro.likes);
-  // console.log("comments", doro.comments);
-
-  const deletePin = (id: string) => {
-    client.delete(id).then(() => {
-      if (reloadFeed) reloadFeed(true);
-    });
+  const deletePin = async (id: string) => {
+    const { error } = await supabase.from("pomodoros").delete().eq("id", id);
+    if (!error && reloadFeed) {
+      reloadFeed(true);
+    }
   };
 
   const toggleShowAddComment = () => {
@@ -58,102 +47,78 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   }, [showAddComment]);
 
   let alreadyLiked = doro?.likes?.filter(
-    (item) => item?.postedBy?._id === user?.sub
+    (item) => item?.user_id === authUser?.id
   ) || [];
 
   const hasLiked = alreadyLiked.length > 0;
 
-  const addLike = (id: string) => {
+  const addLike = async (id: string) => {
+    if (!authUser || hasLiked) return;
+
     console.log("adding like");
     setLikingDoro(true);
-    if (!hasLiked) {
-      client
-        .patch(id)
-        .setIfMissing({ likes: [] })
-        .insert("after", "likes[-1]", [
-          {
-            _key: uuidv4(),
-            userId: user?.sub,
-            postedBy: {
-              _type: "postedBy",
-              _ref: user?.sub,
-            },
-          },
-        ])
-        .commit()
-        .then(() => {
-          console.log("like added");
-          if (reloadFeed) reloadFeed(false);
-          setLikingDoro(false);
-        });
+
+    const { error } = await supabase.from("likes").insert({
+      pomodoro_id: id,
+      user_id: authUser.id,
+    });
+
+    if (!error) {
+      console.log("like added");
+      if (reloadFeed) reloadFeed(false);
     }
+    setLikingDoro(false);
   };
 
-  const removeLike = (id: string) => {
-    if (hasLiked && alreadyLiked.length > 0) {
-      setLikingDoro(true);
+  const removeLike = async (id: string) => {
+    if (!authUser || !hasLiked) return;
 
-      console.log("so cool", alreadyLiked);
+    setLikingDoro(true);
 
-      const firstLike = alreadyLiked[0];
-      if (!firstLike) return;
-      let likeKey = firstLike._key;
+    const { error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("pomodoro_id", id)
+      .eq("user_id", authUser.id);
 
-      console.log("id 🚜", id);
-
-      const likeToRemove = [`likes[_key=="${likeKey}"]`];
-      client
-        .patch(id)
-        .unset(likeToRemove)
-        .commit()
-        .then(() => {
-          console.log();
-          if (reloadFeed) reloadFeed(false);
-          setLikingDoro(false);
-        });
+    if (!error && reloadFeed) {
+      reloadFeed(false);
     }
+    setLikingDoro(false);
   };
 
-  const addComment = (id: string) => {
+  const addComment = async (id: string) => {
+    if (!authUser) return;
+
     console.log("adding comment start ✅");
     setAddingComment(true);
 
-    client
-      .patch(id)
-      .setIfMissing({ comments: [] })
-      .insert("after", "comments[-1]", [
-        {
-          _key: uuidv4(),
-          commentText: comment,
-          userId: user?.sub,
-          postedBy: {
-            _type: "postedBy",
-            _ref: user?.sub,
-          },
-        },
-      ])
-      .commit()
-      .then(() => {
-        console.log("comment added");
-        setAddingComment(false);
-        // this is corny AF. Pull in new data don't reload the page
-        if (reloadFeed) reloadFeed(false);
-        setComment("");
-      });
+    const { error } = await supabase.from("comments").insert({
+      pomodoro_id: id,
+      user_id: authUser.id,
+      comment_text: comment,
+    });
+
+    if (!error) {
+      console.log("comment added");
+      if (reloadFeed) reloadFeed(false);
+      setComment("");
+    }
+    setAddingComment(false);
   };
 
-  const deleteComment = (id: string, key: string) => {
+  const deleteComment = async (commentId: string) => {
     setAddingComment(true);
 
-    const commentToRemove = [`comments[_key=="${key}"]`];
-    client
-      .patch(id)
-      .unset(commentToRemove)
-      .commit()
-      .then(() => {
-        if (reloadFeed) reloadFeed(false);
-        setLikingDoro(false);
-      });
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (!error && reloadFeed) {
+      reloadFeed(false);
+    }
+    setAddingComment(false);
   };
 
   return (
@@ -179,7 +144,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
         </Link>
         <div className="flex justify-end items-center ">
           <div className="">
-            {postedBy?._id === user?.sub?.toString() && (
+            {postedBy?._id === authUser?.id && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -314,7 +279,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               <div>
                 {doro?.comments?.map((comment, index) => (
                   <div
-                    key={comment._key}
+                    key={comment.id || comment._key}
                     className="flex items-start gap-1.5 mb-1"
                   >
                     <div className="flex content-center shrink-0">
@@ -330,23 +295,23 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                       </Link>
                     </div>
                     <p>
-                      <span key="cool">{comment?.commentText}</span>
+                      <span key="cool">{comment?.commentText || comment?.comment_text}</span>
                       <span key="double-cool"> </span>
-                      {comment?.postedBy?._id === user?.sub?.toString() && (
+                      {comment?.postedBy?._id === authUser?.id && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteComment(_id, comment._key);
+                            deleteComment(comment.id || comment._key);
                           }}
-                          title="Delete Pomodoro"
+                          title="Delete Comment"
                           onMouseEnter={() =>
-                            setCommentDeleteHovered(comment._key)
+                            setCommentDeleteHovered(comment.id || comment._key)
                           }
                           onMouseLeave={() => setCommentDeleteHovered("")}
                           className="text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
                         >
-                          {comment._key === commentDeleteHovered ? (
+                          {(comment.id || comment._key) === commentDeleteHovered ? (
                             <AiTwotoneDelete />
                           ) : (
                             <AiOutlineDelete />

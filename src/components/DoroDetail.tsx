@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
-import { client, urlFor } from "../client";
-import { doroDetailQuery } from "../utils/data";
+import { supabase } from "../lib/supabaseClient";
+import { getPomodoroDetail } from "../lib/queries";
+import { useAuth } from "../contexts/AuthContext";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday } from "date-fns";
@@ -22,6 +23,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   const [addingComment, setAddingComment] = useState(false);
   const [deleteHovered, setDeleteHovered] = useState(false);
 
+  const { user: authUser } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     const title = document.getElementById("crush-title");
     if (title && doro?.task) {
@@ -29,114 +33,91 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
     }
   }, [doro]);
 
-  const navigate = useNavigate();
-
   let alreadyLiked = doro?.likes?.filter(
-    (item) => item?.postedBy?._id === user?._id
+    (item) => item?.user_id === authUser?.id
   ) || [];
 
   const hasLiked = alreadyLiked.length > 0;
 
-  const fetchDoroDetails = () => {
+  const fetchDoroDetails = async () => {
     if (!doroId) return;
 
-    const query = doroDetailQuery(doroId);
+    const { data, error } = await getPomodoroDetail(doroId);
 
-    if (query) {
-      client.fetch<Doro[]>(`${query}`).then((data) => {
-        setDoro(data[0]);
-        setAddingComment(false);
-        setLikingDoro(false);
-      });
+    if (data && !error) {
+      setDoro(data as unknown as Doro);
+      setAddingComment(false);
+      setLikingDoro(false);
     }
   };
 
-  const deletePin = (id: string) => {
-    client.delete(id).then(() => {
+  const deletePin = async (id: string) => {
+    const { error } = await supabase.from("pomodoros").delete().eq("id", id);
+    if (!error) {
       navigate("/");
-    });
+    }
   };
 
-  const deleteComment = (id: string, key: string) => {
-    const commentToRemove = [`comments[_key=="${key}"]`];
-    client
-      .patch(id)
-      .unset(commentToRemove)
-      .commit()
-      .then(() => {
-        fetchDoroDetails();
-      });
+  const deleteComment = async (commentId: string) => {
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (!error) {
+      fetchDoroDetails();
+    }
   };
 
   useEffect(() => {
     fetchDoroDetails();
   }, [doroId]);
 
-  const addLike = (id: string) => {
-    if (!hasLiked) {
-      setLikingDoro(true);
+  const addLike = async (id: string) => {
+    if (!authUser || hasLiked) return;
 
-      client
-        .patch(id)
-        .setIfMissing({ likes: [] })
-        .insert("after", "likes[-1]", [
-          {
-            _key: uuidv4(),
-            userId: user?._id,
-            postedBy: {
-              _type: "postedBy",
-              _ref: user?._id,
-            },
-          },
-        ])
-        .commit()
-        .then(() => {
-          fetchDoroDetails();
-        });
+    setLikingDoro(true);
+
+    const { error } = await supabase.from("likes").insert({
+      pomodoro_id: id,
+      user_id: authUser.id,
+    });
+
+    if (!error) {
+      fetchDoroDetails();
     }
   };
 
-  const removeLike = (id: string) => {
-    if (hasLiked && alreadyLiked.length > 0) {
-      setLikingDoro(true);
+  const removeLike = async (id: string) => {
+    if (!authUser || !hasLiked) return;
 
-      let likeKey = alreadyLiked[0]._key;
+    setLikingDoro(true);
 
-      console.log("id 🚜", id);
+    const { error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("pomodoro_id", id)
+      .eq("user_id", authUser.id);
 
-      const likeToRemove = [`likes[_key=="${likeKey}"]`];
-      client
-        .patch(id)
-        .unset(likeToRemove)
-        .commit()
-        .then(() => {
-          console.log();
-          fetchDoroDetails();
-        });
+    if (!error) {
+      fetchDoroDetails();
     }
   };
 
-  const addComment = () => {
-    if (comment && doroId) {
-      setAddingComment(true);
+  const addComment = async () => {
+    if (!authUser || !comment || !doroId) return;
 
-      console.log("comment");
+    setAddingComment(true);
 
-      client
-        .patch(doroId)
-        .setIfMissing({ comments: [] })
-        .insert("after", "comments[-1]", [
-          {
-            _key: uuidv4(),
-            commentText: comment,
-            postedBy: { _type: "postedBy", _ref: user?._id },
-          },
-        ])
-        .commit()
-        .then(() => {
-          fetchDoroDetails();
-          setComment("");
-        });
+    const { error } = await supabase.from("comments").insert({
+      pomodoro_id: doroId,
+      user_id: authUser.id,
+      comment_text: comment,
+    });
+
+    if (!error) {
+      fetchDoroDetails();
+      setComment("");
     }
   };
 
@@ -155,12 +136,12 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
           className="flex xl:flex-row flex-col m-auto rounded-3xl ptb-3 bg-white"
           style={{ maxWidth: "1500px" }}
         >
-          {doro?.image?.asset && (
+          {(doro?.image || doro?.imageUrl || doro?.image_url) && (
             <div className="flex justify-center items-center md:items-start flex-initial">
               <img
                 style={{ maxHeight: "600px" }}
                 className="rounded-lg self-center"
-                src={doro?.image && urlFor(doro?.image).url()}
+                src={doro?.image || doro?.imageUrl || doro?.image_url}
                 alt="user-post"
               />
             </div>
@@ -180,7 +161,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
               </Link>
 
               <div className="">
-                {doro.postedBy?._id === user?._id?.toString() && (
+                {doro.postedBy?._id === authUser?.id && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -307,7 +288,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     <div>
                       {doro?.comments?.map((comment, index) => (
                         <div
-                          key={comment._key}
+                          key={comment.id || comment._key}
                           className="flex items-start gap-1.5 mb-1"
                         >
                           <div className="flex content-center shrink-0">
@@ -323,24 +304,23 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                             </Link>
                           </div>
                           <p>
-                            <span key="cool">{comment?.commentText}</span>
+                            <span key="cool">{comment?.commentText || comment?.comment_text}</span>
                             <span key="double-cool"> </span>
-                            {comment?.postedBy?._id ===
-                              user?._id?.toString() && (
+                            {comment?.postedBy?._id === authUser?.id && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  deleteComment(doro._id, comment._key);
+                                  deleteComment(comment.id || comment._key);
                                 }}
-                                title="Delete Pomodoro"
+                                title="Delete Comment"
                                 onMouseEnter={() =>
-                                  setCommentDeleteHovered(comment._key)
+                                  setCommentDeleteHovered(comment.id || comment._key)
                                 }
                                 onMouseLeave={() => setCommentDeleteHovered("")}
                                 className="text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
                               >
-                                {comment._key === commentDeleteHovered ? (
+                                {(comment.id || comment._key) === commentDeleteHovered ? (
                                   <AiTwotoneDelete />
                                 ) : (
                                   <AiOutlineDelete />

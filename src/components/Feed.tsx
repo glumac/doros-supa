@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-
-import { client } from "../client";
-import { feedQuery, searchQuery } from "../utils/data";
+import { getFeed, searchPomodoros } from "../lib/queries";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
-import { Doro } from "../types/models";
 
 const Feed = () => {
-  const [doros, setDoros] = useState<Doro[]>();
+  const [doros, setDoros] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { categoryId } = useParams<{ categoryId?: string }>();
 
@@ -20,32 +17,33 @@ const Feed = () => {
   }, []);
 
   useEffect(() => {
-    getFeed();
+    fetchFeed();
   }, [categoryId]);
 
-  const getFeed = (showLoader = true) => {
-    // console.log("😛😛😛😛😛😛😛😛😛😛");
-    if (categoryId) {
-      // console.log("category id 😛😛😛😛😛😛😛😛😛😛");
+  const fetchFeed = async (showLoader = true) => {
+    if (showLoader) {
+      setLoading(true);
+    }
 
-      if (showLoader) {
-        setLoading(true);
-      }
-      const query = searchQuery(categoryId);
-      client.fetch<Doro[]>(query).then((data) => {
-        setDoros(data);
-        setLoading(false);
-      });
-    } else {
-      if (showLoader) {
-        setLoading(true);
+    try {
+      let result;
+      if (categoryId) {
+        // Search by category/term
+        result = await searchPomodoros(categoryId);
+      } else {
+        // Get main feed
+        result = await getFeed(20);
       }
 
-      client.fetch<Doro[]>(feedQuery).then((data) => {
-        // console.log("feed data 😛", data);
-        setDoros(data);
-        setLoading(false);
-      });
+      if (result.data) {
+        setDoros(result.data);
+      } else if (result.error) {
+        console.error("Error fetching feed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching feed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,7 +54,7 @@ const Feed = () => {
       </div>
     );
   }
-  return <div>{doros && <Doros doros={doros} reloadFeed={getFeed} />}</div>;
+  return <div>{doros && <Doros doros={doros} reloadFeed={fetchFeed} />}</div>;
 };
 
 export default Feed;

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { useParams, useNavigate } from "react-router-dom";
-import { googleLogout } from "@react-oauth/google";
-
-import { userCreatedDorosQuery, userQuery } from "../utils/data";
-import { client } from "../client";
+import { supabase } from "../lib/supabaseClient";
+import { getUserProfile, getUserPomodoros } from "../lib/queries";
+import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
@@ -15,20 +14,20 @@ const UserProfile = () => {
   const [doros, setDoros] = useState<Doro[]>();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-
-  const userItem = localStorage.getItem("user");
-  const User: DecodedJWT | null =
-    userItem && userItem !== "undefined"
-      ? JSON.parse(userItem)
-      : localStorage.clear();
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     if (!userId) return;
 
-    const query = userQuery(userId);
-    client.fetch<User[]>(query).then((data) => {
-      console.log("data", data);
-      setUser(data[0]);
+    getUserProfile(userId).then(({ data, error }) => {
+      if (data && !error) {
+        // Transform Supabase user to match User interface
+        setUser({
+          _id: data.id,
+          userName: data.user_name,
+          image: data.avatar_url || '',
+        } as User);
+      }
     });
   }, [userId]);
 
@@ -36,19 +35,17 @@ const UserProfile = () => {
     getDoros();
   }, [userId]);
 
-  const getDoros = () => {
+  const getDoros = async () => {
     if (!userId) return;
 
-    const createdDorosQuery = userCreatedDorosQuery(userId);
-
-    client.fetch<Doro[]>(createdDorosQuery).then((data) => {
-      setDoros(data);
-    });
+    const { data, error } = await getUserPomodoros(userId);
+    if (data && !error) {
+      setDoros(data as unknown as Doro[]);
+    }
   };
 
-  const logout = () => {
-    localStorage.clear();
-    googleLogout();
+  const logout = async () => {
+    await supabase.auth.signOut();
     navigate("/login");
   };
 
@@ -74,7 +71,7 @@ const UserProfile = () => {
             {user?.userName}
           </h1>
           <div className="text-red-600 p-2 flex justify-center">
-            {userId === User?.sub && (
+            {userId === authUser?.id && (
               <div>
                 <button
                   type="button"

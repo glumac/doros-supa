@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import Doros from "./Doros";
-import { client } from "../client";
-import { feedQuery, searchQuery } from "../utils/data";
+import { getFeed, searchPomodoros } from "../lib/queries";
 import Spinner from "./Spinner";
 import { Doro } from "../types/models";
 
@@ -15,19 +14,23 @@ const Search = ({ searchTerm }: SearchProps) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (searchTerm !== "") {
+    const fetchResults = async () => {
       setLoading(true);
-      const query = searchQuery(searchTerm.toLowerCase());
-      client.fetch<Doro[]>(query).then((data) => {
-        setPins(data);
-        setLoading(false);
-      });
-    } else {
-      client.fetch<Doro[]>(feedQuery).then((data) => {
-        setPins(data);
-        setLoading(false);
-      });
-    }
+
+      let result;
+      if (searchTerm !== "") {
+        result = await searchPomodoros(searchTerm.toLowerCase());
+      } else {
+        result = await getFeed(20);
+      }
+
+      if (result.data && !result.error) {
+        setPins(result.data as unknown as Doro[]);
+      }
+      setLoading(false);
+    };
+
+    fetchResults();
   }, [searchTerm]);
 
   return (

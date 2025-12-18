@@ -3,16 +3,15 @@ import { HiMenu } from "react-icons/hi";
 import { AiFillCloseCircle } from "react-icons/ai";
 import { Link, Route, Routes } from "react-router-dom";
 import { Sidebar, UserProfile } from "../components";
-import { userQuery } from "../utils/data";
-import { client } from "../client";
 import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
-import { User } from "../types/models";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 
-interface UserInfo {
-  sub: string;
-  name: string;
-  picture: string;
+interface SupabaseUser {
+  id: string;
+  user_name: string;
+  avatar_url: string;
   email: string;
 }
 
@@ -20,28 +19,28 @@ const Home = () => {
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const [homeInProgress, setHomeInProgress] = useState(false);
   const [homeLeaderBoard, setHomeLeaderBoard] = useState<any[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<SupabaseUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const userInfo: UserInfo | null =
-    localStorage.getItem("user") !== "undefined" && localStorage.getItem("user")
-      ? JSON.parse(localStorage.getItem("user")!)
-      : null;
+  const { user: authUser, loading } = useAuth();
 
   useEffect(() => {
-    if (!userInfo) {
-      localStorage.clear();
-      return;
-    }
+    if (!authUser || loading) return;
 
-    const query = userQuery(userInfo.sub);
+    // Fetch user profile from Supabase
+    const fetchUserProfile = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
 
-    client.fetch(query).then((data: User[]) => {
-      if (data[0]) {
-        setUser(data[0]);
+      if (data && !error) {
+        setUserProfile(data as SupabaseUser);
       }
-    });
-  }, []);
+    };
+
+    fetchUserProfile();
+  }, [authUser, loading]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
@@ -53,6 +52,21 @@ const Home = () => {
     leaderBoard: homeLeaderBoard,
     setLeaderBoard: setHomeLeaderBoard,
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Create a user object compatible with old components (temporary)
+  const user = userProfile ? {
+    _id: userProfile.id,
+    userName: userProfile.user_name,
+    image: userProfile.avatar_url,
+  } : null;
 
   return (
     <div>

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
-import { client } from "../client";
+import { getWeeklyLeaderboard } from "../lib/queries";
 import { RiHomeFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
-import { lastWeek } from "../utils/data";
 import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { GiTomato } from "react-icons/gi";
 import DoroContext from "../utils/DoroContext";
@@ -60,43 +59,18 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   useEffect(() => {
     setLoading(true);
 
-    client.fetch<Doro[]>(lastWeek).then((data) => {
-      // console.log("data", data);
-      setWeekDoros(data);
-      setLoading(false);
+    getWeeklyLeaderboard().then(({ data, error }) => {
+      if (data && !error) {
+        // Transform Supabase data to match Leader interface
+        const leaders = data.map((item: any) => ({
+          _id: item.user_id,
+          userName: item.user_name,
+          image: item.avatar_url,
+          count: item.completion_count,
+        }));
 
-      // TO DO: not filter by date on the front end
-      const users = data.reduce((acc: Record<string, Leader>, curr) => {
-        let launchAt = new Date(curr.launchAt);
-        // console.log("coolDate", launchAt);
-        if (launchAt < lastMonday) {
-          // console.log("skipping");
-        } else {
-          // console.log("not skipping");
-          const posterId = curr.postedBy?._id;
-          if (posterId) {
-            if (!acc[posterId]) {
-              acc[posterId] = {
-                ...curr.postedBy,
-                count: 1,
-              };
-            } else {
-              acc[posterId].count++;
-            }
-          }
-        }
-
-        return acc;
-      }, {});
-
-      const usersArray = Object.values(users);
-
-      const sortedUsers = usersArray.sort((a, b) => {
-        return b.count - a.count;
-      });
-
-      // console.log("sortedUsers", sortedUsers);
-      doroContext.setLeaderBoard(sortedUsers);
+        doroContext.setLeaderBoard(leaders);
+      }
       setLoading(false);
     });
   }, [user]);
