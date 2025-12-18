@@ -36,6 +36,7 @@ const Feed = () => {
       }
 
       if (result.data) {
+        // Use Supabase data directly (no transformation needed)
         setDoros(result.data);
       } else if (result.error) {
         console.error("Error fetching feed:", result.error);

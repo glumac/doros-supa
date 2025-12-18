@@ -25,9 +25,9 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
 
-  const { postedBy, image, _id, task, notes, launchAt } = doro;
+  const { users, id, task, notes, launch_at, image_url } = doro;
 
-  const imageURL = image || doro.imageUrl || null;
+  const imageURL = image_url || null;
 
   const deletePin = async (id: string) => {
     const { error } = await supabase.from("pomodoros").delete().eq("id", id);
@@ -125,7 +125,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
     <div className="my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
       <div className="flex justify-between items-center relative">
         <Link
-          to={`/user-profile/${postedBy?._id}`}
+          to={`/user-profile/${users?.id}`}
           className="items-center relative z-10"
           // write react style to scale to 102% on hover
         >
@@ -133,23 +133,23 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
             <div className="w-10">
               <img
                 className="w-8 h-8 rounded-full object-cover block"
-                src={postedBy?.image}
+                src={users?.avatar_url || ''}
                 alt="user-profile"
               />
             </div>
             <p className="text-green-700 font-bold text-lg relative items-center hover:shadow-md hover:text-green-800">
-              {postedBy?.userName}
+              {users?.user_name}
             </p>
           </div>
         </Link>
         <div className="flex justify-end items-center ">
           <div className="">
-            {postedBy?._id === authUser?.id && (
+            {users?.id === authUser?.id && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  deletePin(_id);
+                  deletePin(id);
                 }}
                 title="Delete Pomodoro"
                 onMouseEnter={() => setDeleteHovered(true)}
@@ -161,14 +161,16 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
             )}
           </div>
           <p>
-            {isToday(new Date(launchAt))
-              ? `Today ${format(new Date(launchAt), "h:mm a")}`
-              : format(new Date(launchAt), "MMM dd h:mm a")}
+            {launch_at && new Date(launch_at).toString() !== 'Invalid Date'
+              ? isToday(new Date(launch_at))
+                ? `Today ${format(new Date(launch_at), "h:mm a")}`
+                : format(new Date(launch_at), "MMM dd h:mm a")
+              : 'Date unavailable'}
           </p>
         </div>
       </div>
       <Link
-        to={`/doro-detail/${_id}`}
+        to={`/doro-detail/${id}`}
         className="before:content before:absolute before:top-0 before:left-0 before:w-full before:h-full before:rounded-3xl"
       >
         <div className="gap-2 mt-6 sm:block md:flex justify-between mb-4 md:mb-0">
@@ -215,11 +217,11 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               <div className="mt-1.5">
                 <div className="flex gap-0.5">
                   {doro?.likes?.map((like, index) => (
-                    <div key={like.postedBy?.image}>
-                      <Link to={`user-profile/${like.postedBy?._id}`}>
+                    <div key={like.id}>
+                      <Link to={`user-profile/${like.users?.id}`}>
                         <img
                           className="w-5 h-5 mr-0.5 rounded-full object-cover block relative"
-                          src={like?.postedBy?.image}
+                          src={like.users?.avatar_url || ''}
                           alt="user-profile"
                         />
                       </Link>
@@ -238,7 +240,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                removeLike(_id);
+                removeLike(id);
               }}
               className={removeStyle}
             >
@@ -248,7 +250,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                addLike(_id);
+                addLike(id);
               }}
               type="button"
               disabled={likingDoro}
@@ -279,39 +281,39 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               <div>
                 {doro?.comments?.map((comment, index) => (
                   <div
-                    key={comment.id || comment._key}
+                    key={comment.id}
                     className="flex items-start gap-1.5 mb-1"
                   >
                     <div className="flex content-center shrink-0">
                       <Link
-                        to={`/user-profile/${comment?.postedBy?._id}`}
+                        to={`/user-profile/${comment.users?.id}`}
                         className="items-center"
                       >
                         <img
                           className="w-4 h-4 rounded-full object-cover block relative top-1"
-                          src={comment?.postedBy?.image}
+                          src={comment.users?.avatar_url || ''}
                           alt="user-profile"
                         />
                       </Link>
                     </div>
                     <p>
-                      <span key="cool">{comment?.commentText || comment?.comment_text}</span>
+                      <span key="cool">{comment.comment_text}</span>
                       <span key="double-cool"> </span>
-                      {comment?.postedBy?._id === authUser?.id && (
+                      {comment.users?.id === authUser?.id && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteComment(comment.id || comment._key);
+                            deleteComment(comment.id);
                           }}
                           title="Delete Comment"
                           onMouseEnter={() =>
-                            setCommentDeleteHovered(comment.id || comment._key)
+                            setCommentDeleteHovered(comment.id)
                           }
                           onMouseLeave={() => setCommentDeleteHovered("")}
                           className="text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
                         >
-                          {(comment.id || comment._key) === commentDeleteHovered ? (
+                          {comment.id === commentDeleteHovered ? (
                             <AiTwotoneDelete />
                           ) : (
                             <AiOutlineDelete />
@@ -330,11 +332,11 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
           className={showAddComment ? removeStyle : addStyle}
           aria-expanded={showAddComment}
           onClick={toggleShowAddComment}
-          aria-controls={`${doro._id}-commenting`}
+          aria-controls={`${doro.id}-commenting`}
         >
           {showAddComment ? "Cancel Comment" : "Comment"}
         </button>
-        <div id={`${doro._id}-commenting`}>
+        <div id={`${doro.id}-commenting`}>
           {showAddComment && (
             <div className="flex items-end">
               <textarea
@@ -346,11 +348,11 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addComment(_id);
+                  addComment(id);
                 }}
                 disabled={comment?.length === 0 || addingComment}
                 type="button"
-                className="relative bg-red-600 text-white font-bold py-0.5 text-base rounded-lg transition hover:shadow-md outline-none disabled:opacity-70 px-3 py-0.5 text-base rounded-lg hover:shadow-md outline-none"
+                className="relative bg-red-600 text-white font-bold py-0.5 text-base rounded-lg transition hover:shadow-md outline-none disabled:opacity-70 px-3"
               >
                 {addingComment ? "Submitting" : "Submit"}
               </button>

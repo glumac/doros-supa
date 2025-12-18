@@ -29,6 +29,7 @@ export async function deletePomodoroImage(imageUrl: string) {
   if (urlParts.length < 2) return { error: new Error("Invalid image URL") };
 
   const filePath = urlParts[1];
+  if (!filePath) return { error: new Error("Invalid file path") };
 
   const { error } = await supabase.storage
     .from("pomodoro-images")
