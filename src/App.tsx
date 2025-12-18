@@ -14,13 +14,9 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate("/login");
-      } else {
-        // Check for timer in progress
-        const pomInProgress = localStorage.getItem("timerState");
-        if (pomInProgress) {
-          navigate('/create-doro');
-        }
       }
+      // Removed automatic navigation to create-doro
+      // Users can see the timer banner and click to go back if needed
     });
 
     // Listen for auth state changes

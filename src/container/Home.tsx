@@ -23,6 +23,15 @@ const Home = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user: authUser, loading } = useAuth();
 
+  // Timer state
+  const [timerState, setTimerState] = useState<any>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [task, setTask] = useState('');
+  const [launchAt, setLaunchAt] = useState<string | null>(null);
+  const [completed, setCompleted] = useState(false);
+
   useEffect(() => {
     if (!authUser || loading) return;
 
@@ -46,11 +55,58 @@ const Home = () => {
     scrollRef.current?.scrollTo(0, 0);
   }, []);
 
+  // Initialize timer state from localStorage
+  useEffect(() => {
+    const savedStateStr = localStorage.getItem("timerState");
+    if (savedStateStr) {
+      const savedState = JSON.parse(savedStateStr);
+      const { endTime, pausedTimeLeft, isPaused: wasPaused, launchAt: savedLaunchAt, task: savedTask } = savedState;
+
+      // Check if timer has expired but wasn't marked as completed
+      if (endTime && endTime < Date.now() && !wasPaused) {
+        setLaunchAt(savedLaunchAt);
+        setTask(savedTask);
+        setCompleted(true);
+        setHomeInProgress(false);
+        return;
+      }
+
+      setTimerState(savedState);
+      setHomeInProgress(true);
+      setLaunchAt(savedLaunchAt);
+      setTask(savedTask);
+
+      if (wasPaused && pausedTimeLeft) {
+        setTimeLeft(pausedTimeLeft);
+        setIsPaused(true);
+        setIsActive(true);
+      } else if (endTime && endTime > Date.now()) {
+        setIsActive(true);
+        setIsPaused(false);
+        setTimeLeft(endTime - Date.now());
+      }
+    }
+  }, []);
+
   const contextStuff = {
     inProgress: homeInProgress,
     setInProgress: setHomeInProgress,
     leaderBoard: homeLeaderBoard,
     setLeaderBoard: setHomeLeaderBoard,
+    timerState,
+    setTimerState,
+    isActive,
+    setIsActive,
+    isPaused,
+    setIsPaused,
+    timeLeft,
+    setTimeLeft,
+    task,
+    setTask,
+    launchAt,
+    setLaunchAt,
+    completed,
+    setCompleted,
   };
 
   if (loading) {

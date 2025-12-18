@@ -7,7 +7,8 @@ import {
   CreateDoro,
   Search,
   UserSearch,
-  LeaderboardTabs
+  LeaderboardTabs,
+  TimerBanner
 } from "../components";
 import type { User } from "../types/supabase";
 
@@ -20,6 +21,7 @@ const DoroWrapper = ({ user }: DoroWrapperProps) => {
 
   return (
     <div className="px-2 md:px-5">
+      <TimerBanner />
       <div className="">
         <Navbar
           searchTerm={searchTerm}

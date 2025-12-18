@@ -57,24 +57,22 @@ const formatTime = (ms: number | null): FormatTimeResult => {
 };
 
 const CreateDoro = ({ user }: CreateDoroProps) => {
-  const [task, setTask] = useState("");
-  const [launchAt, setLaunchAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState("");
   const [fields, setFields] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [imageAsset, setImageAsset] = useState<SanityAsset | null>(null);
   const [wrongImageType, setWrongImageType] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [isActive, setIsActive] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
   const navigate = useNavigate();
 
   const title = document.getElementById("crush-title");
 
   const doroContext = useContext(DoroContext);
+
+  // Use context state instead of local state
+  const { task, setTask, launchAt, setLaunchAt, completed, setCompleted,
+          timeLeft, setTimeLeft, isActive, setIsActive, isPaused, setIsPaused } = doroContext;
 
   useEffect(() => {
     console.log("doroContext.inProgress", doroContext.inProgress);
@@ -83,7 +81,13 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   }, [doroContext.inProgress]);
 
+  // Only restore state if not already initialized by Home component
   useEffect(() => {
+    // Skip if already initialized from context
+    if (doroContext.inProgress || isActive || completed) {
+      return;
+    }
+
     // Check for saved timer state on mount
     const savedStateStr = localStorage.getItem("timerState");
     if (savedStateStr) {
@@ -262,7 +266,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+  }, [doroContext, setTask, setLaunchAt, setCompleted, setTimeLeft, setIsPaused, setIsActive]);
 
   const getPreviousMonday = () => {
     const today = new Date();
@@ -298,6 +302,10 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     setCompleted(false);
     setImageAsset(null);
     setWrongImageType(false);
+    setIsActive(false);
+    setIsPaused(false);
+    setTimeLeft(null);
+    doroContext.setInProgress(false);
   };
 
   const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
