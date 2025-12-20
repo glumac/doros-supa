@@ -8,6 +8,7 @@ import { GiTomato } from "react-icons/gi";
 import DoroContext from "../utils/DoroContext";
 import { removeStyle } from "../utils/styleDefs";
 import { User, Doro } from "../types/models";
+import CompactLeaderboard from "./CompactLeaderboard";
 
 const isNotActiveStyle =
   "flex items-center px-5 gap-3 text-slate-500 hover:text-green-800 transition-all duration-200 ease-in-out capitalize";
@@ -140,25 +141,13 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
           </div>
 
           <div>
-            <NavLink
-              to="/leaderboard"
-              className={({ isActive }) =>
-                isActive ? isActiveStyle : isNotActiveStyle
-              }
-              onClick={handleCloseSidebar}
-            >
-              🏆 Leaderboard
-            </NavLink>
-          </div>
-
-          <div>
             <h3 className="mt-2 px-5 font-semibold text-base 2xl:text-xl">
               This Week's Leaders
             </h3>
 
             <div>
               {lastMonday && (
-                <p className="px-5 text-xs font-bold text-slate-600">
+                <p className="px-5 text-xs font-bold text-slate-600 mb-2">
                   {format(lastMonday, "EE M/dd")} -{" "}
                   {format(upcomingSunday, "EE M/dd")}
                 </p>
@@ -166,38 +155,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             </div>
           </div>
 
-          <div>
-            {Array.isArray(doroContext?.leaderBoard) &&
-              doroContext?.leaderBoard?.slice(0, 10).map((leader) => (
-                <Link
-                  to={`user-profile/${leader?._id}`}
-                  key={leader?._id}
-                  onClick={handleCloseSidebar}
-                  className="flex gap-2 px-2 py-1 font-bold items-center mx-3 transition text-green-700 hover:text-green-800 transition-all duration-200 ease-in-out"
-                >
-                  <img
-                    src={leader?.image}
-                    className="w-8 h-8 rounded-full basis-3"
-                    alt="user-profile"
-                  />
-                  <div className="flex justify-between basis-full">
-                    <p>{leader?.userName}</p>
-                    <p className="font-medium text-slate-800 ">
-                      {leader?.count}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-          </div>
-
-          {Array.isArray(doroContext?.leaderBoard) &&
-            doroContext?.leaderBoard.length === 0 && (
-              <div className="text-xs text-center border-2 border-green-200 mx-3 p-2">
-                Fresh week!
-                <br />
-                Be the first to start a doro!
-              </div>
-            )}
+          <CompactLeaderboard closeToggle={closeToggle} />
         </div>
       </div>
       {user && (

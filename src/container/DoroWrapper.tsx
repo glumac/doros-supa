@@ -7,7 +7,6 @@ import {
   CreateDoro,
   Search,
   UserSearch,
-  LeaderboardTabs,
   TimerBanner
 } from "../components";
 import type { User } from "../types/supabase";
@@ -49,10 +48,6 @@ const DoroWrapper = ({ user }: DoroWrapperProps) => {
           <Route
             path="/discover"
             element={<UserSearch />}
-          />
-          <Route
-            path="/leaderboard"
-            element={<LeaderboardTabs />}
           />
         </Routes>
       </div>

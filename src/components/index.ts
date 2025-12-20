@@ -13,4 +13,5 @@ export { default as GlobalLeaderboard } from "./GlobalLeaderboard";
 export { default as FriendsLeaderboard } from "./FriendsLeaderboard";
 export { default as UserSearch } from "./UserSearch";
 export { default as LeaderboardTabs } from "./LeaderboardTabs";
+export { default as CompactLeaderboard } from "./CompactLeaderboard";
 export { default as TimerBanner } from "./TimerBanner";
