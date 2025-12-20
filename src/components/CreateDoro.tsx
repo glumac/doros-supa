@@ -118,37 +118,12 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   }, []);
 
+  // Timer completion handler
   useEffect(() => {
-    if (!isActive || isPaused) return;
-
-    const interval = setInterval(() => {
-      const savedStateStr = localStorage.getItem("timerState");
-      if (!savedStateStr) {
-        setIsActive(false);
-        return;
-      }
-
-      const savedState: TimerState = JSON.parse(savedStateStr);
-      if (!savedState.endTime) {
-        setIsActive(false);
-        return;
-      }
-
-      const endTime = parseInt(savedState.endTime.toString());
-      const now = Date.now();
-      const remaining = endTime - now;
-
-      if (remaining <= 0) {
-        setIsActive(false);
-        // localStorage.removeItem("timerState");
-        finishDoro();
-        // Handle timer completion
-      } else {
-        setTimeLeft(remaining);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isActive, isPaused]);
+    if (completed && isActive === false && doroContext.inProgress === false) {
+      finishDoro();
+    }
+  }, [completed, isActive, doroContext.inProgress]);
 
   useEffect(() => {
     if (!isActive || !title) return;

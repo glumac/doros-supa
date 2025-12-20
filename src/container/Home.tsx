@@ -88,6 +88,39 @@ const Home = () => {
     }
   }, []);
 
+  // Timer countdown interval - runs globally
+  useEffect(() => {
+    if (!isActive || isPaused) return;
+
+    const interval = setInterval(() => {
+      const savedStateStr = localStorage.getItem("timerState");
+      if (!savedStateStr) {
+        setIsActive(false);
+        return;
+      }
+
+      const savedState = JSON.parse(savedStateStr);
+      if (!savedState.endTime) {
+        setIsActive(false);
+        return;
+      }
+
+      const endTime = parseInt(savedState.endTime.toString());
+      const now = Date.now();
+      const remaining = endTime - now;
+
+      if (remaining <= 0) {
+        setIsActive(false);
+        setHomeInProgress(false);
+        setCompleted(true);
+        // Timer completion logic moved here from CreateDoro
+      } else {
+        setTimeLeft(remaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isActive, isPaused]);
+
   const contextStuff = {
     inProgress: homeInProgress,
     setInProgress: setHomeInProgress,
