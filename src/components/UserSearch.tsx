@@ -102,7 +102,7 @@ export default function UserSearch() {
       {/* No Results */}
       {!loading && hasSearched && results.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p style={{ fontSize: '18px', marginBottom: '10px' }}>😕 No users found</p>
+          <p style={{ fontSize: '18px', marginBottom: '10px' }}>😕 No users found matching "{searchTerm}"</p>
           <p>Try a different search term</p>
         </div>
       )}

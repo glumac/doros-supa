@@ -20,6 +20,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+export { AuthContext }; // Export for testing
+
 export function useAuth() {
   return useContext(AuthContext);
 }

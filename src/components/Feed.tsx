@@ -55,6 +55,15 @@ const Feed = () => {
       </div>
     );
   }
+
+  if (doros.length === 0) {
+    return (
+      <div className="text-center mt-12 text-gray-600">
+        <p>No pomodoros found</p>
+      </div>
+    );
+  }
+
   return <div>{doros && <Doros doros={doros} reloadFeed={fetchFeed} />}</div>;
 };
 
