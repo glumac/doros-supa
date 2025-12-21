@@ -53,8 +53,15 @@ export async function getUserProfile(userId: string) {
 }
 
 // User's pomodoros query
-export async function getUserPomodoros(userId: string) {
-  const { data, error } = await supabase
+export async function getUserPomodoros(
+  userId: string,
+  page: number = 1,
+  pageSize: number = 20
+) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("pomodoros")
     .select(
       `
@@ -62,13 +69,15 @@ export async function getUserPomodoros(userId: string) {
       users:user_id (*),
       likes (id, user_id, users:user_id (id, user_name)),
       comments (id, comment_text, user_id, users:user_id (id, user_name))
-    `
+    `,
+      { count: "exact" }
     )
     .eq("user_id", userId)
     .eq("completed", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-  return { data, error };
+  return { data, error, count };
 }
 
 // Search query

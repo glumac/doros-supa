@@ -157,7 +157,8 @@ describe('UserProfile', () => {
     });
     vi.mocked(queries.getUserPomodoros).mockResolvedValue({
       data: mockDoros,
-      error: null
+      error: null,
+      count: 1
     });
 
     renderWithRouter('user-123');
@@ -174,13 +175,260 @@ describe('UserProfile', () => {
     });
     vi.mocked(queries.getUserPomodoros).mockResolvedValue({
       data: [],
-      error: null
+      error: null,
+      count: 0
     });
 
     renderWithRouter('user-123');
 
     await waitFor(() => {
       expect(screen.getByText(/no pomodoros found/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Pagination', () => {
+    const createMockDorosArray = (count: number) => {
+      return Array.from({ length: count }, (_, i) => ({
+        id: `doro-${i + 1}`,
+        task: `Task ${i + 1}`,
+        notes: `Notes ${i + 1}`,
+        launch_at: '2024-01-15T10:00:00Z',
+        completed: true,
+        image_url: null,
+        user_id: 'user-123',
+        created_at: '2024-01-15T09:00:00Z',
+        users: mockUser,
+        likes: [],
+        comments: []
+      }));
+    };
+
+    it('should not show pagination when user has <= 20 pomodoros', async () => {
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros20,
+        error: null,
+        count: 20
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      // Pagination should not be visible
+      expect(screen.queryByLabelText('Previous page')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Next page')).not.toBeInTheDocument();
+    });
+
+    it('should show pagination when user has > 20 pomodoros', async () => {
+      const mockDoros21 = createMockDorosArray(20); // First page shows 20
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros21,
+        error: null,
+        count: 87 // Total of 87 pomodoros
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      // Pagination should be visible
+      expect(screen.getByLabelText('Previous page')).toBeInTheDocument();
+      expect(screen.getByLabelText('Next page')).toBeInTheDocument();
+    });
+
+    it('should display page info when pomodoros are shown', async () => {
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros20,
+        error: null,
+        count: 87
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText(/showing 1–20 of 87 pomodoros/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should load page 2 when Next button is clicked', async () => {
+      const user = userEvent.setup();
+      const mockDoros20Page1 = createMockDorosArray(20);
+      const mockDoros20Page2 = createMockDorosArray(20).map((doro, i) => ({
+        ...doro,
+        id: `doro-page2-${i + 1}`,
+        task: `Page 2 Task ${i + 1}`
+      }));
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+
+      // First call returns page 1
+      vi.mocked(queries.getUserPomodoros)
+        .mockResolvedValueOnce({
+          data: mockDoros20Page1,
+          error: null,
+          count: 50
+        })
+        // Second call returns page 2
+        .mockResolvedValueOnce({
+          data: mockDoros20Page2,
+          error: null,
+          count: 50
+        });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      const nextButton = screen.getByLabelText('Next page');
+      await user.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Page 2 Task 1')).toBeInTheDocument();
+        expect(queries.getUserPomodoros).toHaveBeenCalledWith('user-123', 2, 20);
+      });
+    });
+
+    it('should show loading spinner during page transition', async () => {
+      const user = userEvent.setup();
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+
+      vi.mocked(queries.getUserPomodoros)
+        .mockResolvedValueOnce({
+          data: mockDoros20,
+          error: null,
+          count: 50
+        })
+        .mockImplementationOnce(() =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve({
+                data: mockDoros20,
+                error: null,
+                count: 50
+              });
+            }, 100);
+          })
+        );
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      const nextButton = screen.getByLabelText('Next page');
+      await user.click(nextButton);
+
+      // Should show loading spinner
+      expect(screen.getByText(/loading pomodoros/i)).toBeInTheDocument();
+    });
+
+    it('should call getUserPomodoros with page and pageSize parameters', async () => {
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros20,
+        error: null,
+        count: 50
+      });
+
+      vi.mocked(queries.isFollowingUser).mockResolvedValue({
+        isFollowing: false,
+        error: null
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(queries.getUserPomodoros).toHaveBeenCalledWith('user-123', 1, 20);
+      });
+    });
+
+    it('should handle edge case of exactly 20 pomodoros (no pagination)', async () => {
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros20,
+        error: null,
+        count: 20
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      // Should show page info
+      expect(screen.getByText(/showing 1–20 of 20 pomodoros/i)).toBeInTheDocument();
+
+      // But no pagination controls
+      expect(screen.queryByLabelText('Previous page')).not.toBeInTheDocument();
+    });
+
+    it('should handle edge case of 21 pomodoros (2 pages)', async () => {
+      const mockDoros20 = createMockDorosArray(20);
+
+      vi.mocked(queries.getUserProfile).mockResolvedValue({
+        data: mockUser,
+        error: null
+      });
+      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
+        data: mockDoros20,
+        error: null,
+        count: 21
+      });
+
+      renderWithRouter('user-123');
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+      });
+
+      // Should show pagination with 2 pages
+      expect(screen.getByLabelText('Previous page')).toBeInTheDocument();
+      expect(screen.getByLabelText('Page 1')).toBeInTheDocument();
+      expect(screen.getByLabelText('Page 2')).toBeInTheDocument();
     });
   });
 
