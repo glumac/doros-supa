@@ -221,7 +221,7 @@ export type Database = {
         }[]
       }
       get_global_leaderboard: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avatar_url: string
           completion_count: number
@@ -242,6 +242,18 @@ export type Database = {
           user_id: string
           user_name: string
           week_completions: number
+        }[]
+      }
+      get_suggested_users: {
+        Args: { current_user_id: string; result_limit?: number }
+        Returns: {
+          avatar_url: string
+          completion_count: number
+          follower_count: number
+          is_following: boolean
+          suggestion_score: number
+          user_id: string
+          user_name: string
         }[]
       }
       search_users: {

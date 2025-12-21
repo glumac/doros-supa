@@ -51,6 +51,8 @@ describe('UserSearch', () => {
     vi.clearAllMocks();
     // Mock isFollowingUser to return proper structure
     mockQueries.isFollowingUser.mockResolvedValue({ isFollowing: false, error: null });
+    // Mock getSuggestedUsers to prevent unhandled errors
+    mockQueries.getSuggestedUsers.mockResolvedValue({ data: [], error: null });
   });
 
   it('should show initial state with search prompt', () => {
@@ -168,5 +170,169 @@ describe('UserSearch', () => {
     );
 
     expect(screen.getByText(/please log in to search/i)).toBeInTheDocument();
+  });
+
+  describe('Completion Count Display', () => {
+    it('should display correct lifetime pomodoro counts for search results', async () => {
+      const user = userEvent.setup();
+
+      const usersWithHighCounts = [
+        {
+          user_id: 'user-1',
+          user_name: 'Pam K',
+          avatar_url: 'https://example.com/pam.jpg',
+          is_following: false,
+          follower_count: 0,
+          completion_count: 839
+        },
+        {
+          user_id: 'user-2',
+          user_name: 'Michael G',
+          avatar_url: 'https://example.com/michael.jpg',
+          is_following: false,
+          follower_count: 0,
+          completion_count: 1916
+        }
+      ];
+
+      vi.mocked(queries.searchUsers).mockResolvedValue({
+        data: usersWithHighCounts,
+        error: null
+      });
+
+      renderWithAuth();
+
+      await user.type(screen.getByPlaceholderText(/search users/i), 'test');
+
+      await waitFor(() => {
+        expect(screen.getByText(/839 pomodoros/i)).toBeInTheDocument();
+        expect(screen.getByText(/1916 pomodoros/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should display correct lifetime pomodoro counts for suggested users', async () => {
+      const suggestedUsersWithCounts = [
+        {
+          user_id: 'user-1',
+          user_name: 'Andrew RC',
+          avatar_url: 'https://example.com/andrew.jpg',
+          is_following: false,
+          follower_count: 0,
+          completion_count: 120,
+          suggestion_score: 1460
+        },
+        {
+          user_id: 'user-2',
+          user_name: 'Bonny L',
+          avatar_url: 'https://example.com/bonny.jpg',
+          is_following: false,
+          follower_count: 0,
+          completion_count: 69,
+          suggestion_score: 500
+        }
+      ];
+
+      vi.mocked(queries.getSuggestedUsers).mockResolvedValue({
+        data: suggestedUsersWithCounts,
+        error: null
+      });
+
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByText(/120 pomodoros/i)).toBeInTheDocument();
+        expect(screen.getByText(/69 pomodoros/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should display 0 pomodoros for users with no completions', async () => {
+      const user = userEvent.setup();
+
+      const usersWithZeroCounts = [
+        {
+          user_id: 'user-1',
+          user_name: 'New User',
+          avatar_url: 'https://example.com/new.jpg',
+          is_following: false,
+          follower_count: 0,
+          completion_count: 0
+        }
+      ];
+
+      vi.mocked(queries.searchUsers).mockResolvedValue({
+        data: usersWithZeroCounts,
+        error: null
+      });
+
+      renderWithAuth();
+
+      await user.type(screen.getByPlaceholderText(/search users/i), 'new');
+
+      await waitFor(() => {
+        expect(screen.getByText(/0 pomodoros/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should handle singular pomodoro text correctly', async () => {
+      const user = userEvent.setup();
+
+      const userWithOnePomodoro = [
+        {
+          user_id: 'user-1',
+          user_name: 'Single User',
+          avatar_url: 'https://example.com/single.jpg',
+          is_following: false,
+          follower_count: 1,
+          completion_count: 1
+        }
+      ];
+
+      vi.mocked(queries.searchUsers).mockResolvedValue({
+        data: userWithOnePomodoro,
+        error: null
+      });
+
+      renderWithAuth();
+
+      await user.type(screen.getByPlaceholderText(/search users/i), 'single');
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 follower/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 pomodoro$/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should verify completion_count is a number type', async () => {
+      const user = userEvent.setup();
+
+      const mockData = [
+        {
+          user_id: 'user-1',
+          user_name: 'Test User',
+          avatar_url: 'https://example.com/test.jpg',
+          is_following: false,
+          follower_count: 5,
+          completion_count: 100
+        }
+      ];
+
+      vi.mocked(queries.searchUsers).mockResolvedValue({
+        data: mockData,
+        error: null
+      });
+
+      renderWithAuth();
+
+      await user.type(screen.getByPlaceholderText(/search users/i), 'test');
+
+      await waitFor(() => {
+        expect(queries.searchUsers).toHaveBeenCalled();
+      });
+
+      // Verify the mock data has the correct type
+      const callResult = await queries.searchUsers('test', 'current-user');
+      expect(typeof callResult.data?.[0]?.completion_count).toBe('number');
+      expect(callResult.data?.[0]?.completion_count).toBe(100);
+    });
   });
 });

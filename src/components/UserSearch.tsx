@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchUsers } from '../lib/queries';
+import { searchUsers, getSuggestedUsers } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
 import FollowButton from './FollowButton';
 
@@ -18,8 +18,31 @@ export default function UserSearch() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Load suggested users on mount
+  useEffect(() => {
+    if (user) {
+      loadSuggestions();
+    }
+  }, [user]);
+
+  async function loadSuggestions() {
+    if (!user) return;
+
+    const { data, error } = await getSuggestedUsers(user.id, 15);
+
+    if (error) {
+      console.error('Error loading suggestions:', error);
+    } else if (data) {
+      console.log('✅ Suggested users RAW data:', data);
+      console.log('✅ First user completion_count:', data[0]?.completion_count);
+      console.log('✅ First user full object:', data[0]);
+      setSuggestedUsers(data);
+    }
+  }
 
   // Debounced search
   useEffect(() => {
@@ -47,6 +70,9 @@ export default function UserSearch() {
     if (error) {
       console.error('Error searching users:', error);
     } else if (data) {
+      console.log('🔍 Search results RAW data:', data);
+      console.log('🔍 First result completion_count:', data[0]?.completion_count);
+      console.log('🔍 First result full object:', data[0]);
       setResults(data);
     }
 
@@ -184,11 +210,90 @@ export default function UserSearch() {
         </div>
       )}
 
-      {/* Initial State */}
+      {/* Initial State - Show Suggested Users */}
       {!loading && !hasSearched && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p style={{ fontSize: '18px', marginBottom: '10px' }}>👋 Start typing to find friends</p>
-          <p>Search by username to discover new people to follow</p>
+        <div>
+          {suggestedUsers.length > 0 ? (
+            <>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px', color: '#333' }}>
+                ✨ Suggested for you
+              </h3>
+              <div className="search-results">
+                {suggestedUsers.map((result) => (
+                  <div
+                    key={result.user_id}
+                    className="search-result-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '15px',
+                      marginBottom: '10px',
+                      backgroundColor: '#fff',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => navigate(`/user/${result.user_id}`)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    {/* Avatar */}
+                    <img
+                      src={result.avatar_url || 'https://via.placeholder.com/50'}
+                      alt={result.user_name}
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        marginRight: '15px',
+                        objectFit: 'cover'
+                      }}
+                    />
+
+                    {/* User Info */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                        {result.user_name}
+                      </div>
+                      <div style={{ color: '#666', fontSize: '14px' }}>
+                        {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
+                        {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+
+                    {/* Follow Button */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <FollowButton
+                        userId={result.user_id}
+                        onFollowChange={(isFollowing) => {
+                          // Update the suggestion to reflect new follow state and refresh
+                          setSuggestedUsers(prev =>
+                            prev.filter(r => r.user_id !== result.user_id)
+                          );
+                          // Optionally reload suggestions to get fresh ones
+                          if (isFollowing) {
+                            loadSuggestions();
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <p style={{ fontSize: '18px', marginBottom: '10px' }}>👋 Start typing to find friends</p>
+              <p>Search by username to discover new people to follow</p>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -16,3 +16,6 @@ export { default as LeaderboardTabs } from "./LeaderboardTabs";
 export { default as CompactLeaderboard } from "./CompactLeaderboard";
 export { default as TimerBanner } from "./TimerBanner";
 export { default as Pagination } from "./Pagination";
+export { default as FollowersModal } from "./FollowersModal";
+export { default as FollowRequestsBanner } from "./FollowRequestsBanner";
+export { default as PrivacySettings } from "./PrivacySettings";

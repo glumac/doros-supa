@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { HiMenu } from "react-icons/hi";
 import { AiFillCloseCircle } from "react-icons/ai";
 import { Link, Route, Routes } from "react-router-dom";
-import { Sidebar, UserProfile } from "../components";
+import { Sidebar, UserProfile, FollowRequestsBanner, PrivacySettings } from "../components";
 import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -207,8 +207,10 @@ const Home = () => {
             className="pb-2 flex-1 h-screen overflow-y-scroll"
             ref={scrollRef}
           >
+            <FollowRequestsBanner />
             <Routes>
               <Route path="/user/:userId" element={<UserProfile />} />
+              <Route path="/privacy-settings" element={<PrivacySettings />} />
               <Route path="/*" element={<DoroWrapper user={user} />} />
             </Routes>
           </div>

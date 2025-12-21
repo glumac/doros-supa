@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { getUserProfile, getUserPomodoros, isFollowingUser } from "../lib/queries";
+import {
+  getUserProfile,
+  getUserPomodoros,
+  isFollowingUser,
+  getFollowers,
+  getFollowing,
+  getPendingFollowRequests,
+  approveFollowRequest,
+  rejectFollowRequest,
+} from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 import FollowButton from "./FollowButton";
 import Pagination from "./Pagination";
+import FollowersModal from "./FollowersModal";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { User, Doro, DecodedJWT } from "../types/models";
 
@@ -18,9 +28,16 @@ const UserProfile = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPomodoros, setTotalPomodoros] = useState<number>(0);
   const [isLoadingPage, setIsLoadingPage] = useState<boolean>(false);
+  const [followerCount, setFollowerCount] = useState<number>(0);
+  const [followingCount, setFollowingCount] = useState<number>(0);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [modalTab, setModalTab] = useState<'followers' | 'following'>('followers');
+  const [followRequests, setFollowRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const pageSize = 20;
 
   useEffect(() => {
@@ -32,13 +49,73 @@ const UserProfile = () => {
       }
     });
 
+    // Load followers and following counts
+    getFollowers(userId).then(({ data }) => {
+      setFollowerCount(data?.length || 0);
+    });
+    getFollowing(userId).then(({ data }) => {
+      setFollowingCount(data?.length || 0);
+    });
+
+    // Load follow requests if viewing own profile
+    if (authUser?.id === userId) {
+      loadFollowRequests();
+    }
+
     // Check if current user is following this profile user
     if (authUser?.id && userId !== authUser.id) {
       isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
         setIsFollowing(isFollowing);
       });
     }
-  }, [userId, authUser?.id]);
+
+    // Check for tab parameter in URL
+    const tab = searchParams.get('tab');
+    if (tab === 'requests' && authUser?.id === userId) {
+      // Scroll to requests section
+      setTimeout(() => {
+        document.getElementById('follow-requests')?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, [userId, authUser?.id, searchParams]);
+
+  const loadFollowRequests = async () => {
+    if (!userId) return;
+    setLoadingRequests(true);
+    try {
+      const { data } = await getPendingFollowRequests(userId);
+      setFollowRequests(data || []);
+    } catch (error) {
+      console.error('Error loading follow requests:', error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleApproveRequest = async (requestId: string) => {
+    if (!authUser) return;
+    const { error } = await approveFollowRequest(requestId, authUser.id);
+    if (!error) {
+      loadFollowRequests();
+      // Refresh follower count
+      getFollowers(userId!).then(({ data }) => {
+        setFollowerCount(data?.length || 0);
+      });
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    if (!authUser) return;
+    const { error } = await rejectFollowRequest(requestId, authUser.id);
+    if (!error) {
+      loadFollowRequests();
+    }
+  };
+
+  const openFollowersModal = (tab: 'followers' | 'following') => {
+    setModalTab(tab);
+    setShowFollowersModal(true);
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -108,9 +185,35 @@ const UserProfile = () => {
           <h1 className=" text-green-700 font-medium text-5xl text-center mt-3">
             {user?.user_name}
           </h1>
+
+          {/* Followers/Following Stats */}
+          <div className="flex justify-center gap-6 mt-3 mb-2">
+            <button
+              onClick={() => openFollowersModal('followers')}
+              className="text-center hover:underline cursor-pointer"
+            >
+              <div className="font-bold text-lg">{followerCount}</div>
+              <div className="text-gray-600 text-sm">Followers</div>
+            </button>
+            <button
+              onClick={() => openFollowersModal('following')}
+              className="text-center hover:underline cursor-pointer"
+            >
+              <div className="font-bold text-lg">{followingCount}</div>
+              <div className="text-gray-600 text-sm">Following</div>
+            </button>
+          </div>
+
           <div className="text-red-600 p-2 flex justify-center items-center gap-3">
             {userId === authUser?.id ? (
-              <div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition"
+                  onClick={() => navigate('/privacy-settings')}
+                >
+                  Privacy Settings
+                </button>
                 <button
                   type="button"
                   className={removeStyle}
@@ -123,6 +226,57 @@ const UserProfile = () => {
               <FollowButton userId={userId!} onFollowChange={handleFollowChange} />
             )}
           </div>
+
+          {/* Follow Requests Section (only for own profile) */}
+          {userId === authUser?.id && followRequests.length > 0 && (
+            <div id="follow-requests" className="mt-4 mx-4">
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <h3 className="font-bold text-lg mb-3">
+                  Follow Requests ({followRequests.length})
+                </h3>
+                {loadingRequests ? (
+                  <div className="text-gray-600 text-center py-2">Loading...</div>
+                ) : (
+                  <div className="space-y-3">
+                    {followRequests.map((request: any) => (
+                      <div
+                        key={request.id}
+                        className="flex items-center justify-between gap-3 p-2 border-b last:border-b-0"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={
+                              request.users?.avatar_url ||
+                              `https://ui-avatars.com/api/?name=${request.users?.user_name}&background=007bff&color=fff`
+                            }
+                            alt={request.users?.user_name}
+                            className="w-10 h-10 rounded-full"
+                          />
+                          <span className="font-medium">
+                            {request.users?.user_name}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleApproveRequest(request.id)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(request.id)}
+                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:bg-gray-300 transition"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="text-center mb-2  font-medium">
           <h3 className="text-xl">Completed Pomodoros:</h3>
@@ -163,6 +317,16 @@ const UserProfile = () => {
           )}
         </div>
       </div>
+
+      {/* Followers Modal */}
+      {showFollowersModal && user && (
+        <FollowersModal
+          userId={userId!}
+          userName={user.user_name}
+          initialTab={modalTab}
+          onClose={() => setShowFollowersModal(false)}
+        />
+      )}
     </div>
   );
 };
