@@ -117,7 +117,6 @@ const UserProfile = () => {
                   <p className="font-medium text-gray-600 mb-3">
                     Follow {user?.user_name} to see their pomodoros
                   </p>
-                  <FollowButton userId={userId!} onFollowChange={handleFollowChange} />
                 </>
               ) : (
                 <p className="font-bold">No Pomodoros Found!</p>
