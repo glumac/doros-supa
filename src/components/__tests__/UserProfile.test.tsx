@@ -70,6 +70,22 @@ describe('UserProfile', () => {
       isFollowing: false,
       error: null
     });
+
+    // Mock getFollowers and getFollowing by default
+    vi.mocked(queries.getFollowers).mockResolvedValue({
+      data: [],
+      error: null
+    });
+    vi.mocked(queries.getFollowing).mockResolvedValue({
+      data: [],
+      error: null
+    });
+
+    // Mock getPendingFollowRequests by default
+    vi.mocked(queries.getPendingFollowRequests).mockResolvedValue({
+      data: [],
+      error: null
+    });
   });
 
   it('should load and display user profile', async () => {

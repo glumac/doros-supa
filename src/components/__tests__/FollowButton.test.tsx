@@ -7,7 +7,15 @@ import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
 
 // Mock the queries module
-vi.mock('../../lib/queries');
+vi.mock('../../lib/queries', () => ({
+  isFollowingUser: vi.fn(),
+  followUser: vi.fn(),
+  unfollowUser: vi.fn(),
+  getUserProfile: vi.fn(),
+  getFollowRequestStatus: vi.fn(),
+  createFollowRequest: vi.fn(),
+  cancelFollowRequest: vi.fn(),
+}));
 
 const mockUser = {
   id: 'user-123',
@@ -52,6 +60,14 @@ describe('FollowButton', () => {
       isFollowing: false,
       error: null
     });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
 
     renderWithAuth(<FollowButton userId="other-user" />);
 
@@ -65,6 +81,10 @@ describe('FollowButton', () => {
       isFollowing: true,
       error: null
     });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
 
     renderWithAuth(<FollowButton userId="other-user" />);
 
@@ -73,11 +93,40 @@ describe('FollowButton', () => {
     });
   });
 
-  it('should toggle follow state when clicked', async () => {
+  it('should show "Requested" when follow request is pending', async () => {
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: { id: 'request-123', status: 'pending' },
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: true },
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toHaveTextContent('Requested');
+    });
+  });
+
+  it('should follow instantly when user does not require approval', async () => {
     const user = userEvent.setup();
 
     vi.mocked(queries.isFollowingUser).mockResolvedValue({
       isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
       error: null
     });
     vi.mocked(queries.followUser).mockResolvedValue({
@@ -101,12 +150,122 @@ describe('FollowButton', () => {
     });
   });
 
+  it('should create follow request when user requires approval', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: true },
+      error: null
+    });
+    vi.mocked(queries.createFollowRequest).mockResolvedValue({
+      data: null,
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toHaveTextContent('Follow');
+    });
+
+    const button = screen.getByRole('button');
+    await user.click(button);
+
+    expect(queries.createFollowRequest).toHaveBeenCalledWith('user-123', 'other-user');
+
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Requested');
+    });
+  });
+
+  it('should cancel follow request when "Requested" button is clicked', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: { id: 'request-123', status: 'pending' },
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: true },
+      error: null
+    });
+    vi.mocked(queries.cancelFollowRequest).mockResolvedValue({
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toHaveTextContent('Requested');
+    });
+
+    const button = screen.getByRole('button');
+    await user.click(button);
+
+    expect(queries.cancelFollowRequest).toHaveBeenCalledWith('user-123', 'other-user');
+
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Follow');
+    });
+  });
+
+  it('should unfollow when "Following" button is clicked', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: true,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
+    vi.mocked(queries.unfollowUser).mockResolvedValue({
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toHaveTextContent('Following');
+    });
+
+    const button = screen.getByRole('button');
+    await user.click(button);
+
+    expect(queries.unfollowUser).toHaveBeenCalledWith('user-123', 'other-user');
+
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Follow');
+    });
+  });
+
   it('should call onFollowChange callback when provided', async () => {
     const user = userEvent.setup();
     const onFollowChange = vi.fn();
 
     vi.mocked(queries.isFollowingUser).mockResolvedValue({
       isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
       error: null
     });
     vi.mocked(queries.followUser).mockResolvedValue({
@@ -136,6 +295,14 @@ describe('FollowButton', () => {
       isFollowing: false,
       error: null
     });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
     vi.mocked(queries.followUser).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ data: null, error: null }), 100))
     );
@@ -147,8 +314,13 @@ describe('FollowButton', () => {
     });
 
     const button = screen.getByRole('button');
-    await user.click(button);
+    const clickPromise = user.click(button);
 
-    expect(button).toBeDisabled();
+    // Check immediately after click but before async completion
+    await waitFor(() => {
+      expect(button).toBeDisabled();
+    });
+
+    await clickPromise;
   });
 });

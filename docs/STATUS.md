@@ -1,6 +1,6 @@
 # 🎯 Doros Supabase Migration - Current Status
 
-**Last Updated:** December 18, 2025
+**Last Updated:** December 21, 2025
 
 ---
 
@@ -94,7 +94,7 @@ Images:     425 downloaded (pending upload to bucket)
 ### Phase 3: Frontend Development ✅ COMPLETE
 
 - **Status:** 100% Complete
-- **Date:** December 17, 2025
+- **Date:** December 21, 2025
 
 **What's Done:**
 
@@ -111,19 +111,44 @@ Images:     425 downloaded (pending upload to bucket)
 - ✅ UserSearch working at /discover
 - ✅ LeaderboardTabs working at /leaderboard
 
+**Follow Requests & Notifications System:** ✅ COMPLETE (December 21, 2025)
+
+- ✅ Database migration for follow_requests table with RLS policies
+- ✅ notification_preferences column added to users table
+- ✅ Follow request query functions (create, approve, reject, cancel)
+- ✅ Paginated followers/following list functions
+- ✅ Updated FollowButton with 3 states (Follow/Requested/Following)
+- ✅ FollowersModal - Tabbed modal with pagination (20 per page)
+- ✅ FollowRequestsBanner - Sticky notification banner (polls every 30s)
+- ✅ PrivacySettings - Privacy controls page with approval toggle
+- ✅ Updated UserProfile with followers/following stats and request approval
+- ✅ Integrated banner and privacy route in Home.tsx
+- ✅ Comprehensive test coverage: 40 tests passing, 3 skipped
+
 **New Components:**
 
-- ✅ `FollowButton.tsx` - Follow/unfollow toggle
+- ✅ `FollowButton.tsx` - Follow/unfollow toggle with request support
 - ✅ `GlobalLeaderboard.tsx` - All users ranked
 - ✅ `FriendsLeaderboard.tsx` - Followed users
 - ✅ `UserSearch.tsx` - Search by name
 - ✅ `LeaderboardTabs.tsx` - Toggle views
+- ✅ `FollowersModal.tsx` - Followers/Following lists with pagination
+- ✅ `FollowRequestsBanner.tsx` - Notification banner for pending requests
+- ✅ `PrivacySettings.tsx` - Privacy settings page
+
+**Test Coverage:**
+
+- ✅ `FollowButton.test.tsx` - 11 tests (3 states, approval workflow, callbacks)
+- ✅ `FollowersModal.test.tsx` - 10 tests (tabs, pagination, empty states)
+- ✅ `FollowRequestsBanner.test.tsx` - 7 tests, 3 skipped (visibility, navigation)
+- ✅ `PrivacySettings.test.tsx` - 12 tests (toggle, success/error messages)
+- ✅ All existing tests passing
 
 **Files:**
 
-- ✅ 7 migration files (including search_users fix)
+- ✅ 8 migration files (including follow_requests and search_users fix)
 - ✅ All components exported and integrated
-- ✅ Documentation: Plan and STATUS updated
+- ✅ Documentation: notifications.md, Plan and STATUS updated
 
 ---
 
@@ -294,10 +319,10 @@ Images:     425 downloaded (pending upload to bucket)
 
 **Database:**
 
-- Tables: 5
-- Functions: 6
-- Migrations: 6 applied
-- Security Policies: 16
+- Tables: 6 (users, pomodoros, likes, comments, follows, follow_requests)
+- Functions: 7 (leaderboards, search, profiles, follow request count)
+- Migrations: 8 applied
+- Security Policies: 19 (includes follow_requests RLS)
 
 **Data:**
 
@@ -320,10 +345,10 @@ Images:     425 downloaded (pending upload to bucket)
 
 **Documentation:**
 
+- [notifications.md](./notifications.md) - Follow requests & notifications system design
 - [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md) - Netlify deployment guide
 - [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Phase 4 testing instructions
 - [ADVISOR_REPORT.md](./ADVISOR_REPORT.md) - Security & performance analysis
-- [
 - [Migration Plan](./.github/plan-supabaseMigration.prompt.md) - Complete roadmap
 - [STATUS.md](./STATUS.md) - Current progress (this file)
 - [README.md](./README.md) - Project overview
@@ -356,10 +381,14 @@ npm run migrate:import    # Import to Supabase
 - ✅ Create new pomodoros
 - ✅ Like/unlike functionality
 - ✅ Comment system
-- ✅ User profiles
+- ✅ User profiles with followers/following stats
 - ✅ Search users at /discover
 - ✅ Leaderboards at /leaderboard
 - ✅ Follow/unfollow users
+- ✅ Follow request approval system
+- ✅ Privacy settings (/privacy-settings)
+- ✅ Follow request notifications banner
+- ✅ Followers/Following modal with pagination
 
 **What Needs Testing:**
 
