@@ -45,7 +45,7 @@ const renderWithRouter = (userId: string, authUser = mockUser) => {
     <BrowserRouter>
       <AuthContext.Provider value={{ user: authUser, loading: false }}>
         <Routes>
-          <Route path="/user-profile/:userId" element={<UserProfile />} />
+          <Route path="/user/:userId" element={<UserProfile />} />
         </Routes>
       </AuthContext.Provider>
     </BrowserRouter>,
@@ -53,7 +53,7 @@ const renderWithRouter = (userId: string, authUser = mockUser) => {
       <div>
         {children}
         <div id="navigation-mock">
-          <a href={`/user-profile/${userId}`}>Navigate</a>
+          <a href={`/user/${userId}`}>Navigate</a>
         </div>
       </div>
     )}
@@ -63,7 +63,7 @@ const renderWithRouter = (userId: string, authUser = mockUser) => {
 describe('UserProfile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.pushState({}, '', '/user-profile/user-123');
+    window.history.pushState({}, '', '/user/user-123');
 
     // Mock isFollowingUser by default
     vi.mocked(queries.isFollowingUser).mockResolvedValue({
@@ -140,7 +140,7 @@ describe('UserProfile', () => {
       error: null
     });
 
-    window.history.pushState({}, '', '/user-profile/other-user');
+    window.history.pushState({}, '', '/user/other-user');
     renderWithRouter('other-user', mockUser);
 
     await waitFor(() => {

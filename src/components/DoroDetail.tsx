@@ -149,7 +149,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
           <div className="w-full p-5 flex-1 xl:min-w-620">
             <div className="flex justify-between align-center mt-2">
               <Link
-                to={`/user-profile/${doro?.users?.id}`}
+                to={`/user/${doro?.users?.id}`}
                 className="flex gap-2 items-center bg-white text-green-700 font-bold text-lg relative hover:text-green-800 "
               >
                 <img
@@ -293,7 +293,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                         >
                           <div className="flex content-center shrink-0">
                             <Link
-                              to={`/user-profile/${comment.users?.id}`}
+                              to={`/user/${comment.users?.id}`}
                               className="items-center"
                             >
                               <img

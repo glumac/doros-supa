@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { getUserProfile, getUserPomodoros } from "../lib/queries";
+import { getUserProfile, getUserPomodoros, isFollowingUser } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
@@ -13,6 +13,7 @@ import { User, Doro, DecodedJWT } from "../types/models";
 const UserProfile = () => {
   const [user, setUser] = useState<User>();
   const [doros, setDoros] = useState<Doro[]>();
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser } = useAuth();
@@ -25,20 +26,40 @@ const UserProfile = () => {
         setUser(data);
       }
     });
-  }, [userId]);
+
+    // Check if current user is following this profile user
+    if (authUser?.id && userId !== authUser.id) {
+      isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
+        setIsFollowing(isFollowing);
+      });
+    }
+  }, [userId, authUser?.id]);
 
   useEffect(() => {
     getDoros();
-  }, [userId]);
+  }, [userId, isFollowing]);
 
   const getDoros = async () => {
     if (!userId) return;
 
     const { data, error } = await getUserPomodoros(userId);
-    if (data && !error) {
-      setDoros(data as unknown as Doro[]);
-    }
+    console.log('UserProfile - getDoros:', { userId, data, error, dataLength: data?.length });
+    // Set doros even if it's an empty array (which happens when RLS blocks access)
+    setDoros((data || []) as unknown as Doro[]);
   };
+
+  const handleFollowChange = (newFollowStatus: boolean) => {
+    setIsFollowing(newFollowStatus);
+    // Pomodoros will reload automatically due to the useEffect dependency on isFollowing
+  };
+
+  console.log('UserProfile render:', {
+    userId,
+    authUserId: authUser?.id,
+    isFollowing,
+    dorosLength: doros?.length,
+    shouldShowPrompt: userId !== authUser?.id && !isFollowing
+  });
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -78,7 +99,7 @@ const UserProfile = () => {
                 </button>
               </div>
             ) : (
-              <FollowButton userId={userId!} />
+              <FollowButton userId={userId!} onFollowChange={handleFollowChange} />
             )}
           </div>
         </div>
@@ -87,14 +108,23 @@ const UserProfile = () => {
         </div>
 
         <div className="px-2">
-          <Doros doros={doros} reloadFeed={getDoros} />
+          {doros && doros.length > 0 ? (
+            <Doros doros={doros} reloadFeed={getDoros} />
+          ) : (
+            <div className="flex flex-col justify-center items-center w-full text-1xl mt-2">
+              {userId !== authUser?.id && !isFollowing ? (
+                <>
+                  <p className="font-medium text-gray-600 mb-3">
+                    Follow {user?.user_name} to see their pomodoros
+                  </p>
+                  <FollowButton userId={userId!} onFollowChange={handleFollowChange} />
+                </>
+              ) : (
+                <p className="font-bold">No Pomodoros Found!</p>
+              )}
+            </div>
+          )}
         </div>
-
-        {doros?.length === 0 && (
-          <div className="flex justify-center font-bold items-center w-full text-1xl mt-2">
-            No Pomodoros Found!
-          </div>
-        )}
       </div>
     </div>
   );

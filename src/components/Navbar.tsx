@@ -31,7 +31,7 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
             </Link>
           )}
           <Link
-            to={`user-profile/${user._id}`}
+            to={`user/${user._id}`}
             className="hidden md:block hover:shadow-md"
           >
             <img

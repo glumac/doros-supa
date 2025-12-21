@@ -9,10 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:watch": "vitest --watch",
-    "migrate:export": "node --env-file=.env --import tsx scripts/export-from-sanity.ts",
-    "migrate:download": "node --env-file=.env --import tsx scripts/download-sanity-images.ts",
-    "migrate:import": "node --env-file=.env --import tsx scripts/import-to-supabase.ts"
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@react-oauth/google": "^0.5.1",

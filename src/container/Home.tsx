@@ -176,7 +176,7 @@ const Home = () => {
                   Crush Quest
                 </h1>
               </Link>
-              <Link to={`user-profile/${user?._id}`}>
+              <Link to={`user/${user?._id}`}>
                 <img
                   src={user?.image}
                   alt="user-pic"
@@ -208,7 +208,7 @@ const Home = () => {
             ref={scrollRef}
           >
             <Routes>
-              <Route path="/user-profile/:userId" element={<UserProfile />} />
+              <Route path="/user/:userId" element={<UserProfile />} />
               <Route path="/*" element={<DoroWrapper user={user} />} />
             </Routes>
           </div>

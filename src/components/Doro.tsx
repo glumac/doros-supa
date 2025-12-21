@@ -125,7 +125,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
     <div className="my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
       <div className="flex justify-between items-center relative">
         <Link
-          to={`/user-profile/${users?.id}`}
+          to={`/user/${users?.id}`}
           className="items-center relative z-10"
           // write react style to scale to 102% on hover
         >
@@ -218,7 +218,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                 <div className="flex gap-0.5">
                   {doro?.likes?.map((like, index) => (
                     <div key={like.id}>
-                      <Link to={`user-profile/${like.users?.id}`}>
+                      <Link to={`user/${like.users?.id}`}>
                         <img
                           className="w-5 h-5 mr-0.5 rounded-full object-cover block relative"
                           src={like.users?.avatar_url || ''}
@@ -286,7 +286,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                   >
                     <div className="flex content-center shrink-0">
                       <Link
-                        to={`/user-profile/${comment.users?.id}`}
+                        to={`/user/${comment.users?.id}`}
                         className="items-center"
                       >
                         <img
