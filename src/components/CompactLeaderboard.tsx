@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useLeaderboards } from '../contexts/LeaderboardContext';
+import { useGlobalLeaderboard, useFriendsLeaderboard } from '../hooks/useLeaderboard';
+import { useAuth } from '../contexts/AuthContext';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface LeaderboardUser {
@@ -15,8 +16,14 @@ interface CompactLeaderboardProps {
 }
 
 export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardProps) {
-  const { globalLeaderboard, friendsLeaderboard, loading } = useLeaderboards();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'friends' | 'global'>('global');
+
+  // Use React Query hooks for real-time updates
+  const { data: globalLeaderboard = [], isLoading: globalLoading } = useGlobalLeaderboard(user?.id);
+  const { data: friendsLeaderboard = [], isLoading: friendsLoading } = useFriendsLeaderboard(user?.id);
+
+  const loading = activeTab === 'global' ? globalLoading : friendsLoading;
 
   const handleCloseSidebar = () => {
     if (closeToggle) closeToggle(false);

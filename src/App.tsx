@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import './App.css';
 import { Routes, Route, useNavigate } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
 import Home from "./container/Home";
 import Login from "./components/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Spinner from "./components/Spinner";
+import { queryClient } from "./lib/queryClient";
 
 // Component that handles routing based on auth state
 // Must be inside AuthProvider to use useAuth()
@@ -43,9 +45,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

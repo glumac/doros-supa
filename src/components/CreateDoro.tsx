@@ -6,6 +6,7 @@ import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPomodoroImage, deletePomodoroImage } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
+import { useCreatePomodoroMutation } from "../hooks/useMutations";
 import Spinner from "./Spinner";
 import whoosh from "../assets/whoosh.mp3";
 import DoroContext from "../utils/DoroContext";
@@ -63,6 +64,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   const [saving, setSaving] = useState(false);
 
   const navigate = useNavigate();
+  const createPomodoroMutation = useCreatePomodoroMutation();
 
   const title = document.getElementById("crush-title");
 
@@ -351,7 +353,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         // imageAsset._id contains the path, imageAsset.url is the signed URL for display
         const imagePath = imageAsset?._id || null;
 
-        const { error } = await supabase.from("pomodoros").insert({
+        await createPomodoroMutation.mutateAsync({
           user_id: user.id,
           launch_at: launchAt || new Date().toISOString(),
           task,
@@ -360,14 +362,9 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
           image_url: imagePath, // Store path, not signed URL
         });
 
-        if (error) {
-          console.error("Error saving pomodoro:", error);
-          alert("Failed to save pomodoro. Please try again.");
-        } else {
-          await getUpdatedLeaders();
-          navigate("/");
-          clearAll();
-        }
+        // Success - mutation hook automatically invalidates leaderboard queries
+        navigate("/");
+        clearAll();
       } catch (error) {
         console.error("Error saving pomodoro:", error);
         alert("Failed to save pomodoro. Please try again.");

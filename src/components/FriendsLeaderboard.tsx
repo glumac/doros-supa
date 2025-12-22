@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useLeaderboards } from '../contexts/LeaderboardContext';
+import { useFriendsLeaderboard } from '../hooks/useLeaderboard';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface LeaderboardUser {
@@ -14,7 +14,7 @@ interface LeaderboardUser {
 export default function FriendsLeaderboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { friendsLeaderboard, loading } = useLeaderboards();
+  const { data: friendsLeaderboard = [], isLoading: loading } = useFriendsLeaderboard(user?.id);
   const leaderboard = friendsLeaderboard;
 
   if (!user) {

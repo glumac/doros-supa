@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import FollowButton from './FollowButton';
-import { useLeaderboards } from '../contexts/LeaderboardContext';
+import { useGlobalLeaderboard } from '../hooks/useLeaderboard';
+import { useAuth } from '../contexts/AuthContext';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface LeaderboardUser {
@@ -12,7 +13,8 @@ interface LeaderboardUser {
 
 export default function GlobalLeaderboard() {
   const navigate = useNavigate();
-  const { globalLeaderboard, loading } = useLeaderboards();
+  const { user } = useAuth();
+  const { data: globalLeaderboard = [], isLoading: loading } = useGlobalLeaderboard(user?.id);
   const leaderboard = globalLeaderboard;
 
   if (loading) {

@@ -339,3 +339,47 @@ export function useUpdatePrivacyMutation() {
   });
 }
 
+/**
+ * Hook to create a new pomodoro
+ */
+export function useCreatePomodoroMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      user_id,
+      task,
+      notes,
+      completed,
+      launch_at,
+      image_url,
+    }: {
+      user_id: string;
+      task: string;
+      notes: string | null;
+      completed: boolean;
+      launch_at: string;
+      image_url: string | null;
+    }) => {
+      const { data, error } = await supabase.from("pomodoros").insert({
+        user_id,
+        task,
+        notes,
+        completed,
+        launch_at,
+        image_url,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate queries that depend on pomodoro creation
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", "global"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends"] });
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros"] });
+    },
+  });
+}
+

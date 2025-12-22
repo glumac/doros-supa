@@ -6,7 +6,6 @@ import { Sidebar, UserProfile, FollowRequestsBanner, PrivacySettings } from "../
 import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
 import { useAuth } from "../contexts/AuthContext";
-import { LeaderboardProvider } from "../contexts/LeaderboardContext";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const Home = () => {
@@ -136,10 +135,9 @@ const Home = () => {
   }
 
   return (
-    <LeaderboardProvider>
-      <DoroProvider value={contextStuff}>
-        <div>
-          <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
+    <DoroProvider value={contextStuff}>
+      <div>
+        <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
             <div className="hidden md:flex h-screen flex-initial">
               {userProfile ? <Sidebar user={userProfile} /> : <Sidebar />}
             </div>
@@ -196,7 +194,6 @@ const Home = () => {
           </div>
         </div>
       </DoroProvider>
-    </LeaderboardProvider>
   );
 };
 
