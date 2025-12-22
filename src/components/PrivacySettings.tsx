@@ -17,7 +17,7 @@ export default function PrivacySettings() {
       loadSettings();
       loadBlockedUsers();
     }
-  }, [user]);
+  }, [user?.id]);
 
   async function loadSettings() {
     if (!user) return;

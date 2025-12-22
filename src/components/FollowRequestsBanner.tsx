@@ -28,14 +28,14 @@ export default function FollowRequestsBanner() {
         window.removeEventListener('followRequestUpdated', handleRefresh);
       };
     }
-  }, [user]);
+  }, [user?.id]);
 
   async function loadRequestCount() {
     if (!user) return;
     setLoading(true);
     try {
       const { count } = await getPendingFollowRequestsCount(user.id);
-      setRequestCount(count);
+      setRequestCount(typeof count === 'number' ? count : 0);
     } catch (error) {
       console.error('Error loading follow request count:', error);
     } finally {

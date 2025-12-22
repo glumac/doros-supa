@@ -6,18 +6,7 @@ import UserSearch from '../UserSearch';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
 
-vi.mock('../../lib/queries', () => ({
-  searchUsers: vi.fn(),
-  getSuggestedUsers: vi.fn(),
-  isFollowingUser: vi.fn(),
-  getUserProfile: vi.fn(),
-  getFollowRequestStatus: vi.fn(),
-  isBlockedByUser: vi.fn(),
-  followUser: vi.fn(),
-  unfollowUser: vi.fn(),
-  createFollowRequest: vi.fn(),
-  cancelFollowRequest: vi.fn(),
-}));
+vi.mock('../../lib/queries');
 
 const mockQueries = vi.mocked(queries);
 
@@ -64,16 +53,6 @@ describe('UserSearch', () => {
     mockQueries.isFollowingUser.mockResolvedValue({ isFollowing: false, error: null });
     // Mock getSuggestedUsers to prevent unhandled errors
     mockQueries.getSuggestedUsers.mockResolvedValue({ data: [], error: null });
-    // Mock functions used by FollowButton component
-    mockQueries.getUserProfile.mockResolvedValue({
-      data: { require_follow_approval: false },
-      error: null
-    });
-    mockQueries.getFollowRequestStatus.mockResolvedValue({
-      data: null,
-      error: null
-    });
-    mockQueries.isBlockedByUser.mockResolvedValue(false);
   });
 
   it('should show initial state with search prompt', () => {
@@ -253,7 +232,6 @@ describe('UserSearch', () => {
         }
       ];
 
-      // Set up mock BEFORE rendering
       vi.mocked(queries.getSuggestedUsers).mockResolvedValue({
         data: suggestedUsersWithCounts,
         error: null
@@ -264,7 +242,7 @@ describe('UserSearch', () => {
       await waitFor(() => {
         expect(screen.getByText(/120 pomodoros/i)).toBeInTheDocument();
         expect(screen.getByText(/69 pomodoros/i)).toBeInTheDocument();
-      }, { timeout: 3000 });
+      });
     });
 
     it('should display 0 pomodoros for users with no completions', async () => {

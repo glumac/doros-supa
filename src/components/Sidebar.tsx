@@ -58,9 +58,11 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   };
 
   useEffect(() => {
+    if (!user?._id) return;
+
     setLoading(true);
 
-    getWeeklyLeaderboard(user?._id).then(({ data, error }) => {
+    getWeeklyLeaderboard(user._id).then(({ data, error }) => {
       if (data && !error) {
         // Transform Supabase data to match Leader interface
         const leaders = data.map((item: any) => ({
@@ -74,7 +76,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
       }
       setLoading(false);
     });
-  }, [user]);
+  }, [user?._id]);
 
   return (
     <div className="flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">

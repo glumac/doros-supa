@@ -21,7 +21,7 @@ export default function FriendsLeaderboard() {
     if (user) {
       loadLeaderboard();
     }
-  }, [user]);
+  }, [user?.id]);
 
   async function loadLeaderboard() {
     if (!user) return;

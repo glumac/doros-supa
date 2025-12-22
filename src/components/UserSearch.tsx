@@ -27,7 +27,7 @@ export default function UserSearch() {
     if (user) {
       loadSuggestions();
     }
-  }, [user]);
+  }, [user?.id]);
 
   async function loadSuggestions() {
     if (!user) return;
@@ -57,7 +57,7 @@ export default function UserSearch() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, user]);
+  }, [searchTerm, user?.id]);
 
   async function performSearch() {
     if (!user || !searchTerm.trim()) return;

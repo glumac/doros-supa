@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { HiMenu } from "react-icons/hi";
 import { AiFillCloseCircle } from "react-icons/ai";
 import { Link, Route, Routes } from "react-router-dom";
@@ -21,7 +21,20 @@ const Home = () => {
   const [homeLeaderBoard, setHomeLeaderBoard] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<SupabaseUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { user: authUser, loading } = useAuth();
+  const authContext = useAuth();
+  const { user: authUser, loading } = authContext;
+
+  // Track if auth context reference changes
+  const prevAuthContext = React.useRef(authContext);
+  if (prevAuthContext.current !== authContext) {
+    console.log('🔄 AuthContext changed!', {
+      oldUser: prevAuthContext.current.user?.id,
+      newUser: authContext.user?.id,
+      oldLoading: prevAuthContext.current.loading,
+      newLoading: authContext.loading,
+    });
+    prevAuthContext.current = authContext;
+  }
 
   // Timer state
   const [timerState, setTimerState] = useState<any>(null);
@@ -89,6 +102,7 @@ const Home = () => {
   }, []);
 
   // Timer countdown interval - runs globally
+  // Only updates state when absolutely necessary to minimize re-renders
   useEffect(() => {
     if (!isActive || isPaused) return;
 
@@ -113,15 +127,27 @@ const Home = () => {
         setIsActive(false);
         setHomeInProgress(false);
         setCompleted(true);
-        // Timer completion logic moved here from CreateDoro
       } else {
+        // Only update timeLeft (which triggers re-render) if the component needs it
+        // TimerBanner and CreateDoro will read from localStorage or context
         setTimeLeft(remaining);
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
-  const contextStuff = {
+  // Create a user object compatible with old components (temporary)
+  // Use useMemo to prevent recreating the object on every render
+  const user = useMemo(() => {
+    return userProfile ? {
+      _id: userProfile.id,
+      userName: userProfile.user_name,
+      image: userProfile.avatar_url,
+    } : null;
+  }, [userProfile?.id, userProfile?.user_name, userProfile?.avatar_url]);
+
+  // Memoize context object to prevent unnecessary re-renders
+  const contextStuff = useMemo(() => ({
     inProgress: homeInProgress,
     setInProgress: setHomeInProgress,
     leaderBoard: homeLeaderBoard,
@@ -140,7 +166,61 @@ const Home = () => {
     setLaunchAt,
     completed,
     setCompleted,
+  }), [
+    homeInProgress,
+    homeLeaderBoard,
+    timerState,
+    isActive,
+    isPaused,
+    timeLeft,
+    task,
+    launchAt,
+    completed,
+  ]);
+
+  // Track if contextStuff reference changes
+  const prevContextStuff = React.useRef(contextStuff);
+  if (prevContextStuff.current !== contextStuff) {
+    console.log('🔄 contextStuff CHANGED (this is expected when dependencies change)');
+    prevContextStuff.current = contextStuff;
+  }
+
+  // Debug: Track what's causing re-renders
+  const renderCount = React.useRef(0);
+  const prevState = React.useRef<any>({});
+  renderCount.current++;
+
+  const currentState = {
+    isActive,
+    isPaused,
+    timeLeft,
+    homeInProgress,
+    authUserId: authUser?.id,
+    userProfileId: userProfile?.id,
+    toggleSidebar,
+    homeLeaderBoard: homeLeaderBoard.length,
+    timerState,
+    task,
+    launchAt,
+    completed,
   };
+
+  if (renderCount.current > 1) {
+    const changes: string[] = [];
+    Object.keys(currentState).forEach((key) => {
+      if (prevState.current[key] !== (currentState as any)[key]) {
+        changes.push(`${key}: ${JSON.stringify(prevState.current[key])} → ${JSON.stringify((currentState as any)[key])}`);
+      }
+    });
+
+    if (changes.length > 0) {
+      console.log(`🔄 Home render #${renderCount.current}:`, changes);
+    } else {
+      console.log(`🔄 Home render #${renderCount.current}: No state changes (context or props changed)`);
+    }
+  }
+
+  prevState.current = currentState;
 
   if (loading) {
     return (
@@ -150,17 +230,10 @@ const Home = () => {
     );
   }
 
-  // Create a user object compatible with old components (temporary)
-  const user = userProfile ? {
-    _id: userProfile.id,
-    userName: userProfile.user_name,
-    image: userProfile.avatar_url,
-  } : null;
-
   return (
     <div>
-      <DoroProvider value={contextStuff}>
-        <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
+      <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
+        <DoroProvider value={contextStuff}>
           <div className="hidden md:flex h-screen flex-initial">
             {user ? <Sidebar user={user} /> : <Sidebar />}
           </div>
@@ -203,19 +276,23 @@ const Home = () => {
               </div>
             )}
           </div>
-          <div
-            className="pb-2 flex-1 h-screen overflow-y-scroll"
-            ref={scrollRef}
-          >
-            <FollowRequestsBanner />
-            <Routes>
-              <Route path="/user/:userId" element={<UserProfile />} />
-              <Route path="/privacy-settings" element={<PrivacySettings />} />
-              <Route path="/*" element={<DoroWrapper user={user} />} />
-            </Routes>
-          </div>
+        </DoroProvider>
+        <div
+          className="pb-2 flex-1 h-screen overflow-y-scroll"
+          ref={scrollRef}
+        >
+          <FollowRequestsBanner />
+          <Routes>
+            <Route path="/user/:userId" element={<UserProfile />} />
+            <Route path="/privacy-settings" element={<PrivacySettings />} />
+            <Route path="/*" element={
+              <DoroProvider value={contextStuff}>
+                <DoroWrapper user={user} />
+              </DoroProvider>
+            } />
+          </Routes>
         </div>
-      </DoroProvider>
+      </div>
     </div>
   );
 };

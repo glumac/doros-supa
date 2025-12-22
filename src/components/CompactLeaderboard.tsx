@@ -34,7 +34,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
         setFriendsData(data);
       }
     } else if (activeTab === 'global') {
-      const { data, error } = await getGlobalLeaderboard(user?.id);
+      const { data, error } = await getGlobalLeaderboard();
       if (data && !error) {
         setGlobalData(data);
       }

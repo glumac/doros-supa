@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -41,46 +41,10 @@ const UserProfile = () => {
   const [searchParams] = useSearchParams();
   const pageSize = 20;
 
-  useEffect(() => {
-    if (!userId) return;
+  // Extract the tab param to avoid searchParams object reference changes
+  const tabParam = searchParams.get('tab');
 
-    getUserProfile(userId).then(({ data, error }) => {
-      if (data && !error) {
-        setUser(data);
-      }
-    });
-
-    // Load followers and following counts
-    getFollowers(userId).then(({ data }) => {
-      setFollowerCount(data?.length || 0);
-    });
-    getFollowing(userId).then(({ data }) => {
-      setFollowingCount(data?.length || 0);
-    });
-
-    // Load follow requests if viewing own profile
-    if (authUser?.id === userId) {
-      loadFollowRequests();
-    }
-
-    // Check if current user is following this profile user
-    if (authUser?.id && userId !== authUser.id) {
-      isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
-        setIsFollowing(isFollowing);
-      });
-    }
-
-    // Check for tab parameter in URL
-    const tab = searchParams.get('tab');
-    if (tab === 'requests' && authUser?.id === userId) {
-      // Scroll to requests section
-      setTimeout(() => {
-        document.getElementById('follow-requests')?.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
-    }
-  }, [userId, authUser?.id, searchParams]);
-
-  const loadFollowRequests = async () => {
+  const loadFollowRequests = useCallback(async () => {
     if (!userId) return;
     setLoadingRequests(true);
     try {
@@ -91,7 +55,52 @@ const UserProfile = () => {
     } finally {
       setLoadingRequests(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    console.log('🔄 UserProfile main useEffect triggered', { userId, authUserId: authUser?.id, tabParam });
+
+    getUserProfile(userId).then(({ data, error }) => {
+      if (data && !error) {
+        console.log('✅ setUser called');
+        setUser(data as User);
+      }
+    });
+
+    // Load followers and following counts
+    getFollowers(userId).then(({ data }) => {
+      console.log('✅ setFollowerCount called');
+      setFollowerCount(data?.length || 0);
+    });
+    getFollowing(userId).then(({ data }) => {
+      console.log('✅ setFollowingCount called');
+      setFollowingCount(data?.length || 0);
+    });
+
+    // Load follow requests if viewing own profile
+    if (authUser?.id === userId) {
+      console.log('✅ loadFollowRequests called');
+      loadFollowRequests();
+    }
+
+    // Check if current user is following this profile user
+    if (authUser?.id && userId !== authUser.id) {
+      isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
+        console.log('✅ setIsFollowing called');
+        setIsFollowing(isFollowing);
+      });
+    }
+
+    // Check for tab parameter in URL
+    if (tabParam === 'requests' && authUser?.id === userId) {
+      // Scroll to requests section
+      setTimeout(() => {
+        document.getElementById('follow-requests')?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, [userId, authUser?.id, tabParam, loadFollowRequests]);
 
   const handleApproveRequest = async (requestId: string) => {
     if (!authUser) return;
@@ -151,26 +160,29 @@ const UserProfile = () => {
     setShowFollowersModal(true);
   };
 
-  useEffect(() => {
-    setCurrentPage(1);
-    getDoros(1);
-  }, [userId, isFollowing]);
-
-  const getDoros = async (page: number = 1) => {
+  const getDoros = useCallback(async (page: number = 1) => {
     if (!userId) return;
 
+    console.log('📥 getDoros called', { page, userId });
     setIsLoadingPage(true);
     const { data, error, count } = await getUserPomodoros(userId, page, pageSize);
-    console.log('UserProfile - getDoros:', {
-      userId, data, error,
+    console.log('✅ setDoros, setTotalPomodoros, setIsLoadingPage called', {
+      userId,
       dataLength: data?.length,
-      count, page
+      count,
+      page
     });
     // Set doros even if it's an empty array (which happens when RLS blocks access)
     setDoros((data || []) as unknown as Doro[]);
     setTotalPomodoros(count || 0);
     setIsLoadingPage(false);
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    console.log('🔄 getDoros useEffect triggered', { userId, isFollowing });
+    setCurrentPage(1);
+    getDoros(1);
+  }, [userId, isFollowing, getDoros]);
 
   const handleFollowChange = (newFollowStatus: boolean) => {
     setIsFollowing(newFollowStatus);
@@ -185,13 +197,23 @@ const UserProfile = () => {
 
   const totalPages = Math.ceil(totalPomodoros / pageSize);
 
-  console.log('UserProfile render:', {
-    userId,
-    authUserId: authUser?.id,
-    isFollowing,
-    dorosLength: doros?.length,
-    shouldShowPrompt: userId !== authUser?.id && !isFollowing
-  });
+  // Debug: Track what's causing re-renders
+  const renderCount = React.useRef(0);
+  renderCount.current++;
+
+  if (renderCount.current > 5) {
+    console.warn(`⚠️ UserProfile excessive renders (${renderCount.current}):`, {
+      userId,
+      authUserId: authUser?.id,
+      isFollowing,
+      dorosLength: doros?.length,
+      user: user?.user_name,
+      followerCount,
+      followingCount,
+      totalPomodoros,
+      currentPage,
+    });
+  }
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -371,4 +393,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile;
+export default React.memo(UserProfile);

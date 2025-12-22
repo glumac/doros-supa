@@ -19,7 +19,7 @@ export default function GlobalLeaderboard() {
 
   useEffect(() => {
     loadLeaderboard();
-  }, []);
+  }, [user?.id]);
 
   async function loadLeaderboard() {
     setLoading(true);
