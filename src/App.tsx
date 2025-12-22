@@ -3,38 +3,48 @@ import './App.css';
 import { Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./container/Home";
 import Login from "./components/Login";
-import { AuthProvider } from "./contexts/AuthContext";
-import { supabase } from "./lib/supabaseClient";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Spinner from "./components/Spinner";
 
-function App() {
+// Component that handles routing based on auth state
+// Must be inside AuthProvider to use useAuth()
+function AppRoutes() {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    // Wait for auth to finish loading before checking session
+    if (!loading) {
+      if (!user && window.location.pathname !== "/login") {
         navigate("/login");
+      } else if (user && window.location.pathname === "/login") {
+        // Redirect logged-in users away from login page
+        navigate("/");
       }
-      // Removed automatic navigation to create-doro
-      // Users can see the timer banner and click to go back if needed
-    });
+    }
+  }, [user, loading, navigate]);
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session && window.location.pathname !== "/login") {
-        navigate("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // Show loading spinner while checking session
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner />
+      </div>
+    );
+  }
 
   return (
+    <Routes>
+      <Route path="login" element={<Login />} />
+      <Route path="/*" element={<Home />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <AuthProvider>
-      <Routes>
-        <Route path="login" element={<Login />} />
-        <Route path="/*" element={<Home />} />
-      </Routes>
+      <AppRoutes />
     </AuthProvider>
   );
 }

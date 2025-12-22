@@ -74,16 +74,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isInitialLoad = false;
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (including token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Handle token refresh - update session without re-fetching profile
+      if (event === "TOKEN_REFRESHED") {
+        setSession(session);
+        setUser(session?.user ?? null);
+        // Don't re-fetch profile on token refresh, it's still the same user
+        return;
+      }
+
       // Skip the initial event since getSession already handled it
-      if (isInitialLoad) {
+      if (isInitialLoad && event === "INITIAL_SESSION") {
         isInitialLoad = false;
         return;
       }
 
+      // Handle all other auth events (SIGNED_IN, SIGNED_OUT, etc.)
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -93,6 +102,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         setUserProfile(null);
       }
+
+      isInitialLoad = false;
     });
 
     return () => subscription.unsubscribe();
