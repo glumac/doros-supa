@@ -44,7 +44,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
       if (image_url.startsWith("http://") || image_url.startsWith("https://")) {
         // Check if it's a Supabase storage URL - if so, getImageSignedUrl will handle it
         // Otherwise, it's an external URL - use directly
-        if (!image_url.includes("/pomocq-doro-images/")) {
+        if (!image_url.includes("/pomodoro-images/")) {
           setImageURL(image_url);
           return;
         }
@@ -217,7 +217,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
         </div>
       </div>
       <Link
-        to={`/cq-doro-detail/${id}`}
+        to={`/doro-detail/${id}`}
         className="cq-doro-content-link before:content before:absolute before:top-0 before:left-0 before:w-full before:h-full before:rounded-3xl"
       >
         <div className="cq-doro-content gap-2 mt-6 sm:block md:flex justify-between mb-4 md:mb-0">
