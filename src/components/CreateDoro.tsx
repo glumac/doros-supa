@@ -255,7 +255,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   };
 
   const getUpdatedLeaders = async () => {
-    const { data, error } = await getWeeklyLeaderboard();
+    const { data, error } = await getWeeklyLeaderboard(user?._id);
     if (data && !error) {
       // Transform Supabase data to match Leader interface
       const leaders = data.map((item: any) => ({

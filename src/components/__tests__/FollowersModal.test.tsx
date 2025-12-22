@@ -16,6 +16,7 @@ vi.mock('../../lib/queries', () => ({
   unfollowUser: vi.fn(),
   createFollowRequest: vi.fn(),
   cancelFollowRequest: vi.fn(),
+  isBlockedByUser: vi.fn(),
 }));
 
 const mockUser = {
@@ -85,6 +86,7 @@ describe('FollowersModal', () => {
       data: null,
       error: null
     });
+    vi.mocked(queries.isBlockedByUser).mockResolvedValue(false);
   });
 
   it('should render modal with user name in header', async () => {

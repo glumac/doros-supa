@@ -5,7 +5,11 @@ import Feed from '../Feed';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
 
-vi.mock('../../lib/queries');
+vi.mock('../../lib/queries', () => ({
+  getFeed: vi.fn(),
+  searchPomodoros: vi.fn(),
+  getSuggestedUsers: vi.fn(),
+}));
 
 const mockDoros = [
   {
@@ -66,6 +70,8 @@ const renderWithAuth = (user = mockUser) => {
 describe('Feed', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock getSuggestedUsers to prevent errors if called indirectly
+    vi.mocked(queries.getSuggestedUsers).mockResolvedValue({ data: [], error: null });
   });
 
   it('should render loading spinner initially', () => {
@@ -119,7 +125,7 @@ describe('Feed', () => {
 
     // Feed should be loaded on mount
     expect(queries.getFeed).toHaveBeenCalledTimes(1);
-    expect(queries.getFeed).toHaveBeenCalledWith(20);
+    expect(queries.getFeed).toHaveBeenCalledWith(20, 'current-user');
   });
 
   it('should respect RLS and only show followed users pomodoros', async () => {

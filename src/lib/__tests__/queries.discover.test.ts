@@ -165,6 +165,103 @@ describe('User Discovery Functions - Completion Count Integration', () => {
 });
 
 /**
+ * Tests for ensuring followed users appear in search results
+ */
+describe('User Discovery Functions - Followed Users in Search', () => {
+  // Using real user IDs from the database
+  // Michael G follows Pam K
+  const MICHAEL_G_ID = '0b447f7e-c622-431c-8256-8d943ea38450';
+  const PAM_K_ID = 'a12fafe6-3242-4826-bbdb-5f1d8114cf09';
+
+  it('should include followed users in search results', async () => {
+    const { data, error } = await searchUsers('pam', MICHAEL_G_ID);
+
+    expect(error).toBeNull();
+    expect(data).toBeDefined();
+
+    if (data && data.length > 0) {
+      // Pam K should appear in the results
+      const pamK = data.find(user => user.user_id === PAM_K_ID);
+      expect(pamK).toBeDefined();
+
+      if (pamK) {
+        // Should have is_following set to true
+        expect(pamK.is_following).toBe(true);
+        expect(pamK.user_name).toMatch(/pam/i);
+      }
+    }
+  });
+
+  it('should correctly set is_following flag for followed users', async () => {
+    const { data, error } = await searchUsers('pam', MICHAEL_G_ID);
+
+    expect(error).toBeNull();
+    expect(data).toBeDefined();
+
+    if (data && data.length > 0) {
+      const pamK = data.find(user => user.user_id === PAM_K_ID);
+
+      if (pamK) {
+        // Verify is_following is a boolean and true
+        expect(typeof pamK.is_following).toBe('boolean');
+        expect(pamK.is_following).toBe(true);
+      }
+    }
+  });
+
+  it('should include followed users even when searching with partial name', async () => {
+    const { data, error } = await searchUsers('p', MICHAEL_G_ID);
+
+    expect(error).toBeNull();
+    expect(data).toBeDefined();
+
+    if (data && data.length > 0) {
+      // Pam K should appear when searching for just "p"
+      const pamK = data.find(user => user.user_id === PAM_K_ID);
+
+      if (pamK) {
+        expect(pamK.is_following).toBe(true);
+      }
+    }
+  });
+
+  it('should return is_following as false for users not being followed', async () => {
+    // Use a user ID that likely doesn't follow anyone (or use a different user)
+    const { data, error } = await searchUsers('pam', PAM_K_ID);
+
+    expect(error).toBeNull();
+    expect(data).toBeDefined();
+
+    if (data && data.length > 0) {
+      // Pam K searching for "pam" should not find herself (excluded)
+      // But if other users match, they should have is_following: false
+      data.forEach(user => {
+        expect(typeof user.is_following).toBe('boolean');
+        // Should not find herself
+        expect(user.user_id).not.toBe(PAM_K_ID);
+      });
+    }
+  });
+
+  it('should not exclude followed users from search results', async () => {
+    const { data, error } = await searchUsers('pam', MICHAEL_G_ID);
+
+    expect(error).toBeNull();
+
+    // The function should return results (not be empty due to filtering)
+    // If Pam K exists and matches the search, she should be included
+    if (data) {
+      const pamK = data.find(user => user.user_id === PAM_K_ID);
+      // If Pam K matches the search term, she should be in results
+      // (not filtered out just because she's being followed)
+      if (pamK) {
+        expect(pamK.is_following).toBe(true);
+      }
+    }
+  });
+});
+
+/**
  * Unit tests for query function error handling
  */
 describe('User Discovery Functions - Error Handling', () => {

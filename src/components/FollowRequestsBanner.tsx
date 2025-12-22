@@ -16,7 +16,17 @@ export default function FollowRequestsBanner() {
 
       // Poll every 30 seconds for updates
       const interval = setInterval(loadRequestCount, 30000);
-      return () => clearInterval(interval);
+
+      // Listen for custom event to refresh immediately when requests are approved/rejected
+      const handleRefresh = () => {
+        loadRequestCount();
+      };
+      window.addEventListener('followRequestUpdated', handleRefresh);
+
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('followRequestUpdated', handleRefresh);
+      };
     }
   }, [user]);
 

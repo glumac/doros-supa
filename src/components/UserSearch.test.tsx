@@ -10,16 +10,21 @@ import * as queries from '../lib/queries';
 vi.mock('../contexts/AuthContext');
 vi.mock('../lib/queries');
 
-// Mock FollowButton
+// Mock FollowButton - store props for testing
+let mockFollowButtonProps: Record<string, any> = {};
 vi.mock('./FollowButton', () => ({
-  default: ({ userId, onFollowChange }: any) => (
-    <button
-      data-testid={`follow-button-${userId}`}
-      onClick={() => onFollowChange?.(true)}
-    >
-      Follow
-    </button>
-  ),
+  default: ({ userId, initialIsFollowing, onFollowChange }: any) => {
+    // Store props for testing
+    mockFollowButtonProps[userId] = { initialIsFollowing, onFollowChange };
+    return (
+      <button
+        data-testid={`follow-button-${userId}`}
+        onClick={() => onFollowChange?.(true)}
+      >
+        {initialIsFollowing ? 'Following' : 'Follow'}
+      </button>
+    );
+  },
 }));
 
 const mockNavigate = vi.fn();
@@ -71,6 +76,7 @@ describe('UserSearch', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFollowButtonProps = {};
     vi.mocked(useAuth).mockReturnValue({
       user: mockUser as any,
       session: null,
@@ -359,5 +365,62 @@ describe('UserSearch', () => {
 
     // The component should handle the follow state change
     expect(followButton).toBeInTheDocument();
+  });
+
+  it('should pass initialIsFollowing prop to FollowButton for search results', async () => {
+    const user = userEvent.setup();
+    vi.mocked(queries.searchUsers).mockResolvedValue({
+      data: [
+        {
+          ...mockSearchResults[0],
+          is_following: false,
+        },
+        {
+          ...mockSearchResults[1],
+          is_following: true, // Jane Smith is being followed
+        },
+      ],
+      error: null,
+    });
+
+    renderUserSearch();
+
+    const input = screen.getByPlaceholderText('Search users by name...');
+    await user.type(input, 'test');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('follow-button-user-1')).toBeInTheDocument();
+      expect(screen.getByTestId('follow-button-user-2')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    // Verify FollowButton received correct initialIsFollowing values
+    expect(mockFollowButtonProps['user-1']).toBeDefined();
+    expect(mockFollowButtonProps['user-1'].initialIsFollowing).toBe(false);
+
+    expect(mockFollowButtonProps['user-2']).toBeDefined();
+    expect(mockFollowButtonProps['user-2'].initialIsFollowing).toBe(true);
+  });
+
+  it('should show "Following" button for users already being followed in search results', async () => {
+    const user = userEvent.setup();
+    vi.mocked(queries.searchUsers).mockResolvedValue({
+      data: [
+        {
+          ...mockSearchResults[1], // Jane Smith with is_following: true
+        },
+      ],
+      error: null,
+    });
+
+    renderUserSearch();
+
+    const input = screen.getByPlaceholderText('Search users by name...');
+    await user.type(input, 'Jane');
+
+    await waitFor(() => {
+      const followButton = screen.getByTestId('follow-button-user-2');
+      expect(followButton).toBeInTheDocument();
+      expect(followButton).toHaveTextContent('Following');
+    }, { timeout: 1000 });
   });
 });

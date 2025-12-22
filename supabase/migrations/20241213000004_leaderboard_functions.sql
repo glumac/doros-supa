@@ -19,7 +19,7 @@ BEGIN
   FROM users u
   INNER JOIN pomodoros p ON p.user_id = u.id
   WHERE p.completed = true
-    AND p.created_at >= DATE_TRUNC('week', NOW())
+    AND p.created_at >= (DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York')
   GROUP BY u.id, u.user_name, u.avatar_url
   ORDER BY completion_count DESC, u.user_name ASC
   LIMIT 50;
@@ -46,7 +46,7 @@ BEGIN
   FROM users u
   INNER JOIN pomodoros p ON p.user_id = u.id
   WHERE p.completed = true
-    AND p.created_at >= DATE_TRUNC('week', NOW())
+    AND p.created_at >= (DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York')
     AND (
       u.id = p_user_id OR  -- Include self
       u.id IN (SELECT following_id FROM follows WHERE follower_id = p_user_id)
@@ -88,7 +88,7 @@ BEGIN
       SELECT COUNT(*) FROM pomodoros
       WHERE user_id = u.id
       AND completed = true
-      AND created_at >= DATE_TRUNC('week', NOW())
+      AND created_at >= (DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York')
     ) as completion_count
   FROM users u
   WHERE u.id != current_user_id
@@ -134,7 +134,7 @@ BEGIN
       SELECT COUNT(*) FROM pomodoros
       WHERE user_id = profile_user_id
       AND completed = true
-      AND created_at >= DATE_TRUNC('week', NOW())
+      AND created_at >= (DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York')
     ) as week_completions,
     (
       profile_user_id = current_user_id OR

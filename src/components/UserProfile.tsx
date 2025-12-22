@@ -11,6 +11,7 @@ import {
   getPendingFollowRequests,
   approveFollowRequest,
   rejectFollowRequest,
+  blockUser,
 } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
@@ -95,21 +96,54 @@ const UserProfile = () => {
   const handleApproveRequest = async (requestId: string) => {
     if (!authUser) return;
     const { error } = await approveFollowRequest(requestId, authUser.id);
-    if (!error) {
-      loadFollowRequests();
-      // Refresh follower count
-      getFollowers(userId!).then(({ data }) => {
-        setFollowerCount(data?.length || 0);
-      });
+    if (error) {
+      console.error('Error approving follow request:', error);
+      alert(`Failed to approve request: ${error.message || 'Unknown error'}`);
+      return;
     }
+    loadFollowRequests();
+    // Refresh follower count
+    getFollowers(userId!).then(({ data }) => {
+      setFollowerCount(data?.length || 0);
+    });
+    // Notify FollowRequestsBanner to refresh
+    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
   };
 
   const handleRejectRequest = async (requestId: string) => {
     if (!authUser) return;
     const { error } = await rejectFollowRequest(requestId, authUser.id);
-    if (!error) {
-      loadFollowRequests();
+    if (error) {
+      console.error('Error rejecting follow request:', error);
+      alert(`Failed to reject request: ${error.message || 'Unknown error'}`);
+      return;
     }
+    loadFollowRequests();
+    // Notify FollowRequestsBanner to refresh
+    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+  };
+
+  const handleBlockRequest = async (requestId: string, requesterId: string, userName?: string) => {
+    if (!authUser) return;
+
+    // Confirm before blocking
+    if (!confirm(`Are you sure you want to block ${userName || 'this user'}? They will not be able to follow you or see your content.`)) {
+      return;
+    }
+
+    const { error } = await blockUser(authUser.id, requesterId);
+    if (error) {
+      console.error('Error blocking user:', error);
+      alert(`Failed to block user: ${error.message || 'Unknown error'}`);
+      return;
+    }
+    loadFollowRequests();
+    // Refresh follower count in case they were following
+    getFollowers(userId!).then(({ data }) => {
+      setFollowerCount(data?.length || 0);
+    });
+    // Notify FollowRequestsBanner to refresh
+    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
   };
 
   const openFollowersModal = (tab: 'followers' | 'following') => {
@@ -209,7 +243,7 @@ const UserProfile = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition"
+                  className={removeStyle}
                   onClick={() => navigate('/privacy-settings')}
                 >
                   Privacy Settings
@@ -261,13 +295,19 @@ const UserProfile = () => {
                             onClick={() => handleApproveRequest(request.id)}
                             className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition"
                           >
-                            Accept
+                            Approve
                           </button>
                           <button
                             onClick={() => handleRejectRequest(request.id)}
                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:bg-gray-300 transition"
                           >
-                            Decline
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleBlockRequest(request.id, request.requester_id, request.users?.user_name)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transition"
+                          >
+                            Block
                           </button>
                         </div>
                       </div>

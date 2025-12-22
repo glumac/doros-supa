@@ -8,12 +8,14 @@ import {
   createFollowRequest,
   cancelFollowRequest,
   getUserProfile,
+  isBlockedByUser,
 } from '../lib/queries';
 
 interface FollowButtonProps {
   userId: string;
   className?: string;
   onFollowChange?: (isFollowing: boolean) => void;
+  initialIsFollowing?: boolean;
 }
 
 type FollowState = 'not-following' | 'following' | 'requested';
@@ -21,19 +23,30 @@ type FollowState = 'not-following' | 'following' | 'requested';
 export default function FollowButton({
   userId,
   className = '',
-  onFollowChange
+  onFollowChange,
+  initialIsFollowing
 }: FollowButtonProps) {
   const { user } = useAuth();
-  const [followState, setFollowState] = useState<FollowState>('not-following');
+  const [followState, setFollowState] = useState<FollowState>(
+    initialIsFollowing ? 'following' : 'not-following'
+  );
   const [loading, setLoading] = useState(false);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (user && userId !== user.id) {
-      checkFollowStatus();
+      // If initialIsFollowing is provided, use it but still check for requested status
+      if (initialIsFollowing !== undefined) {
+        // Still need to check if there's a pending request (edge case)
+        checkFollowStatus(initialIsFollowing);
+      } else {
+        checkFollowStatus();
+      }
       checkUserSettings();
+      checkBlockStatus();
     }
-  }, [user, userId]);
+  }, [user, userId, initialIsFollowing]);
 
   async function checkUserSettings() {
     const { data: targetUser } = await getUserProfile(userId);
@@ -42,8 +55,26 @@ export default function FollowButton({
     }
   }
 
-  async function checkFollowStatus() {
+  async function checkBlockStatus() {
     if (!user) return;
+    const blocked = await isBlockedByUser(user.id, userId);
+    setIsBlocked(blocked);
+  }
+
+  async function checkFollowStatus(initialFollowing?: boolean) {
+    if (!user) return;
+
+    // If initialFollowing is provided and true, set to following immediately
+    // but still check for requested status as a fallback
+    if (initialFollowing === true) {
+      setFollowState('following');
+      // Still check if there's a pending request (shouldn't happen, but be safe)
+      const { data: request } = await getFollowRequestStatus(user.id, userId);
+      if (request) {
+        setFollowState('requested');
+      }
+      return;
+    }
 
     // Check if already following
     const { isFollowing: following } = await isFollowingUser(user.id, userId);
@@ -93,8 +124,8 @@ export default function FollowButton({
     }
   }
 
-  // Don't show button if not logged in or viewing own profile
-  if (!user || userId === user.id) return null;
+  // Don't show button if not logged in, viewing own profile, or blocked
+  if (!user || userId === user.id || isBlocked) return null;
 
   const buttonConfig = {
     'not-following': {

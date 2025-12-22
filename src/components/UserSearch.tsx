@@ -193,6 +193,7 @@ export default function UserSearch() {
               <div onClick={(e) => e.stopPropagation()}>
                 <FollowButton
                   userId={result.user_id}
+                  initialIsFollowing={result.is_following}
                   onFollowChange={(isFollowing) => {
                     // Update the search result to reflect new follow state
                     setResults(prev =>

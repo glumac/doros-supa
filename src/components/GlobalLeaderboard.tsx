@@ -23,7 +23,7 @@ export default function GlobalLeaderboard() {
 
   async function loadLeaderboard() {
     setLoading(true);
-    const { data, error } = await getGlobalLeaderboard();
+    const { data, error } = await getGlobalLeaderboard(user?.id);
 
     if (error) {
       console.error('Error loading global leaderboard:', error);

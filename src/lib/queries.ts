@@ -5,8 +5,9 @@ type Pomodoro = Database["public"]["Tables"]["pomodoros"]["Row"];
 type User = Database["public"]["Tables"]["users"]["Row"];
 
 // Feed query - gets completed pomodoros (RLS automatically filters to visible ones)
-export async function getFeed(limit = 20) {
-  const { data, error } = await supabase
+// Note: Blocked users are filtered at the application level since RLS doesn't have user context
+export async function getFeed(limit = 20, currentUserId?: string) {
+  let query = supabase
     .from("pomodoros")
     .select(
       `
@@ -19,6 +20,23 @@ export async function getFeed(limit = 20) {
     .eq("completed", true)
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  const { data, error } = await query;
+
+  // Filter out pomodoros from blocked users if currentUserId is provided
+  if (currentUserId && data) {
+    const { data: blocks } = await supabase
+      .from("blocks")
+      .select("blocked_id")
+      .eq("blocker_id", currentUserId);
+
+    const blockedIds = new Set(blocks?.map((b) => b.blocked_id) || []);
+    const filteredData = data.filter(
+      (pomodoro) => !blockedIds.has(pomodoro.user_id)
+    );
+
+    return { data: filteredData, error };
+  }
 
   return { data, error };
 }
@@ -93,8 +111,10 @@ export async function searchPomodoros(term: string) {
 }
 
 // Get leaderboard data for the week
-export async function getWeeklyLeaderboard() {
-  const { data, error } = await supabase.rpc("get_global_leaderboard");
+export async function getWeeklyLeaderboard(currentUserId?: string) {
+  const { data, error } = await supabase.rpc("get_global_leaderboard", {
+    p_current_user_id: currentUserId || null,
+  });
   return { data, error };
 }
 
@@ -134,8 +154,19 @@ export async function isFollowingUser(myUserId: string, theirUserId: string) {
   return { isFollowing: !!data, error };
 }
 
-// Follow a user
+// Follow a user (checks if user is blocked first)
 export async function followUser(myUserId: string, theirUserId: string) {
+  // Check if user is blocked
+  const isBlocked = await isUserBlocked(myUserId, theirUserId);
+  if (isBlocked) {
+    return { data: null, error: new Error("You have blocked this user") };
+  }
+
+  const isBlockedBy = await isBlockedByUser(myUserId, theirUserId);
+  if (isBlockedBy) {
+    return { data: null, error: new Error("You are blocked by this user") };
+  }
+
   const { data, error } = await supabase
     .from("follows")
     .insert({ follower_id: myUserId, following_id: theirUserId });
@@ -155,8 +186,10 @@ export async function unfollowUser(myUserId: string, theirUserId: string) {
 }
 
 // Get global leaderboard (all users)
-export async function getGlobalLeaderboard() {
-  const { data, error } = await supabase.rpc("get_global_leaderboard");
+export async function getGlobalLeaderboard(currentUserId?: string) {
+  const { data, error } = await supabase.rpc("get_global_leaderboard", {
+    p_current_user_id: currentUserId || null,
+  });
   return { data, error };
 }
 
@@ -252,11 +285,23 @@ export async function getFollowRequestStatus(
   return { data, error };
 }
 
-// Create a follow request
+// Create a follow request (checks if user is blocked first)
 export async function createFollowRequest(
   requesterId: string,
   targetId: string
 ) {
+  // Check if requester is blocked by target
+  const { data: blockCheck } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("blocker_id", targetId)
+    .eq("blocked_id", requesterId)
+    .maybeSingle();
+
+  if (blockCheck) {
+    return { data: null, error: new Error("You are blocked by this user") };
+  }
+
   const { data, error } = await supabase.from("follow_requests").insert({
     requester_id: requesterId,
     target_id: targetId,
@@ -268,52 +313,60 @@ export async function createFollowRequest(
 
 // Approve a follow request
 export async function approveFollowRequest(requestId: string, userId: string) {
-  // Get request details
+  // Use database function to approve request (bypasses RLS)
+  const { data, error } = await supabase.rpc("approve_follow_request", {
+    p_request_id: requestId,
+    p_approver_id: userId,
+  });
+
+  if (error) {
+    console.error('Error approving follow request:', error);
+    return { error };
+  }
+
+  // Check if the function returned an error
+  if (data && data.error) {
+    console.error('Error from approve function:', data.error);
+    return { error: new Error(data.error) };
+  }
+
+  return { data, error: null };
+}
+
+// Reject a follow request (deletes request, allows re-request)
+export async function rejectFollowRequest(requestId: string, userId: string) {
+  // First verify the request exists and belongs to the user
   const { data: request, error: fetchError } = await supabase
     .from("follow_requests")
-    .select("requester_id, target_id")
+    .select("id, status")
     .eq("id", requestId)
     .eq("target_id", userId)
     .eq("status", "pending")
-    .single();
+    .maybeSingle();
 
-  if (fetchError || !request) {
-    return { error: fetchError || new Error("Request not found") };
+  if (fetchError) {
+    console.error('Error fetching follow request for rejection:', fetchError);
+    return { error: fetchError };
   }
 
-  // Create the follow relationship
-  const { error: followError } = await supabase.from("follows").insert({
-    follower_id: request.requester_id,
-    following_id: request.target_id,
-  });
+  if (!request) {
+    console.error('Follow request not found or already processed');
+    return { error: new Error("Request not found or already processed") };
+  }
 
-  if (followError) return { error: followError };
-
-  // Mark request as approved
-  const { error: updateError } = await supabase
-    .from("follow_requests")
-    .update({
-      status: "approved",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", requestId);
-
-  return { error: updateError };
-}
-
-// Reject a follow request
-export async function rejectFollowRequest(requestId: string, userId: string) {
+  // Delete the request
   const { error } = await supabase
     .from("follow_requests")
-    .update({
-      status: "rejected",
-      updated_at: new Date().toISOString(),
-    })
+    .delete()
     .eq("id", requestId)
-    .eq("target_id", userId)
-    .eq("status", "pending");
+    .eq("target_id", userId);
 
-  return { error };
+  if (error) {
+    console.error('Error deleting follow request:', error);
+    return { error };
+  }
+
+  return { error: null };
 }
 
 // Cancel a sent follow request
@@ -393,4 +446,150 @@ export async function getFollowingList(
     .range(from, to);
 
   return { data, error, count };
+}
+
+// ============================================
+// Blocking Functions
+// ============================================
+
+// Block a user
+export async function blockUser(blockerId: string, blockedId: string) {
+  // Check if already blocked
+  const { data: existingBlock } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId)
+    .maybeSingle();
+
+  if (existingBlock) {
+    // Already blocked, return success
+    return { data: existingBlock, error: null };
+  }
+
+  // First, delete any pending follow requests where blocker is target and blocked is requester
+  const { error: deleteReq1Error } = await supabase
+    .from("follow_requests")
+    .delete()
+    .eq("target_id", blockerId)
+    .eq("requester_id", blockedId)
+    .eq("status", "pending");
+
+  if (deleteReq1Error) {
+    console.warn('Error deleting follow request (1):', deleteReq1Error);
+  }
+
+  // Delete any pending follow requests where blocker is requester and blocked is target
+  const { error: deleteReq2Error } = await supabase
+    .from("follow_requests")
+    .delete()
+    .eq("requester_id", blockerId)
+    .eq("target_id", blockedId)
+    .eq("status", "pending");
+
+  if (deleteReq2Error) {
+    console.warn('Error deleting follow request (2):', deleteReq2Error);
+  }
+
+  // Remove any existing follow relationships (blocker following blocked)
+  const { error: deleteFollow1Error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", blockerId)
+    .eq("following_id", blockedId);
+
+  if (deleteFollow1Error) {
+    console.warn('Error deleting follow relationship (1):', deleteFollow1Error);
+  }
+
+  // Remove any existing follow relationships (blocked following blocker)
+  const { error: deleteFollow2Error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", blockedId)
+    .eq("following_id", blockerId);
+
+  if (deleteFollow2Error) {
+    console.warn('Error deleting follow relationship (2):', deleteFollow2Error);
+  }
+
+  // Create block record (use upsert to handle potential race condition)
+  const { data, error } = await supabase
+    .from("blocks")
+    .insert({
+      blocker_id: blockerId,
+      blocked_id: blockedId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating block record:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+}
+
+// Unblock a user
+export async function unblockUser(blockerId: string, blockedId: string) {
+  const { error } = await supabase
+    .from("blocks")
+    .delete()
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId);
+
+  return { error };
+}
+
+// Check if a user is blocked
+export async function isUserBlocked(
+  blockerId: string,
+  blockedId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId)
+    .maybeSingle();
+
+  return !!data;
+}
+
+// Check if current user is blocked by another user
+export async function isBlockedByUser(
+  userId: string,
+  otherUserId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("blocker_id", otherUserId)
+    .eq("blocked_id", userId)
+    .maybeSingle();
+
+  return !!data;
+}
+
+// Get list of blocked users
+export async function getBlockedUsers(blockerId: string) {
+  const { data, error } = await supabase
+    .from("blocks")
+    .select(
+      `
+      id,
+      blocked_id,
+      created_at,
+      users:blocked_id (
+        id,
+        user_name,
+        avatar_url
+      )
+    `
+    )
+    .eq("blocker_id", blockerId)
+    .order("created_at", { ascending: false });
+
+  return { data, error };
 }

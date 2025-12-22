@@ -60,7 +60,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   useEffect(() => {
     setLoading(true);
 
-    getWeeklyLeaderboard().then(({ data, error }) => {
+    getWeeklyLeaderboard(user?._id).then(({ data, error }) => {
       if (data && !error) {
         // Transform Supabase data to match Leader interface
         const leaders = data.map((item: any) => ({

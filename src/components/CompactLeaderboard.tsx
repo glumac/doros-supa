@@ -27,19 +27,19 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
 
   async function loadData() {
     setLoading(true);
-    
+
     if (activeTab === 'friends' && user) {
       const { data, error } = await getFriendsLeaderboard(user.id);
       if (data && !error) {
         setFriendsData(data);
       }
     } else if (activeTab === 'global') {
-      const { data, error } = await getGlobalLeaderboard();
+      const { data, error } = await getGlobalLeaderboard(user?.id);
       if (data && !error) {
         setGlobalData(data);
       }
     }
-    
+
     setLoading(false);
   }
 

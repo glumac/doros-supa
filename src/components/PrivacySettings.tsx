@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile } from '../lib/queries';
+import { getUserProfile, getBlockedUsers, unblockUser } from '../lib/queries';
 import { supabase } from '../lib/supabaseClient';
 
 export default function PrivacySettings() {
@@ -9,10 +9,13 @@ export default function PrivacySettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadSettings();
+      loadBlockedUsers();
     }
   }, [user]);
 
@@ -28,6 +31,20 @@ export default function PrivacySettings() {
       console.error('Error loading privacy settings:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadBlockedUsers() {
+    if (!user) return;
+    setLoadingBlocks(true);
+    try {
+      const { data, error } = await getBlockedUsers(user.id);
+      if (error) throw error;
+      setBlockedUsers(data || []);
+    } catch (error) {
+      console.error('Error loading blocked users:', error);
+    } finally {
+      setLoadingBlocks(false);
     }
   }
 
@@ -53,6 +70,20 @@ export default function PrivacySettings() {
       setMessage('Failed to update settings');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUnblock(blockedId: string) {
+    if (!user) return;
+    try {
+      const { error } = await unblockUser(user.id, blockedId);
+      if (error) throw error;
+      await loadBlockedUsers();
+      setMessage('User unblocked successfully');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+      setMessage('Failed to unblock user');
     }
   }
 
@@ -151,6 +182,98 @@ export default function PrivacySettings() {
             }}
           >
             {message}
+          </div>
+        )}
+      </div>
+
+      {/* Blocked Users Section */}
+      <div
+        style={{
+          marginTop: '24px',
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+          Blocked Users
+        </h3>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+          Users you have blocked cannot follow you, see your content, or send you follow requests.
+        </p>
+
+        {loadingBlocks ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+            Loading blocked users...
+          </div>
+        ) : blockedUsers.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+            No blocked users
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {blockedUsers.map((block) => (
+              <div
+                key={block.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img
+                    src={
+                      block.users?.avatar_url ||
+                      `https://ui-avatars.com/api/?name=${block.users?.user_name}&background=dc3545&color=fff`
+                    }
+                    alt={block.users?.user_name}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
+                      {block.users?.user_name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      Blocked {new Date(block.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnblock(block.blocked_id)}
+                  style={{
+                    padding: '6px 16px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #dc3545',
+                    color: '#dc3545',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#dc3545';
+                    e.currentTarget.style.color = '#fff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fff';
+                    e.currentTarget.style.color = '#dc3545';
+                  }}
+                >
+                  Unblock
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
