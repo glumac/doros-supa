@@ -82,7 +82,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
         ) : (
           displayData.slice(0, 10).map((leader) => (
             <Link
-              to={`user/${leader.user_id}`}
+              to={`/user/${leader.user_id}`}
               key={leader.user_id}
               onClick={handleCloseSidebar}
               className="cq-compact-leaderboard-item flex gap-2 px-2 py-1 font-bold items-center mx-3 text-green-700 hover:text-green-800 transition-all duration-200 ease-in-out"

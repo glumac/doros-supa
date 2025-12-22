@@ -238,7 +238,7 @@ const Doro = ({ doro }: DoroProps) => {
                 <div className="cq-doro-likes-avatars-container flex gap-0.5">
                   {doro?.likes?.map((like, index) => (
                     <div key={like.id} className="cq-doro-like-avatar-item">
-                      <Link to={`user/${like.users?.id}`} className="cq-doro-like-avatar-link">
+                      <Link to={`/user/${like.users?.id}`} className="cq-doro-like-avatar-link">
                         <img
                           className="cq-doro-like-avatar w-5 h-5 mr-0.5 rounded-full object-cover block relative"
                           src={like.users?.avatar_url || getAvatarPlaceholder(20)}

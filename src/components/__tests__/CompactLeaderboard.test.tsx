@@ -247,4 +247,39 @@ describe('CompactLeaderboard', () => {
     // When the mutation hook invalidates these queries, React Query will
     // automatically refetch and update the component
   });
+
+  it('should render user links with absolute paths to prevent URL duplication', async () => {
+    vi.mocked(queries.getGlobalLeaderboard).mockResolvedValue({
+      data: mockGlobalData,
+      error: null
+    });
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
+      error: null
+    });
+
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.getByText('Top User')).toBeInTheDocument();
+    });
+
+    const links = screen.getAllByRole('link') as HTMLAnchorElement[];
+    const topUserLink = links.find(link => link.textContent?.includes('Top User'));
+
+    // Link href should start with / to be absolute, not relative
+    expect(topUserLink?.getAttribute('href')).toBe('/user/user-1');
+    // Should NOT be a relative path
+    expect(topUserLink?.getAttribute('href')).not.toBe('user/user-1');
+
+    // Verify all links have absolute paths
+    links.forEach(link => {
+      const href = link.getAttribute('href');
+      if (href?.includes('user')) {
+        expect(href).toMatch(/^\/user\//);
+        // Should NOT contain repeated /user/ segments
+        expect(href).not.toMatch(/\/user\/.*\/user\//);
+      }
+    });
+  });
 });

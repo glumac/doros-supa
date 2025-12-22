@@ -26,7 +26,7 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
             </Link>
           )}
           <Link
-            to={`user/${user.id}`}
+            to={`/user/${user.id}`}
             className="cq-navbar-user-link hidden md:block hover:shadow-md"
           >
             <img

@@ -153,7 +153,7 @@ const Home = () => {
                     Crush Quest
                   </h1>
                 </Link>
-                <Link to={`user/${userProfile?.id}`}>
+                <Link to={`/user/${userProfile?.id}`}>
                   <img
                     src={userProfile?.avatar_url || getAvatarPlaceholder(36)}
                     alt="user-pic"
