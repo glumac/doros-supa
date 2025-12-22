@@ -1,12 +1,7 @@
-import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { GiTomato } from "react-icons/gi";
-
-interface User {
-  _id: string;
-  image: string;
-  userName?: string;
-}
+import type { User } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 interface NavbarProps {
   searchTerm?: string;
@@ -31,11 +26,11 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
             </Link>
           )}
           <Link
-            to={`user/${user._id}`}
+            to={`user/${user.id}`}
             className="cq-navbar-user-link hidden md:block hover:shadow-md"
           >
             <img
-              src={user.image}
+              src={user.avatar_url || getAvatarPlaceholder(48)}
               alt="user-pic"
               className="cq-navbar-user-avatar w-14 h-12 rounded-lg "
             />
