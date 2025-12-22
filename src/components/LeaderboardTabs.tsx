@@ -6,9 +6,10 @@ export default function LeaderboardTabs() {
   const [activeTab, setActiveTab] = useState<'friends' | 'global'>('friends');
 
   return (
-    <div className="leaderboard-tabs" style={{ width: '100%' }}>
+    <div className="cq-cq-leaderboard-tabs-container cq-leaderboard-tabs" style={{ width: '100%' }}>
       {/* Tab Headers */}
       <div
+        className="cq-cq-leaderboard-tabs-header"
         style={{
           display: 'flex',
           borderBottom: '2px solid #e0e0e0',
@@ -17,6 +18,7 @@ export default function LeaderboardTabs() {
       >
         <button
           onClick={() => setActiveTab('friends')}
+          className={`cq-leaderboard-tab cq-leaderboard-tab-friends ${activeTab === 'friends' ? 'cq-leaderboard-tab-active' : ''}`}
           style={{
             flex: 1,
             padding: '12px 24px',
@@ -35,6 +37,7 @@ export default function LeaderboardTabs() {
         </button>
         <button
           onClick={() => setActiveTab('global')}
+          className={`cq-leaderboard-tab cq-leaderboard-tab-global ${activeTab === 'global' ? 'cq-leaderboard-tab-active' : ''}`}
           style={{
             flex: 1,
             padding: '12px 24px',
@@ -54,7 +57,7 @@ export default function LeaderboardTabs() {
       </div>
 
       {/* Tab Content */}
-      <div className="tab-content">
+      <div className="cq-cq-leaderboard-tabs-content tab-content">
         {activeTab === 'friends' && <FriendsLeaderboard />}
         {activeTab === 'global' && <GlobalLeaderboard />}
       </div>

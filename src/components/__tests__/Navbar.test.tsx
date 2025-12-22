@@ -30,7 +30,7 @@ describe('Navbar CSS behavior', () => {
     it('renders navbar when user is logged in', () => {
       const { container } = renderNavbar();
 
-      expect(container.querySelector('.flex.gap-2')).toBeInTheDocument();
+      expect(container.querySelector('.cq-navbar-container')).toBeInTheDocument();
     });
 
     it('returns null when user is not logged in', () => {
@@ -60,9 +60,9 @@ describe('Navbar CSS behavior', () => {
     it('applies correct flex layout classes', () => {
       const { container } = renderNavbar();
 
-      const mainContainer = container.querySelector('.flex.gap-2.justify-end');
+      const mainContainer = container.querySelector('.cq-navbar-container');
       expect(mainContainer).toBeInTheDocument();
-      expect(mainContainer).toHaveClass('md:gap-5', 'w-full', 'mt-5', 'pb-7');
+      expect(mainContainer).toHaveClass('flex', 'gap-2', 'justify-end', 'md:gap-5', 'w-full', 'mt-5', 'pb-7');
     });
 
     it('applies red background with hover effect to launch button', () => {
@@ -115,8 +115,8 @@ describe('Navbar CSS behavior', () => {
     it('applies responsive gap classes', () => {
       const { container } = renderNavbar();
 
-      const mainContainer = container.querySelector('.flex.gap-2');
-      expect(mainContainer).toHaveClass('md:gap-5');
+      const mainContainer = container.querySelector('.cq-navbar-container');
+      expect(mainContainer).toHaveClass('flex', 'gap-2', 'md:gap-5');
     });
 
     it('hides profile image on mobile with md:block', () => {

@@ -8,14 +8,16 @@ describe('Spinner CSS behavior', () => {
     it('renders spinner component', () => {
       const { container } = render(<Spinner />);
 
-      expect(container.querySelector('.flex.flex-col')).toBeInTheDocument();
+      expect(container.querySelector('.cq-spinner-container')).toBeInTheDocument();
     });
 
     it('applies centered flex layout classes', () => {
       const { container } = render(<Spinner />);
 
-      const spinnerContainer = container.querySelector('.flex.flex-col');
+      const spinnerContainer = container.querySelector('.cq-spinner-container');
       expect(spinnerContainer).toHaveClass(
+        'flex',
+        'flex-col',
         'justify-center',
         'items-center',
         'w-full',

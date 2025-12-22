@@ -383,19 +383,19 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   };
   return (
-    <div className="mt-5">
+    <div className="cq-create-doro-container mt-5">
       {!doroContext.inProgress && !completed && (
-        <div className="bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto">
-          <h1 className="text-4xl sm:text-3xl font-bold mb-5">Let's flow.</h1>
+        <div className="cq-create-doro-form bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto">
+          <h1 className="cq-create-doro-title text-4xl sm:text-3xl font-bold mb-5">Let's flow.</h1>
 
           <label
-            className="block outline-none text-2xl sm:text-xl font-bold"
+            className="cq-create-doro-label block outline-none text-2xl sm:text-xl font-bold"
             htmlFor="what-do"
           >
             What bit of&nbsp;
             <a
               href="https://sive.rs/book/DeepWork"
-              className="text-red-600 underline-offset-4 underline"
+              className="cq-create-doro-deep-work-link text-red-600 underline-offset-4 underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -403,7 +403,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             </a>{" "}
             will you focus on for the next {DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}?
           </label>
-          <div className="flex items-stretch mt-5 gap-2 flex-wrap">
+          <div className="cq-create-doro-input-container flex items-stretch mt-5 gap-2 flex-wrap">
             <input
               type="text"
               id="what-do"
@@ -411,7 +411,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
               autoComplete="on"
               onChange={(e) => setTask(e.target.value)}
               placeholder="This 🍅's task is..."
-              className="max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2"
+              className="cq-create-doro-task-input max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2"
             />
 
             <button
@@ -422,7 +422,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                 const durationInMinutes = DEV_MODE_SHORT_TIMER ? 5 / 60 : 25;
                 startTimer(durationInMinutes);
               }}
-              className="bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5"
+              className="cq-create-doro-start-button bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5"
             >
               Start!
             </button>
@@ -430,14 +430,14 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         </div>
       )}
       {doroContext.inProgress && (
-        <div className="bg-white border-solid border-2 border-red-600 rounded-3xl p-5 max-w-lg lg:max-w-2xl mx-auto">
-          <div className="flex mb-3 justify-between items-center relative">
-            <h3 className="text-dark text-lg">{DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}</h3>
-            <div>
+        <div className="cq-create-doro-timer-container bg-white border-solid border-2 border-red-600 rounded-3xl p-5 max-w-lg lg:max-w-2xl mx-auto">
+          <div className="cq-create-doro-timer-header flex mb-3 justify-between items-center relative">
+            <h3 className="cq-create-doro-timer-duration text-dark text-lg">{DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}</h3>
+            <div className="cq-create-doro-timer-started">
               {launchAt && (
-                <div className="flex gap-2">
+                <div className="cq-create-doro-timer-started-info flex gap-2">
                   <span className="text-gray-500 text-lg">Started At:</span>
-                  <span className="text-dark text-lg">
+                  <span className="cq-create-doro-timer-started-time text-dark text-lg">
                     {format(new Date(launchAt), "h:mm a")}
                   </span>
                 </div>
@@ -445,13 +445,13 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             </div>
           </div>
 
-          <div className="flex justify-center font-medium text-xl mb-2">
+          <div className="cq-create-doro-timer-task flex justify-center font-medium text-xl mb-2">
             {task}
           </div>
-          <div>
+          <div className="cq-create-doro-timer-display">
             {/* <MyTimer expiryTimestamp={time} completeFunc={finishDoro} /> */}
             <div style={{ textAlign: "center" }}>
-              <div>
+              <div className="cq-create-doro-timer-component">
                 <TimerStyled
                   seconds={formatTime(timeLeft).seconds}
                   minutes={formatTime(timeLeft).minutes}
@@ -459,14 +459,14 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
               </div>
               {isActive && !isPaused ? (
                 <button
-                  className="bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
+                  className="cq-create-doro-pause-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
                   onClick={pauseTimer}
                 >
                   Pause
                 </button>
               ) : (
                 <button
-                  className="bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
+                  className="cq-create-doro-resume-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
                   onClick={resumeTimer}
                 >
                   Resume
@@ -474,8 +474,8 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
               )}
             </div>
           </div>
-          <div className="flex justify-center mt-5">
-            <button type="button" onClick={stopTimer} className={removeStyle}>
+          <div className="cq-create-doro-timer-cancel-container flex justify-center mt-5">
+            <button type="button" onClick={stopTimer} className={`cq-create-doro-timer-cancel-button ${removeStyle}`}>
               Cancel
             </button>
           </div>
@@ -483,33 +483,33 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       )}
 
       {!doroContext.inProgress && completed && (
-        <div className="flex flex-col justify-center items-center mt-5 lg:h-4/5 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto">
+        <div className="cq-create-doro-completed-container flex flex-col justify-center items-center mt-5 lg:h-4/5 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto">
           {fields && (
-            <p className="text-red-600 mb-5 text-xl transition-all duration-150 ease-in">
+            <p className="cq-create-doro-error-message text-red-600 mb-5 text-xl transition-all duration-150 ease-in">
               Please add all fields.
             </p>
           )}
-          <div className="flex lg:flex-row flex-col justify-between items-center bg-white lg:p-2 p-1 w-full">
-            <div className="bg-secondaryColor rounded-lg p-3 flex flex-0.7 w-full">
-              <div className=" flex justify-center items-center flex-col border-2 border-dotted border-gray-300 p-3 w-full h-420">
+          <div className="cq-create-doro-completed-content flex lg:flex-row flex-col justify-between items-center bg-white lg:p-2 p-1 w-full">
+            <div className="cq-create-doro-image-upload-container bg-secondaryColor rounded-lg p-3 flex flex-0.7 w-full">
+              <div className="cq-create-doro-image-upload-area flex justify-center items-center flex-col border-2 border-dotted border-gray-300 p-3 w-full h-420">
                 {loading && (
-                  <div className="mt-8">
+                  <div className="cq-create-doro-image-loading mt-8">
                     <Spinner />
                   </div>
                 )}
-                {wrongImageType && <p>It&apos;s wrong file type.</p>}
+                {wrongImageType && <p className="cq-create-doro-image-error">It&apos;s wrong file type.</p>}
                 {!imageAsset ? (
                   // eslint-disable-next-line jsx-a11y/label-has-associated-control
-                  <label>
-                    <div className="flex cursor-pointer flex-col items-center justify-center h-full">
-                      <div className="flex max-w-full flex-col justify-center items-center">
-                        <p className="font-bold text-2xl">
+                  <label className="cq-create-doro-image-upload-label">
+                    <div className="cq-create-doro-image-upload-prompt flex cursor-pointer flex-col items-center justify-center h-full">
+                      <div className="cq-create-doro-image-upload-icon-container flex max-w-full flex-col justify-center items-center">
+                        <p className="cq-create-doro-image-upload-icon font-bold text-2xl">
                           <AiOutlineCloudUpload />
                         </p>
-                        <p className="text-lg">Click to upload</p>
+                        <p className="cq-create-doro-image-upload-text text-lg">Click to upload</p>
                       </div>
 
-                      <p className="max-w-fit mt-32 text-center text-gray-400">
+                      <p className="cq-create-doro-image-upload-hint max-w-fit mt-32 text-center text-gray-400">
                         JPG, JPEG, SVG, PNG, GIF <br /> or TIFF less than 20MB
                       </p>
                     </div>
@@ -517,21 +517,21 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                       type="file"
                       name="upload-image"
                       onChange={uploadImage}
-                      className="w-0 h-0 opacity-0"
+                      className="cq-create-doro-image-input w-0 h-0 opacity-0"
                     />
                   </label>
                 ) : (
-                  <div className="relative h-full flex justify-center align-center">
-                    <div className="flex align-center">
+                  <div className="cq-create-doro-image-preview-container relative h-full flex justify-center align-center">
+                    <div className="cq-create-doro-image-preview flex align-center">
                       <img
                         src={imageAsset?.url}
                         alt="uploaded-pic"
-                        className="w-full self-center"
+                        className="cq-create-doro-image-preview-img w-full self-center"
                       />
                     </div>
                     <button
                       type="button"
-                      className="absolute bottom-3 right-3 p-3 rounded-full bg-white text-xl cursor-pointer outline-none hover:shadow-md transition-all duration-500 ease-in-out"
+                      className="cq-create-doro-image-delete-button absolute bottom-3 right-3 p-3 rounded-full bg-white text-xl cursor-pointer outline-none hover:shadow-md transition-all duration-500 ease-in-out"
                       onClick={() => setImageAsset(null)}
                     >
                       <MdDelete />
@@ -541,19 +541,19 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-6 lg:pl-5 mt-5 h-full w-full">
+            <div className="cq-create-doro-completed-form flex flex-1 flex-col gap-6 lg:pl-5 mt-5 h-full w-full">
               {launchAt && (
-                <div>
-                  <p className="font-bold text-gray-500 text-lg leading-tight">
+                <div className="cq-create-doro-completed-start-time">
+                  <p className="cq-create-doro-completed-start-time-label font-bold text-gray-500 text-lg leading-tight">
                     Start time:
                   </p>
-                  <p className="mt-2">{format(new Date(launchAt), "h:mm a")}</p>
+                  <p className="cq-create-doro-completed-start-time-value mt-2">{format(new Date(launchAt), "h:mm a")}</p>
                 </div>
               )}
-              <div>
+              <div className="cq-create-doro-completed-task-field">
                 <label
                   htmlFor="task"
-                  className="font-bold block text-gray-500 text-lg leading-tight"
+                  className="cq-create-doro-completed-task-label font-bold block text-gray-500 text-lg leading-tight"
                 >
                   Task:
                 </label>
@@ -563,13 +563,13 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
                   placeholder="What did you work on?"
-                  className="mt-2 block w-full outline-none text-base border-gray-200 p-2 placeholder-gray-500 outline-none flex-grow border-2 rounded-lg border-gray-200"
+                  className="cq-create-doro-completed-task-input mt-2 block w-full outline-none text-base border-gray-200 p-2 placeholder-gray-500 outline-none flex-grow border-2 rounded-lg border-gray-200"
                 />
               </div>
-              <div>
+              <div className="cq-create-doro-completed-notes-field">
                 <label
                   htmlFor="notes"
-                  className="font-bold block text-gray-500 text-lg leading-tight"
+                  className="cq-create-doro-completed-notes-label font-bold block text-gray-500 text-lg leading-tight"
                 >
                   Notes (public):
                 </label>
@@ -578,19 +578,19 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="How did it go?"
-                  className="mt-2 block leading-tight w-full outline-none border-2 rounded-lg text-base border-b-2 border-gray-200 p-2"
+                  className="cq-create-doro-completed-notes-input mt-2 block leading-tight w-full outline-none border-2 rounded-lg text-base border-b-2 border-gray-200 p-2"
                 />
               </div>
-              <div className="flex flex-col">
-                <div className="flex justify-between items-center mt-5">
+              <div className="cq-create-doro-completed-actions flex flex-col">
+                <div className="cq-create-doro-completed-actions-row flex justify-between items-center mt-5">
                   {user && (
-                    <div className="flex gap-2 mt-2 mb-2 items-center bg-white rounded-lg ">
+                    <div className="cq-create-doro-completed-user-info flex gap-2 mt-2 mb-2 items-center bg-white rounded-lg ">
                       <img
                         src={user?.avatar_url || getAvatarPlaceholder(40)}
-                        className="w-10 h-10 rounded-full"
+                        className="cq-create-doro-completed-user-avatar w-10 h-10 rounded-full"
                         alt="user-profile"
                       />
-                      <p className="font-bold">{user?.user_name}</p>
+                      <p className="cq-create-doro-completed-user-name font-bold">{user?.user_name}</p>
                     </div>
                   )}
 
@@ -598,21 +598,21 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                     type="button"
                     disabled={saving}
                     onClick={saveDoro}
-                    className="bg-red-600 text-white font-bold p-2 flex rounded-lg w-28 justify-center items-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="cq-create-doro-completed-share-button bg-red-600 text-white font-bold p-2 flex rounded-lg w-28 justify-center items-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>Share &nbsp;</span>
                     <GiTomato />
                   </button>
                 </div>
               </div>
-              <div className="flex justify-center">
+              <div className="cq-create-doro-completed-cancel-container flex justify-center">
                 <button
                   type="button"
                   onClick={(e) => {
                     clearAll();
                     doroContext.setInProgress(false);
                   }}
-                  className={`mt-5 mb-0 ${removeStyle}`}
+                  className={`cq-create-doro-completed-cancel-button mt-5 mb-0 ${removeStyle}`}
                 >
                   Cancel
                 </button>

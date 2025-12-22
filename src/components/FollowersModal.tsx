@@ -69,6 +69,7 @@ export default function FollowersModal({
 
   return (
     <div
+      className="cq-followers-modal-overlay"
       style={{
         position: 'fixed',
         top: 0,
@@ -84,6 +85,7 @@ export default function FollowersModal({
       onClick={onClose}
     >
       <div
+        className="cq-followers-modal-container"
         style={{
           backgroundColor: '#fff',
           borderRadius: '12px',
@@ -98,6 +100,7 @@ export default function FollowersModal({
       >
         {/* Header */}
         <div
+          className="cq-followers-modal-header"
           style={{
             padding: '20px',
             borderBottom: '1px solid #eee',
@@ -106,11 +109,12 @@ export default function FollowersModal({
             alignItems: 'center',
           }}
         >
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+          <h2 className="cq-followers-modal-title" style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
             {userName}
           </h2>
           <button
             onClick={onClose}
+            className="cq-followers-modal-close-button"
             style={{
               background: 'none',
               border: 'none',
@@ -128,6 +132,7 @@ export default function FollowersModal({
 
         {/* Tabs */}
         <div
+          className="cq-followers-modal-tabs"
           style={{
             display: 'flex',
             borderBottom: '1px solid #eee',
@@ -138,6 +143,7 @@ export default function FollowersModal({
               setActiveTab('followers');
               setPage(1);
             }}
+            className={`cq-followers-modal-tab cq-followers-modal-tab-followers ${activeTab === 'followers' ? 'cq-followers-modal-tab-active' : ''}`}
             style={{
               flex: 1,
               padding: '16px',
@@ -157,6 +163,7 @@ export default function FollowersModal({
               setActiveTab('following');
               setPage(1);
             }}
+            className={`cq-followers-modal-tab cq-followers-modal-tab-following ${activeTab === 'following' ? 'cq-followers-modal-tab-active' : ''}`}
             style={{
               flex: 1,
               padding: '16px',
@@ -175,6 +182,7 @@ export default function FollowersModal({
 
         {/* User List */}
         <div
+          className="cq-followers-modal-list"
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -182,17 +190,18 @@ export default function FollowersModal({
           }}
         >
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            <div className="cq-followers-modal-loading" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
               Loading...
             </div>
           ) : displayedUsers.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            <div className="cq-followers-modal-empty" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
               No {activeTab} yet
             </div>
           ) : (
             displayedUsers.map((followUser) => (
               <div
                 key={followUser.id}
+                className="cq-followers-modal-item"
                 style={{
                   padding: '12px 20px',
                   display: 'flex',
@@ -204,6 +213,7 @@ export default function FollowersModal({
                 <Link
                   to={`/user/${followUser.id}`}
                   onClick={onClose}
+                  className="cq-followers-modal-item-link"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -216,6 +226,7 @@ export default function FollowersModal({
                   <img
                     src={followUser.avatar_url || getAvatarPlaceholder(44)}
                     alt={followUser.user_name}
+                    className="cq-followers-modal-item-avatar"
                     style={{
                       width: '44px',
                       height: '44px',
@@ -223,13 +234,15 @@ export default function FollowersModal({
                       objectFit: 'cover',
                     }}
                   />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
+                  <div className="cq-followers-modal-item-info" style={{ flex: 1 }}>
+                    <div className="cq-followers-modal-item-name" style={{ fontWeight: '600', fontSize: '15px' }}>
                       {followUser.user_name}
                     </div>
                   </div>
                 </Link>
-                <FollowButton userId={followUser.id} />
+                <div className="cq-followers-modal-item-follow-button">
+                  <FollowButton userId={followUser.id} />
+                </div>
               </div>
             ))
           )}
@@ -238,6 +251,7 @@ export default function FollowersModal({
         {/* Pagination */}
         {totalPages > 1 && (
           <div
+            className="cq-followers-modal-pagination"
             style={{
               padding: '16px 20px',
               borderTop: '1px solid #eee',
@@ -250,6 +264,7 @@ export default function FollowersModal({
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
+              className="cq-followers-modal-pagination-prev"
               style={{
                 padding: '6px 12px',
                 border: '1px solid #ddd',
@@ -261,12 +276,13 @@ export default function FollowersModal({
             >
               Previous
             </button>
-            <span style={{ color: '#666', fontSize: '14px' }}>
+            <span className="cq-followers-modal-pagination-info" style={{ color: '#666', fontSize: '14px' }}>
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
+              className="cq-followers-modal-pagination-next"
               style={{
                 padding: '6px 12px',
                 border: '1px solid #ddd',

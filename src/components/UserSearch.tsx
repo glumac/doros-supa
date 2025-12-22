@@ -101,18 +101,19 @@ export default function UserSearch() {
   }
 
   return (
-    <div className="user-search">
-      <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
+    <div className="cq-user-search-container user-search">
+      <h2 className="cq-user-search-title" style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
         🔍 Find Friends
       </h2>
 
       {/* Search Input */}
-      <div style={{ marginBottom: '20px' }}>
+      <div className="cq-user-search-input-container" style={{ marginBottom: '20px' }}>
         <input
           type="text"
           placeholder="Search users by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="cq-user-search-input"
           style={{
             width: '100%',
             padding: '12px 16px',
@@ -133,30 +134,30 @@ export default function UserSearch() {
 
       {/* Loading State */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        <div className="cq-user-search-loading" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
           Searching...
         </div>
       )}
 
       {/* No Results */}
       {!loading && hasSearched && results.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p style={{ fontSize: '18px', marginBottom: '10px' }}>😕 No users found matching "{searchTerm}"</p>
-          <p>Try a different search term</p>
+        <div className="cq-user-search-no-results" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+          <p className="cq-user-search-no-results-message" style={{ fontSize: '18px', marginBottom: '10px' }}>😕 No users found matching "{searchTerm}"</p>
+          <p className="cq-user-search-no-results-hint">Try a different search term</p>
         </div>
       )}
 
       {/* Search Results */}
       {!loading && results.length > 0 && (
-        <div className="search-results">
-          <p style={{ color: '#666', marginBottom: '15px' }}>
+        <div className="cq-user-search-results search-results">
+          <p className="cq-user-search-results-count" style={{ color: '#666', marginBottom: '15px' }}>
             Found {results.length} user{results.length !== 1 ? 's' : ''}
           </p>
 
           {results.map((result) => (
             <div
               key={result.user_id}
-              className="search-result-item"
+              className="cq-user-search-result-item search-result-item"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -182,6 +183,7 @@ export default function UserSearch() {
               <img
                 src={result.avatar_url || getAvatarPlaceholder(50)}
                 alt={result.user_name}
+                className="cq-user-search-result-avatar"
                 style={{
                   width: '50px',
                   height: '50px',
@@ -192,18 +194,18 @@ export default function UserSearch() {
               />
 
               {/* User Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+              <div className="cq-user-search-result-info" style={{ flex: 1 }}>
+                <div className="cq-user-search-result-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
                   {result.user_name}
                 </div>
-                <div style={{ color: '#666', fontSize: '14px' }}>
+                <div className="cq-user-search-result-stats" style={{ color: '#666', fontSize: '14px' }}>
                   {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
                   {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
                 </div>
               </div>
 
               {/* Follow Button */}
-              <div onClick={(e) => e.stopPropagation()}>
+              <div className="cq-user-search-result-follow-button" onClick={(e) => e.stopPropagation()}>
                 <FollowButton
                   userId={result.user_id}
                   initialIsFollowing={result.is_following}
@@ -226,17 +228,17 @@ export default function UserSearch() {
 
       {/* Initial State - Show Suggested Users */}
       {!loading && !hasSearched && (
-        <div>
+        <div className="cq-user-search-suggestions">
           {suggestedUsers.length > 0 ? (
             <>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px', color: '#333' }}>
+              <h3 className="cq-user-search-suggestions-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px', color: '#333' }}>
                 ✨ Suggested for you
               </h3>
-              <div className="search-results">
+              <div className="cq-user-search-suggestions-list search-results">
                 {suggestedUsers.map((result) => (
                   <div
                     key={result.user_id}
-                    className="search-result-item"
+                    className="cq-user-search-suggestion-item search-result-item"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -262,6 +264,7 @@ export default function UserSearch() {
                     <img
                       src={result.avatar_url || getAvatarPlaceholder(50)}
                       alt={result.user_name}
+                      className="cq-user-search-suggestion-avatar"
                       style={{
                         width: '50px',
                         height: '50px',
@@ -272,18 +275,18 @@ export default function UserSearch() {
                     />
 
                     {/* User Info */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                    <div className="cq-user-search-suggestion-info" style={{ flex: 1 }}>
+                      <div className="cq-user-search-suggestion-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
                         {result.user_name}
                       </div>
-                      <div style={{ color: '#666', fontSize: '14px' }}>
+                      <div className="cq-user-search-suggestion-stats" style={{ color: '#666', fontSize: '14px' }}>
                         {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
                         {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
                       </div>
                     </div>
 
                     {/* Follow Button */}
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <div className="cq-user-search-suggestion-follow-button" onClick={(e) => e.stopPropagation()}>
                       <FollowButton
                         userId={result.user_id}
                         onFollowChange={(isFollowing) => {
@@ -303,9 +306,9 @@ export default function UserSearch() {
               </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-              <p style={{ fontSize: '18px', marginBottom: '10px' }}>👋 Start typing to find friends</p>
-              <p>Search by username to discover new people to follow</p>
+            <div className="cq-user-search-empty-state" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <p className="cq-user-search-empty-message" style={{ fontSize: '18px', marginBottom: '10px' }}>👋 Start typing to find friends</p>
+              <p className="cq-user-search-empty-hint">Search by username to discover new people to follow</p>
             </div>
           )}
         </div>

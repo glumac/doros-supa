@@ -32,19 +32,19 @@ export default function GlobalLeaderboard() {
   }
 
   return (
-    <div className="global-leaderboard">
-      <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
+    <div className="cq-global-leaderboard-container global-leaderboard">
+      <h2 className="cq-global-leaderboard-title" style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
         🌍 Global Leaderboard
       </h2>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+      <p className="cq-global-leaderboard-description" style={{ color: '#666', marginBottom: '20px' }}>
         Top performers this week - discover new users to follow!
       </p>
 
-      <div className="leaderboard-list">
+      <div className="cq-global-leaderboard-list leaderboard-list">
         {leaderboard.map((item, index) => (
           <div
             key={item.user_id}
-            className="leaderboard-item"
+            className="cq-global-leaderboard-item leaderboard-item"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -68,6 +68,7 @@ export default function GlobalLeaderboard() {
           >
             {/* Rank */}
             <div
+              className="cq-global-leaderboard-item-rank"
               style={{
                 minWidth: '40px',
                 fontSize: '18px',
@@ -86,6 +87,7 @@ export default function GlobalLeaderboard() {
             <img
               src={item.avatar_url || getAvatarPlaceholder(50)}
               alt={item.user_name}
+              className="cq-global-leaderboard-item-avatar"
               style={{
                 width: '50px',
                 height: '50px',
@@ -96,17 +98,17 @@ export default function GlobalLeaderboard() {
             />
 
             {/* User Info */}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+            <div className="cq-global-leaderboard-item-info" style={{ flex: 1 }}>
+              <div className="cq-global-leaderboard-item-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
                 {item.user_name}
               </div>
-              <div style={{ color: '#666', fontSize: '14px' }}>
+              <div className="cq-global-leaderboard-item-stats" style={{ color: '#666', fontSize: '14px' }}>
                 {item.completion_count} pomodoro{item.completion_count !== 1 ? 's' : ''} this week
               </div>
             </div>
 
             {/* Follow Button */}
-            <div onClick={(e) => e.stopPropagation()}>
+            <div className="cq-global-leaderboard-item-follow-button" onClick={(e) => e.stopPropagation()}>
               <FollowButton
                 userId={item.user_id}
                 onFollowChange={() => {

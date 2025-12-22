@@ -47,26 +47,26 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   };
 
   return (
-    <div className="flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">
-      <div className="flex items-center flex-col">
+    <div className="cq-sidebar-container flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">
+      <div className="cq-sidebar-content flex items-center flex-col">
         <Link
           to="/"
-          className="flex gap-2 my-6 pt-1 w-190 items-center justify-center"
+          className="cq-sidebar-logo-link flex gap-2 my-6 pt-1 w-190 items-center justify-center"
           onClick={handleCloseSidebar}
         >
-          <div className="pb-6 text-center">
-            <h1 className="font-serif text-center text-red-600 transition hover:text-red-700 text-6xl">
+          <div className="cq-sidebar-logo pb-6 text-center">
+            <h1 className="cq-sidebar-title font-serif text-center text-red-600 transition hover:text-red-700 text-6xl">
               Crush Quest
             </h1>
           </div>
         </Link>
-        <div className="flex flex-col gap-5">
-          <div className="h-8">
+        <div className="cq-sidebar-navigation flex flex-col gap-5">
+          <div className="cq-sidebar-launch-button-container h-8">
             {!onCreateDoroPage && (
               <Link
                 to="/create-doro"
                 onClick={handleCloseSidebar}
-                className="bg-red-600 font-semibold flex gap-2 text-white rounded-lg h-12 px-1 mx-3 md:h-8 text-base justify-center items-center transition hover:shadow-md hover:bg-red-700"
+                className="cq-sidebar-launch-button bg-red-600 font-semibold flex gap-2 text-white rounded-lg h-12 px-1 mx-3 md:h-8 text-base justify-center items-center transition hover:shadow-md hover:bg-red-700"
               >
                 <span>Launch</span>
                 <GiTomato />
@@ -74,9 +74,9 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             )}
           </div>
 
-          <div className="flex justify-center">
+          <div className="cq-sidebar-info-link-container flex justify-center">
             <a
-              className={removeStyle}
+              className={`cq-sidebar-info-link ${removeStyle}`}
               target="_blank"
               href="https://todoist.com/productivity-methods/pomodoro-technique"
               rel="noreferrer"
@@ -85,7 +85,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             </a>
           </div>
 
-          <div className="mt-5">
+          <div className="cq-sidebar-nav-item mt-5">
             <NavLink
               to="/"
               className={({ isActive }) =>
@@ -98,7 +98,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             </NavLink>
           </div>
 
-          <div>
+          <div className="cq-sidebar-nav-item">
             <NavLink
               to="/discover"
               className={({ isActive }) =>
@@ -110,14 +110,14 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             </NavLink>
           </div>
 
-          <div>
-            <h3 className="mt-2 px-5 font-semibold text-base 2xl:text-xl">
+          <div className="cq-sidebar-leaderboard-section">
+            <h3 className="cq-sidebar-leaderboard-title mt-2 px-5 font-semibold text-base 2xl:text-xl">
               This Week's Leaders
             </h3>
 
-            <div>
+            <div className="cq-sidebar-leaderboard-date">
               {lastMonday && (
-                <p className="px-5 text-xs font-bold text-slate-600 mb-2">
+                <p className="cq-sidebar-leaderboard-date-text px-5 text-xs font-bold text-slate-600 mb-2">
                   {format(lastMonday, "EE M/dd")} -{" "}
                   {format(upcomingSunday, "EE M/dd")}
                 </p>
@@ -135,18 +135,18 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
       {user && (
         <Link
           to={`/user/${user?.id}`}
-          className="flex my-5 mb-3 gap-2 p-2 items-center bg-white rounded-lg shadow-lg mx-3"
+          className="cq-sidebar-profile-link flex my-5 mb-3 gap-2 p-2 items-center bg-white rounded-lg shadow-lg mx-3"
           onClick={handleCloseSidebar}
         >
           <img
             src={user?.avatar_url || getAvatarPlaceholder(40)}
-            className="w-10 h-10 rounded-full"
+            className="cq-sidebar-profile-avatar w-10 h-10 rounded-full"
             alt="user-profile"
             onError={(e) => {
               (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
             }}
           />
-          <p>{user?.user_name}</p>
+          <p className="cq-sidebar-profile-name">{user?.user_name}</p>
           <IoIosArrowForward />
         </Link>
       )}

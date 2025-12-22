@@ -179,7 +179,7 @@ export default function FollowButton({
     <button
       onClick={handleToggleFollow}
       disabled={loading}
-      className={`follow-button ${followState} ${className}`}
+      className={`cq-follow-button cq-follow-button-${followState} ${className}`}
       style={{
         padding: '8px 16px',
         borderRadius: '20px',

@@ -80,9 +80,10 @@ describe('TimerBanner CSS behavior', () => {
     it('applies correct background and hover classes', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const banner = container.querySelector('.bg-red-600');
+      const banner = container.querySelector('.cq-timer-banner-container');
       expect(banner).toBeInTheDocument();
       expect(banner).toHaveClass(
+        'bg-red-600',
         'hover:bg-red-700',
         'text-white',
         'rounded-lg',
@@ -94,7 +95,7 @@ describe('TimerBanner CSS behavior', () => {
     it('applies transition and transform classes for animation', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const banner = container.querySelector('.bg-red-600');
+      const banner = container.querySelector('.cq-timer-banner-container');
       expect(banner).toHaveClass(
         'transition-all',
         'duration-300',
@@ -106,7 +107,7 @@ describe('TimerBanner CSS behavior', () => {
     it('applies correct padding and margin', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const banner = container.querySelector('.bg-red-600');
+      const banner = container.querySelector('.cq-timer-banner-container');
       expect(banner).toHaveClass('py-3', 'px-4', 'mt-2', 'mb-4');
     });
   });
@@ -179,9 +180,9 @@ describe('TimerBanner CSS behavior', () => {
     it('displays tomato icon with pulse animation', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const tomatoIcon = container.querySelector('.animate-pulse');
+      const tomatoIcon = container.querySelector('.cq-timer-banner-icon');
       expect(tomatoIcon).toBeInTheDocument();
-      expect(tomatoIcon).toHaveClass('text-3xl');
+      expect(tomatoIcon).toHaveClass('animate-pulse', 'text-3xl');
     });
   });
 
@@ -196,9 +197,9 @@ describe('TimerBanner CSS behavior', () => {
     it('applies max-width to inner container', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const innerContainer = container.querySelector('.max-w-7xl');
+      const innerContainer = container.querySelector('.cq-timer-banner-content');
       expect(innerContainer).toBeInTheDocument();
-      expect(innerContainer).toHaveClass('mx-auto');
+      expect(innerContainer).toHaveClass('max-w-7xl', 'mx-auto');
     });
   });
 
@@ -207,7 +208,7 @@ describe('TimerBanner CSS behavior', () => {
       const { container } = renderTimerBanner({ isActive: true }, '/feed');
       const user = userEvent.setup();
 
-      const banner = container.querySelector('.cursor-pointer');
+      const banner = container.querySelector('.cq-timer-banner-container');
       expect(banner).toBeInTheDocument();
 
       if (banner) {
@@ -221,22 +222,25 @@ describe('TimerBanner CSS behavior', () => {
     it('uses flexbox for horizontal layout', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const innerContainer = container.querySelector('.flex.items-center.justify-between');
+      const innerContainer = container.querySelector('.cq-timer-banner-content');
       expect(innerContainer).toBeInTheDocument();
+      expect(innerContainer).toHaveClass('flex', 'items-center', 'justify-between');
     });
 
     it('groups icon and text with gap', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const leftGroup = container.querySelector('.flex.items-center.gap-3');
+      const leftGroup = container.querySelector('.cq-timer-banner-left');
       expect(leftGroup).toBeInTheDocument();
+      expect(leftGroup).toHaveClass('flex', 'items-center', 'gap-3');
     });
 
     it('groups timer and click hint with gap', () => {
       const { container } = renderTimerBanner({ isActive: true });
 
-      const rightGroup = container.querySelector('.flex.items-center.gap-4');
+      const rightGroup = container.querySelector('.cq-timer-banner-right');
       expect(rightGroup).toBeInTheDocument();
+      expect(rightGroup).toHaveClass('flex', 'items-center', 'gap-4');
     });
   });
 });

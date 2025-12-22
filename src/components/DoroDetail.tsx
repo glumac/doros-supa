@@ -177,15 +177,15 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
     <>
       {doro && (
         <div
-          className="flex xl:flex-row flex-col m-auto rounded-3xl ptb-3 bg-white"
+          className="cq-doro-detail-container flex xl:flex-row flex-col m-auto rounded-3xl ptb-3 bg-white"
           style={{ maxWidth: "1500px" }}
         >
           {doro?.image_url && (
-            <div className="flex justify-center items-center md:items-start flex-initial">
+            <div className="cq-doro-detail-image-container flex justify-center items-center md:items-start flex-initial">
               {imageURL ? (
                 <img
                   style={{ maxHeight: "600px" }}
-                  className="rounded-lg self-center"
+                  className="cq-doro-detail-image rounded-lg self-center"
                   src={imageURL}
                   alt="user-post"
                   onError={(e) => {
@@ -194,27 +194,27 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                   }}
                 />
               ) : (
-                <div className="flex items-center justify-center" style={{ minHeight: "200px" }}>
-                  <p className="text-gray-500">Loading image...</p>
+                <div className="cq-doro-detail-image-loading flex items-center justify-center" style={{ minHeight: "200px" }}>
+                  <p className="cq-doro-detail-image-loading-text text-gray-500">Loading image...</p>
                 </div>
               )}
             </div>
           )}
-          <div className="w-full p-5 flex-1 xl:min-w-620">
-            <div className="flex justify-between align-center mt-2">
+          <div className="cq-doro-detail-content w-full p-5 flex-1 xl:min-w-620">
+            <div className="cq-doro-detail-header flex justify-between align-center mt-2">
               <Link
                 to={`/user/${doro?.users?.id}`}
-                className="flex gap-2 items-center bg-white text-green-700 font-bold text-lg relative hover:text-green-800 "
+                className="cq-doro-detail-user-link flex gap-2 items-center bg-white text-green-700 font-bold text-lg relative hover:text-green-800 "
               >
                 <img
                   src={doro?.users?.avatar_url || getAvatarPlaceholder(40)}
-                  className="w-10 h-10 rounded-full"
+                  className="cq-doro-detail-user-avatar w-10 h-10 rounded-full"
                   alt="user-profile"
                 />
-                <p className="font-bold">{doro?.users?.user_name}</p>
+                <p className="cq-doro-detail-user-name font-bold">{doro?.users?.user_name}</p>
               </Link>
 
-              <div className="">
+              <div className="cq-doro-detail-delete-container">
                 {doro.users?.id === authUser?.id && (
                   <button
                     type="button"
@@ -225,7 +225,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     title="Delete Pomodoro"
                     onMouseEnter={() => setDeleteHovered(true)}
                     onMouseLeave={() => setDeleteHovered(false)}
-                    className="bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
+                    className="cq-doro-detail-delete-button bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
                   >
                     {deleteHovered ? <AiTwotoneDelete /> : <AiOutlineDelete />}
                   </button>
@@ -233,13 +233,13 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
               </div>
             </div>
 
-            <dl className="my-6">
+            <dl className="cq-doro-detail-details my-6">
               {doro.launch_at && (
-                <div className="mb-2 flex">
-                  <dt className=" text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
+                <div className="cq-doro-detail-started mb-2 flex">
+                  <dt className="cq-doro-detail-started-label text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
                     Started:
                   </dt>
-                  <dd className="text-dark text-lg leading-tight">
+                  <dd className="cq-doro-detail-started-value text-dark text-lg leading-tight">
                     {" "}
                     {isToday(new Date(doro.launch_at))
                       ? `Today ${format(new Date(doro.launch_at), "h:mm a")}`
@@ -255,44 +255,44 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                 </div>
               )}
               {doro.task && (
-                <div className="mb-2 flex">
-                  <dt className=" text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
+                <div className="cq-doro-detail-task mb-2 flex">
+                  <dt className="cq-doro-detail-task-label text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
                     Task:
                   </dt>
-                  <dd className="text-dark text-lg leading-tight">
+                  <dd className="cq-doro-detail-task-value text-dark text-lg leading-tight">
                     {doro.task}
                   </dd>
                 </div>
               )}
               {doro.notes && (
-                <div className="mb-2 flex">
-                  <dt className="text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
+                <div className="cq-doro-detail-notes mb-2 flex">
+                  <dt className="cq-doro-detail-notes-label text-gray-500 w-16 mr-3 text-lg shrink-0 leading-tight font-bold ">
                     Notes:
                   </dt>
-                  <dd className="text-dark text-lg leading-tight">
+                  <dd className="cq-doro-detail-notes-value text-dark text-lg leading-tight">
                     {doro.notes}
                   </dd>
                 </div>
               )}
             </dl>
             {/* likes */}
-            <div>
+            <div className="cq-doro-detail-likes-section">
               {doro?.likes?.length > 0 && (
-                <div className="mt-3">
-                  <h2 className="mt-5 text-2xl mb-2">
+                <div className="cq-doro-detail-likes mt-3">
+                  <h2 className="cq-doro-detail-likes-title mt-5 text-2xl mb-2">
                     Likes{" "}
                     {doro?.likes?.length > 0 && (
                       <span>({doro?.likes?.length})</span>
                     )}
                   </h2>
-                  <div className="mb-3">
+                  <div className="cq-doro-detail-likes-avatars mb-3">
                     {doro?.likes?.length > 0 && (
-                      <div className="mt-1.5">
-                        <div className="flex gap-0.5">
+                      <div className="cq-doro-detail-likes-list mt-1.5">
+                        <div className="cq-doro-detail-likes-avatars-container flex gap-0.5">
                           {doro?.likes?.map((like, index) => (
-                              <div key={like.id} className="">
+                              <div key={like.id} className="cq-doro-detail-like-avatar-item">
                                 <img
-                                  className="w-5 h-5 mr-0.5 rounded-full object-cover block"
+                                  className="cq-doro-detail-like-avatar w-5 h-5 mr-0.5 rounded-full object-cover block"
                                   src={like.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
                               />
@@ -304,8 +304,8 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                   </div>
                 </div>
               )}
-              <div className="mb-2">
-                <div className="flex items-center shrink-0">
+              <div className="cq-doro-detail-like-button-container mb-2">
+                <div className="cq-doro-detail-like-button-wrapper flex items-center shrink-0">
                   {hasLiked ? (
                     <button
                       type="button"
@@ -313,7 +313,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                         e.stopPropagation();
                         removeLike(doro.id);
                       }}
-                      className={removeStyle}
+                      className={`cq-doro-detail-unlike-button ${removeStyle}`}
                     >
                       Unlike
                     </button>
@@ -325,7 +325,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                       }}
                       type="button"
                       disabled={likingDoro}
-                      className="bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg transition hover:shadow-md outline-none"
+                      className="cq-doro-detail-like-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg transition hover:shadow-md outline-none"
                     >
                       {likingDoro ? "..." : "Like"}
                     </button>
@@ -335,36 +335,36 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
             </div>
 
             {/* comments */}
-            <div className="mt-3">
-              <div>
+            <div className="cq-doro-detail-comments-section mt-3">
+              <div className="cq-doro-detail-comments-list-container">
                 {doro?.comments?.length > 0 && (
-                  <div className="my-3">
-                    <h2 className="mt-5 text-2xl mb-2">
+                  <div className="cq-doro-detail-comments-list my-3">
+                    <h2 className="cq-doro-detail-comments-title mt-5 text-2xl mb-2">
                       <span>Comments</span>
                       <span> </span>
                       {doro?.comments?.length > 0 && (
                         <span>({doro?.comments?.length})</span>
                       )}
                     </h2>
-                    <div>
+                    <div className="cq-doro-detail-comments-items">
                       {doro?.comments?.map((comment, index) => (
                         <div
                           key={comment.id}
-                          className="flex items-start gap-1.5 mb-1"
+                          className="cq-doro-detail-comment-item flex items-start gap-1.5 mb-1"
                         >
-                          <div className="flex content-center shrink-0">
+                          <div className="cq-doro-detail-comment-avatar-container flex content-center shrink-0">
                             <Link
                               to={`/user/${comment.users?.id}`}
-                              className="items-center"
+                              className="cq-doro-detail-comment-user-link items-center"
                             >
                               <img
-                                className="w-5 h-5 rounded-full object-cover block relative top-1"
+                                className="cq-doro-detail-comment-avatar w-5 h-5 rounded-full object-cover block relative top-1"
                                 src={comment.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
                               />
                             </Link>
                           </div>
-                          <p>
+                          <p className="cq-doro-detail-comment-text">
                             <span key="cool">{comment.comment_text}</span>
                             <span key="double-cool"> </span>
                             {comment.users?.id === authUser?.id && (
@@ -379,7 +379,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                                   setCommentDeleteHovered(comment.id)
                                 }
                                 onMouseLeave={() => setCommentDeleteHovered("")}
-                                className="text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
+                                className="cq-doro-detail-comment-delete-button text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
                               >
                                 {comment.id === commentDeleteHovered ? (
                                   <AiTwotoneDelete />
@@ -395,13 +395,13 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                   </div>
                 )}
               </div>
-              <div id={`${doro.id}-commenting`}>
-                <div className="flex items-end">
+              <div id={`${doro.id}-commenting`} className="cq-doro-detail-comment-form-container">
+                <div className="cq-doro-detail-comment-form flex items-end">
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Add a comment"
-                    className="block leading-tight outline-none text-base border-2 mr-3 border-gray-200 flex-grow p-2"
+                    className="cq-doro-detail-comment-input block leading-tight outline-none text-base border-2 mr-3 border-gray-200 flex-grow p-2"
                   ></textarea>
                   <button
                     onClick={(e) => {
@@ -410,7 +410,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     }}
                     disabled={comment?.length === 0 || addingComment}
                     type="button"
-                    className="bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
+                    className="cq-doro-detail-comment-submit-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
                   >
                     {addingComment ? "Submitting" : "Submit"}
                   </button>

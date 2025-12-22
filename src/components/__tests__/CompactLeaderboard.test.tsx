@@ -66,6 +66,11 @@ const renderWithAuth = (user = mockUser, closeToggle = vi.fn()) => {
 describe('CompactLeaderboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set default mocks for LeaderboardProvider
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
+      error: null
+    });
   });
 
   it('should render global leaderboard by default', async () => {
