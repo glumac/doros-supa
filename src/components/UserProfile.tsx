@@ -4,7 +4,6 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import {
   getUserProfile,
-  getUserPomodoros,
   isFollowingUser,
   getFollowers,
   getFollowing,
@@ -14,6 +13,7 @@ import {
   blockUser,
 } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
+import { useUserPomodoros } from "../hooks/useUserProfile";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 import FollowButton from "./FollowButton";
@@ -25,11 +25,8 @@ import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
   const [user, setUser] = useState<User>();
-  const [doros, setDoros] = useState<Doro[]>();
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPomodoros, setTotalPomodoros] = useState<number>(0);
-  const [isLoadingPage, setIsLoadingPage] = useState<boolean>(false);
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [followingCount, setFollowingCount] = useState<number>(0);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
@@ -41,6 +38,11 @@ const UserProfile = () => {
   const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const pageSize = 20;
+
+  // Use React Query hook for pomodoros
+  const { data: pomodorosData, isLoading: isLoadingPage } = useUserPomodoros(userId, currentPage, pageSize);
+  const doros = pomodorosData?.data || [];
+  const totalPomodoros = pomodorosData?.count || 0;
 
   // Extract the tab param to avoid searchParams object reference changes
   const tabParam = searchParams.get('tab');
@@ -170,30 +172,17 @@ const UserProfile = () => {
     setShowFollowersModal(true);
   };
 
-  const getDoros = useCallback(async (page: number = 1) => {
-    if (!userId) return;
-
-    setIsLoadingPage(true);
-    const { data, error, count } = await getUserPomodoros(userId, page, pageSize);
-    // Set doros even if it's an empty array (which happens when RLS blocks access)
-    setDoros((data || []) as unknown as Doro[]);
-    setTotalPomodoros(count || 0);
-    setIsLoadingPage(false);
-  }, [userId]);
-
   useEffect(() => {
     setCurrentPage(1);
-    getDoros(1);
-  }, [userId, isFollowing, getDoros]);
+  }, [userId, isFollowing]);
 
   const handleFollowChange = (newFollowStatus: boolean) => {
     setIsFollowing(newFollowStatus);
-    // Pomodoros will reload automatically due to the useEffect dependency on isFollowing
+    // Pomodoros will reload automatically due to React Query refetch when currentPage resets
   };
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    getDoros(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -342,7 +331,7 @@ const UserProfile = () => {
           ) : doros && doros.length > 0 ? (
             <>
               <div className="cq-user-profile-pomodoros-list">
-                <Doros doros={doros} reloadFeed={() => getDoros(currentPage)} />
+                <Doros doros={doros as any} />
               </div>
               <div className="cq-user-profile-pomodoros-pagination">
                 <Pagination

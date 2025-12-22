@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DoroDetail from '../DoroDetail';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -20,6 +21,13 @@ vi.mock('../../lib/queries', () => ({
 vi.mock('../../lib/storage', () => ({
   getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg')
 }));
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
 
 const mockDoro = {
   id: 'doro-123',
@@ -75,19 +83,23 @@ const mockUser = {
 };
 
 const renderWithAuth = (user = mockUser, doroId = 'doro-123') => {
+  const queryClient = createTestQueryClient();
+  
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <Routes>
-        <Route
-          path="/doro-detail/:doroId"
-          element={
-            <AuthContext.Provider value={{ user, loading: false }}>
-              <DoroDetail user={user} />
-            </AuthContext.Provider>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route
+            path="/doro-detail/:doroId"
+            element={
+              <AuthContext.Provider value={{ user, loading: false }}>
+                <DoroDetail user={user} />
+              </AuthContext.Provider>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 

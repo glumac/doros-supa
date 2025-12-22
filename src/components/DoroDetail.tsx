@@ -2,9 +2,15 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
-import { supabase } from "../lib/supabaseClient";
-import { getPomodoroDetail } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
+import { usePomodoroDetail } from "../hooks/useFeed";
+import {
+  useLikeMutation,
+  useUnlikeMutation,
+  useCommentMutation,
+  useDeleteCommentMutation,
+  useDeletePomodoroMutation,
+} from "../hooks/useMutations";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday, getYear } from "date-fns";
@@ -18,16 +24,21 @@ interface DoroDetailProps {
 
 const DoroDetail = ({ user }: DoroDetailProps) => {
   const { doroId } = useParams<{ doroId: string }>();
-  const [doro, setDoro] = useState<Doro>();
   const [comment, setComment] = useState("");
   const [commentDeleteHovered, setCommentDeleteHovered] = useState("");
-  const [likingDoro, setLikingDoro] = useState(false);
-  const [addingComment, setAddingComment] = useState(false);
   const [deleteHovered, setDeleteHovered] = useState(false);
   const [imageURL, setImageURL] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
+
+  // Use React Query hooks
+  const { data: doro, isLoading } = usePomodoroDetail(doroId);
+  const likeMutation = useLikeMutation();
+  const unlikeMutation = useUnlikeMutation();
+  const commentMutation = useCommentMutation();
+  const deleteCommentMutation = useDeleteCommentMutation();
+  const deletePomodoroMutation = useDeletePomodoroMutation();
 
   useEffect(() => {
     const title = document.getElementById("crush-title");
@@ -42,39 +53,17 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
 
   const hasLiked = alreadyLiked.length > 0;
 
-  const fetchDoroDetails = async () => {
-    if (!doroId) return;
-
-    const { data, error } = await getPomodoroDetail(doroId);
-
-    if (data && !error) {
-      setDoro(data as unknown as Doro);
-      setAddingComment(false);
-      setLikingDoro(false);
-    }
-  };
-
   const deletePin = async (id: string) => {
-    const { error } = await supabase.from("pomodoros").delete().eq("id", id);
-    if (!error) {
-      navigate("/");
-    }
+    deletePomodoroMutation.mutate(id, {
+      onSuccess: () => {
+        navigate("/");
+      },
+    });
   };
 
   const deleteComment = async (commentId: string) => {
-    const { error } = await supabase
-      .from("comments")
-      .delete()
-      .eq("id", commentId);
-
-    if (!error) {
-      fetchDoroDetails();
-    }
+    deleteCommentMutation.mutate(commentId);
   };
-
-  useEffect(() => {
-    fetchDoroDetails();
-  }, [doroId]);
 
   // Convert image path to signed URL if needed
   useEffect(() => {
@@ -119,51 +108,41 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
 
   const addLike = async (id: string) => {
     if (!authUser || hasLiked) return;
-
-    setLikingDoro(true);
-
-    const { error } = await supabase.from("likes").insert({
-      pomodoro_id: id,
-      user_id: authUser.id,
-    });
-
-    if (!error) {
-      fetchDoroDetails();
-    }
+    likeMutation.mutate({ pomodoroId: id, userId: authUser.id });
   };
 
   const removeLike = async (id: string) => {
     if (!authUser || !hasLiked) return;
-
-    setLikingDoro(true);
-
-    const { error } = await supabase
-      .from("likes")
-      .delete()
-      .eq("pomodoro_id", id)
-      .eq("user_id", authUser.id);
-
-    if (!error) {
-      fetchDoroDetails();
-    }
+    unlikeMutation.mutate({ pomodoroId: id, userId: authUser.id });
   };
 
   const addComment = async () => {
-    if (!authUser || !comment || !doroId) return;
+    if (!authUser || !comment.trim() || !doroId) return;
 
-    setAddingComment(true);
-
-    const { error } = await supabase.from("comments").insert({
-      pomodoro_id: doroId,
-      user_id: authUser.id,
-      comment_text: comment,
-    });
-
-    if (!error) {
-      fetchDoroDetails();
-      setComment("");
-    }
+    commentMutation.mutate(
+      {
+        pomodoroId: doroId,
+        userId: authUser.id,
+        commentText: comment,
+      },
+      {
+        onSuccess: () => {
+          setComment("");
+        },
+      }
+    );
   };
+
+  const isLikingDoro = likeMutation.isPending || unlikeMutation.isPending;
+  const isAddingComment = commentMutation.isPending || deleteCommentMutation.isPending;
+
+  if (isLoading) {
+    return (
+      <div className="mt-12">
+        <Spinner message="Loading Pomodoro" />
+      </div>
+    );
+  }
 
   if (!doro) {
     return (
@@ -324,10 +303,10 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                         addLike(doro.id);
                       }}
                       type="button"
-                      disabled={likingDoro}
+                      disabled={isLikingDoro}
                       className="cq-doro-detail-like-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg transition hover:shadow-md outline-none"
                     >
-                      {likingDoro ? "..." : "Like"}
+                      {isLikingDoro ? "..." : "Like"}
                     </button>
                   )}
                 </div>
@@ -408,11 +387,11 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                       e.stopPropagation();
                       addComment();
                     }}
-                    disabled={comment?.length === 0 || addingComment}
+                    disabled={comment?.length === 0 || isAddingComment}
                     type="button"
                     className="cq-doro-detail-comment-submit-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
                   >
-                    {addingComment ? "Submitting" : "Submit"}
+                    {isAddingComment ? "Submitting" : "Submit"}
                   </button>
                 </div>
               </div>

@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { getFeed, searchPomodoros } from "../lib/queries";
+import { useFeed, useSearchPomodoros } from "../hooks/useFeed";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 
 const Feed = () => {
   const { user } = useAuth();
-  const [doros, setDoros] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const { categoryId } = useParams<{ categoryId?: string }>();
+
+  // Use React Query hooks - automatically switches between feed and search
+  const { data: doros = [], isLoading: loading } = categoryId
+    ? useSearchPomodoros(categoryId)
+    : useFeed(20, user?.id);
 
   useEffect(() => {
     const title = document.getElementById("crush-title");
@@ -17,38 +20,6 @@ const Feed = () => {
       title.innerHTML = "Crush Quest";
     }
   }, []);
-
-  useEffect(() => {
-    fetchFeed();
-  }, [categoryId]);
-
-  const fetchFeed = async (showLoader = true) => {
-    if (showLoader) {
-      setLoading(true);
-    }
-
-    try {
-      let result;
-      if (categoryId) {
-        // Search by category/term
-        result = await searchPomodoros(categoryId);
-      } else {
-        // Get main feed (pass user ID to filter blocked users)
-        result = await getFeed(20, user?.id);
-      }
-
-      if (result.data) {
-        // Use Supabase data directly (no transformation needed)
-        setDoros(result.data);
-      } else if (result.error) {
-        console.error("Error fetching feed:", result.error);
-      }
-    } catch (error) {
-      console.error("Error fetching feed:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -66,7 +37,7 @@ const Feed = () => {
     );
   }
 
-  return <div className="cq-feed-container">{doros && <Doros doros={doros} reloadFeed={fetchFeed} />}</div>;
+  return <div className="cq-feed-container">{doros && <Doros doros={doros} />}</div>;
 };
 
 export default Feed;

@@ -3,8 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
 import { format, isToday, getYear } from "date-fns";
-import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  useLikeMutation,
+  useUnlikeMutation,
+  useCommentMutation,
+  useDeleteCommentMutation,
+  useDeletePomodoroMutation,
+} from "../hooks/useMutations";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { getImageSignedUrl } from "../lib/storage";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
@@ -12,21 +18,25 @@ import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 interface DoroProps {
   doro: DoroType;
-  reloadFeed?: ((clearCache: boolean) => void) | undefined;
   className?: string;
 }
 
-const Doro = ({ doro, reloadFeed }: DoroProps) => {
+const Doro = ({ doro }: DoroProps) => {
   const [deleteHovered, setDeleteHovered] = useState(false);
   const [commentDeleteHovered, setCommentDeleteHovered] = useState("");
-  const [likingDoro, setLikingDoro] = useState(false);
   const [showAddComment, setShowAddComment] = useState(false);
-  const [addingComment, setAddingComment] = useState(false);
   const [comment, setComment] = useState("");
   const [imageURL, setImageURL] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
+
+  // React Query mutations
+  const likeMutation = useLikeMutation();
+  const unlikeMutation = useUnlikeMutation();
+  const commentMutation = useCommentMutation();
+  const deleteCommentMutation = useDeleteCommentMutation();
+  const deletePomodoroMutation = useDeletePomodoroMutation();
 
   const { users, id, task, notes, launch_at, image_url } = doro;
 
@@ -70,10 +80,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   }, [image_url]);
 
   const deletePin = async (id: string) => {
-    const { error } = await supabase.from("pomodoros").delete().eq("id", id);
-    if (!error && reloadFeed) {
-      reloadFeed(true);
-    }
+    deletePomodoroMutation.mutate(id);
   };
 
   const toggleShowAddComment = () => {
@@ -94,72 +101,38 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
 
   const addLike = async (id: string) => {
     if (!authUser || hasLiked) return;
-
-    console.log("adding like");
-    setLikingDoro(true);
-
-    const { error } = await supabase.from("likes").insert({
-      pomodoro_id: id,
-      user_id: authUser.id,
-    });
-
-    if (!error) {
-      console.log("like added");
-      if (reloadFeed) reloadFeed(false);
-    }
-    setLikingDoro(false);
+    likeMutation.mutate({ pomodoroId: id, userId: authUser.id });
   };
 
   const removeLike = async (id: string) => {
     if (!authUser || !hasLiked) return;
-
-    setLikingDoro(true);
-
-    const { error } = await supabase
-      .from("likes")
-      .delete()
-      .eq("pomodoro_id", id)
-      .eq("user_id", authUser.id);
-
-    if (!error && reloadFeed) {
-      reloadFeed(false);
-    }
-    setLikingDoro(false);
+    unlikeMutation.mutate({ pomodoroId: id, userId: authUser.id });
   };
 
   const addComment = async (id: string) => {
-    if (!authUser) return;
+    if (!authUser || !comment.trim()) return;
 
-    console.log("adding comment start ✅");
-    setAddingComment(true);
-
-    const { error } = await supabase.from("comments").insert({
-      pomodoro_id: id,
-      user_id: authUser.id,
-      comment_text: comment,
-    });
-
-    if (!error) {
-      console.log("comment added");
-      if (reloadFeed) reloadFeed(false);
-      setComment("");
-    }
-    setAddingComment(false);
+    commentMutation.mutate(
+      {
+        pomodoroId: id,
+        userId: authUser.id,
+        commentText: comment,
+      },
+      {
+        onSuccess: () => {
+          setComment("");
+          setShowAddComment(false);
+        },
+      }
+    );
   };
 
   const deleteComment = async (commentId: string) => {
-    setAddingComment(true);
-
-    const { error } = await supabase
-      .from("comments")
-      .delete()
-      .eq("id", commentId);
-
-    if (!error && reloadFeed) {
-      reloadFeed(false);
-    }
-    setAddingComment(false);
+    deleteCommentMutation.mutate(commentId);
   };
+
+  const isLikingDoro = likeMutation.isPending || unlikeMutation.isPending;
+  const isAddingComment = commentMutation.isPending || deleteCommentMutation.isPending;
 
   return (
     <div className="cq-doro-card my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
@@ -300,15 +273,15 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                 addLike(id);
               }}
               type="button"
-              disabled={likingDoro}
+              disabled={isLikingDoro}
               className={`cq-doro-like-button ${addStyle}`}
               style={{
-                cursor: likingDoro ? "auto" : "pointer",
-                paddingLeft: likingDoro ? "20px" : "",
-                paddingRight: likingDoro ? "20px" : "",
+                cursor: isLikingDoro ? "auto" : "pointer",
+                paddingLeft: isLikingDoro ? "20px" : "",
+                paddingRight: isLikingDoro ? "20px" : "",
               }}
             >
-              {likingDoro ? "    ...    " : "Like"}
+              {isLikingDoro ? "    ...    " : "Like"}
             </button>
           )}
         </div>
@@ -397,11 +370,11 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                   e.stopPropagation();
                   addComment(id);
                 }}
-                disabled={comment?.length === 0 || addingComment}
+                disabled={comment?.length === 0 || isAddingComment}
                 type="button"
                 className="cq-doro-comment-submit-button relative bg-red-600 text-white font-bold py-0.5 text-base rounded-lg transition hover:shadow-md outline-none disabled:opacity-70 px-3"
               >
-                {addingComment ? "Submitting" : "Submit"}
+                {isAddingComment ? "Submitting" : "Submit"}
               </button>
             </div>
           )}

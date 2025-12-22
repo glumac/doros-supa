@@ -4,16 +4,14 @@ import { Doro as DoroType } from '../types/models';
 
 interface DorosProps {
   doros?: DoroType[] | undefined;
-  reloadFeed?: ((clearCache: boolean) => void) | undefined;
 }
 
-const Doros = ({ doros, reloadFeed }: DorosProps) => (
+const Doros = ({ doros }: DorosProps) => (
   <div className="cq-doros-container animate-slide-fwd max-w-lg lg:max-w-2xl mx-auto">
     {doros?.map((doro) => (
       <Doro
         key={doro.id}
         doro={doro}
-        reloadFeed={reloadFeed || undefined}
         className="w-max"
       />
     ))}

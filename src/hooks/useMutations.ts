@@ -383,3 +383,52 @@ export function useCreatePomodoroMutation() {
   });
 }
 
+/**
+ * Hook to delete a pomodoro
+ */
+export function useDeletePomodoroMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (pomodoroId: string) => {
+      const { error } = await supabase
+        .from("pomodoros")
+        .delete()
+        .eq("id", pomodoroId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate all queries that might include this pomodoro
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros"] });
+      queryClient.invalidateQueries({ queryKey: ["pomodoro"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a comment
+ */
+export function useDeleteCommentMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate queries that might display this comment
+      queryClient.invalidateQueries({ queryKey: ["pomodoro"] });
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros"] });
+    },
+  });
+}
+

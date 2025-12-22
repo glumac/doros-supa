@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import UserProfile from '../UserProfile';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
@@ -15,6 +16,13 @@ vi.mock('../../lib/supabaseClient', () => ({
     }
   }
 }));
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
 
 const mockUser = {
   id: 'user-123',
@@ -41,6 +49,8 @@ const mockDoros = [
 ];
 
 const renderWithRouter = (userId: string, authUser = mockUser) => {
+  const queryClient = createTestQueryClient();
+  
   // Determine if viewing own profile
   const isOwnProfile = authUser?.id === userId;
   // For own profile, use authUser as userProfile; for others, it will be fetched
@@ -48,18 +58,20 @@ const renderWithRouter = (userId: string, authUser = mockUser) => {
   const userProfile = isOwnProfile ? mockUser : null;
 
   return render(
-    <MemoryRouter initialEntries={[`/user/${userId}`]} future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{
-        user: authUser,
-        userProfile: userProfile,
-        loading: false,
-        session: null
-      }}>
-        <Routes>
-          <Route path="/user/:userId" element={<UserProfile />} />
-        </Routes>
-      </AuthContext.Provider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[`/user/${userId}`]} future={{ v7_relativeSplatPath: true }}>
+        <AuthContext.Provider value={{
+          user: authUser,
+          userProfile: userProfile,
+          loading: false,
+          session: null
+        }}>
+          <Routes>
+            <Route path="/user/:userId" element={<UserProfile />} />
+          </Routes>
+        </AuthContext.Provider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 };
 

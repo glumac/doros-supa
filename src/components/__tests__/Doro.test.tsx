@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Doro from '../Doro';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -15,6 +16,13 @@ vi.mock('../../lib/supabaseClient', () => ({
 vi.mock('../../lib/storage', () => ({
   getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg')
 }));
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
 
 const mockDoro = {
   id: 'doro-123',
@@ -69,13 +77,17 @@ const mockUser = {
   avatar_url: 'https://example.com/avatar.jpg'
 };
 
-const renderWithAuth = (doro = mockDoro, user = mockUser, reloadFeed = vi.fn()) => {
+const renderWithAuth = (doro = mockDoro, user = mockUser) => {
+  const queryClient = createTestQueryClient();
+  
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        <Doro doro={doro} reloadFeed={reloadFeed} />
-      </AuthContext.Provider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <AuthContext.Provider value={{ user, loading: false }}>
+          <Doro doro={doro} />
+        </AuthContext.Provider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
@@ -245,9 +257,8 @@ describe('Doro', () => {
     expect(screen.getByTitle('Delete Comment')).toBeInTheDocument();
   });
 
-  it('should delete pomodoro and call reloadFeed', async () => {
+  it('should delete pomodoro using mutation', async () => {
     const user = userEvent.setup();
-    const reloadFeed = vi.fn();
 
     const mockDelete = vi.fn().mockReturnValue({
       eq: vi.fn().mockResolvedValue({ error: null })
@@ -256,14 +267,13 @@ describe('Doro', () => {
       delete: mockDelete
     } as any);
 
-    renderWithAuth(mockDoro, mockUser, reloadFeed);
+    renderWithAuth(mockDoro, mockUser);
 
     const deleteButton = screen.getByTitle('Delete Pomodoro');
     await user.click(deleteButton);
 
-    expect(mockDelete).toHaveBeenCalled();
     await waitFor(() => {
-      expect(reloadFeed).toHaveBeenCalledWith(true);
+      expect(mockDelete).toHaveBeenCalled();
     });
   });
 
