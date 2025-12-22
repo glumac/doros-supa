@@ -40,9 +40,12 @@ export async function getImageSignedUrl(
   if (!imagePath) return null;
 
   // Extract path from full URL if needed (handles both paths and URLs)
-  let path = imagePath;
+  let path = imagePath.trim();
 
-  // If it's already a full URL, extract the path
+  // If it's a Supabase storage URL (public or signed), extract the path
+  // Handles formats like:
+  // - https://project.supabase.co/storage/v1/object/public/pomodoro-images/userId/file.jpg
+  // - https://project.supabase.co/storage/v1/object/sign/pomodoro-images/userId/file.jpg?token=...
   if (imagePath.includes("/pomodoro-images/")) {
     const parts = imagePath.split("/pomodoro-images/");
     path = parts[parts.length - 1] || imagePath;
@@ -52,12 +55,27 @@ export async function getImageSignedUrl(
   const pathParts = path.split("?");
   path = pathParts[0] || path;
 
+  // Remove any leading slashes
+  path = path.replace(/^\/+/, "");
+
+  // If path is empty after cleaning, return null
+  if (!path) {
+    console.error("Empty path after extraction from:", imagePath);
+    return null;
+  }
+
   const { data, error } = await supabase.storage
     .from("pomodoro-images")
     .createSignedUrl(path, expiresIn);
 
   if (error) {
     console.error("Error creating signed URL:", error);
+    console.error("Path attempted:", path);
+    return null;
+  }
+
+  if (!data || !data.signedUrl) {
+    console.error("No signed URL returned from Supabase for path:", path);
     return null;
   }
 

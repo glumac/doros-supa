@@ -1,0 +1,92 @@
+import { useQuery } from "@tanstack/react-query";
+import {
+  getUserProfile,
+  getUserPomodoros,
+  getPublicUserProfile,
+  getPendingFollowRequestsCount,
+} from "../lib/queries";
+
+/**
+ * Hook to fetch a user's profile
+ * @param userId - User ID to fetch profile for
+ */
+export function useUserProfile(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["user", "profile", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error } = await getUserProfile(userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
+/**
+ * Hook to fetch a user's public profile (with privacy settings applied)
+ * @param userId - User ID to fetch profile for
+ * @param currentUserId - Current logged-in user ID
+ */
+export function usePublicUserProfile(
+  userId: string | undefined,
+  currentUserId: string | null
+) {
+  return useQuery({
+    queryKey: ["user", "public-profile", userId, currentUserId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error } = await getPublicUserProfile(userId, currentUserId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
+/**
+ * Hook to fetch a user's pomodoros with pagination
+ * @param userId - User ID to fetch pomodoros for
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of items per page
+ */
+export function useUserPomodoros(
+  userId: string | undefined,
+  page: number = 1,
+  pageSize: number = 20
+) {
+  return useQuery({
+    queryKey: ["user", "pomodoros", userId, page, pageSize],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error, count } = await getUserPomodoros(
+        userId,
+        page,
+        pageSize
+      );
+      if (error) throw error;
+      return { data, count };
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 3, // 3 minutes
+  });
+}
+
+/**
+ * Hook to fetch count of pending follow requests for current user
+ * @param userId - Current user ID
+ */
+export function usePendingFollowRequestsCount(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["followRequests", "count", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { count, error } = await getPendingFollowRequestsCount(userId);
+      if (error) throw error;
+      return count;
+    },
+    enabled: !!userId,
+    refetchInterval: 1000 * 30, // Refetch every 30 seconds for real-time updates
+  });
+}
+

@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGlobalLeaderboard } from '../lib/queries';
 import FollowButton from './FollowButton';
-import { useAuth } from '../contexts/AuthContext';
+import { useLeaderboards } from '../contexts/LeaderboardContext';
 
 interface LeaderboardUser {
   user_id: string;
@@ -13,26 +11,8 @@ interface LeaderboardUser {
 
 export default function GlobalLeaderboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadLeaderboard();
-  }, [user?.id]);
-
-  async function loadLeaderboard() {
-    setLoading(true);
-    const { data, error } = await getGlobalLeaderboard(user?.id);
-
-    if (error) {
-      console.error('Error loading global leaderboard:', error);
-    } else if (data) {
-      setLeaderboard(data);
-    }
-
-    setLoading(false);
-  }
+  const { globalLeaderboard, loading } = useLeaderboards();
+  const leaderboard = globalLeaderboard;
 
   if (loading) {
     return (

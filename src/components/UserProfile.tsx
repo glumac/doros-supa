@@ -37,7 +37,7 @@ const UserProfile = () => {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-  const { user: authUser } = useAuth();
+  const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const pageSize = 20;
 
@@ -60,35 +60,44 @@ const UserProfile = () => {
   useEffect(() => {
     if (!userId) return;
 
-    console.log('🔄 UserProfile main useEffect triggered', { userId, authUserId: authUser?.id, tabParam });
+    // Wait for auth to finish loading before making decisions
+    if (authLoading) {
+      return;
+    }
 
-    getUserProfile(userId).then(({ data, error }) => {
-      if (data && !error) {
-        console.log('✅ setUser called');
-        setUser(data as User);
+    // If viewing own profile, use userProfile from AuthContext to avoid duplicate fetch
+    if (authUser?.id === userId) {
+      if (authUserProfile) {
+        setUser(authUserProfile as User);
+      } else {
+        // Auth finished loading but no profile - this shouldn't happen, but handle gracefully
+        return;
       }
-    });
+    } else {
+      // For other users, fetch their profile
+      getUserProfile(userId).then(({ data, error }) => {
+        if (data && !error) {
+          setUser(data as User);
+        }
+      });
+    }
 
     // Load followers and following counts
     getFollowers(userId).then(({ data }) => {
-      console.log('✅ setFollowerCount called');
       setFollowerCount(data?.length || 0);
     });
     getFollowing(userId).then(({ data }) => {
-      console.log('✅ setFollowingCount called');
       setFollowingCount(data?.length || 0);
     });
 
     // Load follow requests if viewing own profile
     if (authUser?.id === userId) {
-      console.log('✅ loadFollowRequests called');
       loadFollowRequests();
     }
 
     // Check if current user is following this profile user
     if (authUser?.id && userId !== authUser.id) {
       isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
-        console.log('✅ setIsFollowing called');
         setIsFollowing(isFollowing);
       });
     }
@@ -100,7 +109,7 @@ const UserProfile = () => {
         document.getElementById('follow-requests')?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     }
-  }, [userId, authUser?.id, tabParam, loadFollowRequests]);
+  }, [userId, authUser?.id, authUserProfile, authLoading, tabParam, loadFollowRequests]);
 
   const handleApproveRequest = async (requestId: string) => {
     if (!authUser) return;
@@ -163,15 +172,8 @@ const UserProfile = () => {
   const getDoros = useCallback(async (page: number = 1) => {
     if (!userId) return;
 
-    console.log('📥 getDoros called', { page, userId });
     setIsLoadingPage(true);
     const { data, error, count } = await getUserPomodoros(userId, page, pageSize);
-    console.log('✅ setDoros, setTotalPomodoros, setIsLoadingPage called', {
-      userId,
-      dataLength: data?.length,
-      count,
-      page
-    });
     // Set doros even if it's an empty array (which happens when RLS blocks access)
     setDoros((data || []) as unknown as Doro[]);
     setTotalPomodoros(count || 0);
@@ -179,7 +181,6 @@ const UserProfile = () => {
   }, [userId]);
 
   useEffect(() => {
-    console.log('🔄 getDoros useEffect triggered', { userId, isFollowing });
     setCurrentPage(1);
     getDoros(1);
   }, [userId, isFollowing, getDoros]);
@@ -196,24 +197,6 @@ const UserProfile = () => {
   };
 
   const totalPages = Math.ceil(totalPomodoros / pageSize);
-
-  // Debug: Track what's causing re-renders
-  const renderCount = React.useRef(0);
-  renderCount.current++;
-
-  if (renderCount.current > 5) {
-    console.warn(`⚠️ UserProfile excessive renders (${renderCount.current}):`, {
-      userId,
-      authUserId: authUser?.id,
-      isFollowing,
-      dorosLength: doros?.length,
-      user: user?.user_name,
-      followerCount,
-      followingCount,
-      totalPomodoros,
-      currentPage,
-    });
-  }
 
   const logout = async () => {
     await supabase.auth.signOut();

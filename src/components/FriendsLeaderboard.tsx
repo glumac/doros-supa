@@ -1,42 +1,20 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFriendsLeaderboard } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeaderboards } from '../contexts/LeaderboardContext';
 
 interface LeaderboardUser {
   user_id: string;
   user_name: string;
   avatar_url: string | null;
   completion_count: number;
-  is_following: boolean;
+  is_following?: boolean;
 }
 
 export default function FriendsLeaderboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      loadLeaderboard();
-    }
-  }, [user?.id]);
-
-  async function loadLeaderboard() {
-    if (!user) return;
-
-    setLoading(true);
-    const { data, error } = await getFriendsLeaderboard(user.id);
-
-    if (error) {
-      console.error('Error loading friends leaderboard:', error);
-    } else if (data) {
-      setLeaderboard(data);
-    }
-
-    setLoading(false);
-  }
+  const { friendsLeaderboard, loading } = useLeaderboards();
+  const leaderboard = friendsLeaderboard;
 
   if (!user) {
     return (

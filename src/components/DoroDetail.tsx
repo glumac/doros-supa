@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday } from "date-fns";
+import { getImageSignedUrl } from "../lib/storage";
 import { Doro, User } from "../types/models";
 
 interface DoroDetailProps {
@@ -22,6 +23,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   const [likingDoro, setLikingDoro] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
   const [deleteHovered, setDeleteHovered] = useState(false);
+  const [imageURL, setImageURL] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
@@ -72,6 +74,47 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   useEffect(() => {
     fetchDoroDetails();
   }, [doroId]);
+
+  // Convert image path to signed URL if needed
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      if (!doro?.image_url) {
+        setImageURL(null);
+        return;
+      }
+
+      // If it's a Supabase storage URL (public URL that might not work with private bucket),
+      // extract the path and generate a signed URL instead
+      // Otherwise, if it's an external URL, use it directly
+      if (doro.image_url.startsWith("http://") || doro.image_url.startsWith("https://")) {
+        // Check if it's a Supabase storage URL - if so, getImageSignedUrl will handle it
+        // Otherwise, it's an external URL - use directly
+        if (!doro.image_url.includes("/pomodoro-images/")) {
+          setImageURL(doro.image_url);
+          return;
+        }
+      }
+
+      // Convert to signed URL (handles both paths and Supabase storage URLs)
+      try {
+        const signedUrl = await getImageSignedUrl(doro.image_url);
+        if (signedUrl) {
+          setImageURL(signedUrl);
+        } else {
+          // Fallback: try using the original value (might be a public URL or different format)
+          setImageURL(doro.image_url);
+        }
+      } catch (error) {
+        console.error("Error generating signed URL:", error);
+        // Fallback: try using the original value
+        setImageURL(doro.image_url);
+      }
+    };
+
+    if (doro) {
+      fetchSignedUrl();
+    }
+  }, [doro?.image_url]);
 
   const addLike = async (id: string) => {
     if (!authUser || hasLiked) return;
@@ -138,12 +181,22 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
         >
           {doro?.image_url && (
             <div className="flex justify-center items-center md:items-start flex-initial">
-              <img
-                style={{ maxHeight: "600px" }}
-                className="rounded-lg self-center"
-                src={doro.image_url}
-                alt="user-post"
-              />
+              {imageURL ? (
+                <img
+                  style={{ maxHeight: "600px" }}
+                  className="rounded-lg self-center"
+                  src={imageURL}
+                  alt="user-post"
+                  onError={(e) => {
+                    console.error("Image failed to load", { imageURL, originalImageUrl: doro.image_url });
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center" style={{ minHeight: "200px" }}>
+                  <p className="text-gray-500">Loading image...</p>
+                </div>
+              )}
             </div>
           )}
           <div className="w-full p-5 flex-1 xl:min-w-620">

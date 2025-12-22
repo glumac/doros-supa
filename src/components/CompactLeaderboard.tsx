@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getFriendsLeaderboard, getGlobalLeaderboard } from '../lib/queries';
-import { useAuth } from '../contexts/AuthContext';
+import { useLeaderboards } from '../contexts/LeaderboardContext';
 
 interface LeaderboardUser {
   user_id: string;
@@ -15,39 +14,14 @@ interface CompactLeaderboardProps {
 }
 
 export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardProps) {
-  const { user } = useAuth();
+  const { globalLeaderboard, friendsLeaderboard, loading } = useLeaderboards();
   const [activeTab, setActiveTab] = useState<'friends' | 'global'>('global');
-  const [friendsData, setFriendsData] = useState<LeaderboardUser[]>([]);
-  const [globalData, setGlobalData] = useState<LeaderboardUser[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadData();
-  }, [user, activeTab]);
-
-  async function loadData() {
-    setLoading(true);
-
-    if (activeTab === 'friends' && user) {
-      const { data, error } = await getFriendsLeaderboard(user.id);
-      if (data && !error) {
-        setFriendsData(data);
-      }
-    } else if (activeTab === 'global') {
-      const { data, error } = await getGlobalLeaderboard();
-      if (data && !error) {
-        setGlobalData(data);
-      }
-    }
-
-    setLoading(false);
-  }
 
   const handleCloseSidebar = () => {
     if (closeToggle) closeToggle(false);
   };
 
-  const displayData = activeTab === 'friends' ? friendsData : globalData;
+  const displayData = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
 
   return (
     <div>

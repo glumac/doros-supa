@@ -6,6 +6,7 @@ import { format, isToday } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { addStyle, removeStyle } from "../utils/styleDefs";
+import { getImageSignedUrl } from "../lib/storage";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
 
 interface DoroProps {
@@ -21,13 +22,51 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   const [showAddComment, setShowAddComment] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
   const [comment, setComment] = useState("");
+  const [imageURL, setImageURL] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
 
   const { users, id, task, notes, launch_at, image_url } = doro;
 
-  const imageURL = image_url || null;
+  // Convert image path to signed URL if needed
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      if (!image_url) {
+        setImageURL(null);
+        return;
+      }
+
+      // If it's a Supabase storage URL (public URL that might not work with private bucket),
+      // extract the path and generate a signed URL instead
+      // Otherwise, if it's an external URL, use it directly
+      if (image_url.startsWith("http://") || image_url.startsWith("https://")) {
+        // Check if it's a Supabase storage URL - if so, getImageSignedUrl will handle it
+        // Otherwise, it's an external URL - use directly
+        if (!image_url.includes("/pomodoro-images/")) {
+          setImageURL(image_url);
+          return;
+        }
+      }
+
+      // Convert to signed URL (handles both paths and Supabase storage URLs)
+      try {
+        const signedUrl = await getImageSignedUrl(image_url);
+        if (signedUrl) {
+          setImageURL(signedUrl);
+        } else {
+          // Fallback: try using the original value
+          setImageURL(image_url);
+        }
+      } catch (error) {
+        console.error("Error generating signed URL:", error);
+        // Fallback: try using the original value
+        setImageURL(image_url);
+      }
+    };
+
+    fetchSignedUrl();
+  }, [image_url]);
 
   const deletePin = async (id: string) => {
     const { error } = await supabase.from("pomodoros").delete().eq("id", id);
