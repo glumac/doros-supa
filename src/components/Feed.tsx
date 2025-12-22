@@ -52,7 +52,7 @@ const Feed = () => {
 
   if (loading) {
     return (
-      <div className="mt-12">
+      <div className="cq-feed-loading mt-12">
         <Spinner message={`Checking the vine...`} />
       </div>
     );
@@ -60,13 +60,13 @@ const Feed = () => {
 
   if (doros.length === 0) {
     return (
-      <div className="text-center mt-12 text-gray-600">
-        <p>No pomodoros found</p>
+      <div className="cq-feed-empty text-center mt-12 text-gray-600">
+        <p className="cq-feed-empty-message">No pomodoros found</p>
       </div>
     );
   }
 
-  return <div>{doros && <Doros doros={doros} reloadFeed={fetchFeed} />}</div>;
+  return <div className="cq-feed-container">{doros && <Doros doros={doros} reloadFeed={fetchFeed} />}</div>;
 };
 
 export default Feed;

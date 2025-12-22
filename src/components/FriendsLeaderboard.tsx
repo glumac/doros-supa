@@ -44,22 +44,22 @@ export default function FriendsLeaderboard() {
   }
 
   return (
-    <div className="friends-leaderboard">
-      <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
+    <div className="cq-friends-leaderboard-container friends-leaderboard">
+      <h2 className="cq-friends-leaderboard-title" style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
         👥 Friends Leaderboard
       </h2>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+      <p className="cq-friends-leaderboard-description" style={{ color: '#666', marginBottom: '20px' }}>
         Your accountability circle - people you follow (and yourself)
       </p>
 
-      <div className="leaderboard-list">
+      <div className="cq-friends-leaderboard-list leaderboard-list">
         {leaderboard.map((item, index) => {
           const isCurrentUser = item.user_id === user.id;
 
           return (
             <div
               key={item.user_id}
-              className="leaderboard-item"
+              className={`cq-friends-leaderboard-item leaderboard-item ${isCurrentUser ? 'cq-friends-leaderboard-item-current-user' : ''}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -84,6 +84,7 @@ export default function FriendsLeaderboard() {
             >
               {/* Rank */}
               <div
+                className="cq-friends-leaderboard-item-rank"
                 style={{
                   minWidth: '40px',
                   fontSize: '18px',
@@ -102,6 +103,7 @@ export default function FriendsLeaderboard() {
               <img
                 src={item.avatar_url || 'https://via.placeholder.com/50'}
                 alt={item.user_name}
+                className="cq-friends-leaderboard-item-avatar"
                 style={{
                   width: '50px',
                   height: '50px',
@@ -112,11 +114,11 @@ export default function FriendsLeaderboard() {
               />
 
               {/* User Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+              <div className="cq-friends-leaderboard-item-info" style={{ flex: 1 }}>
+                <div className="cq-friends-leaderboard-item-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
                   {item.user_name}
                   {isCurrentUser && (
-                    <span style={{
+                    <span className="cq-friends-leaderboard-item-you-badge" style={{
                       marginLeft: '8px',
                       fontSize: '12px',
                       color: '#007bff',
@@ -126,14 +128,14 @@ export default function FriendsLeaderboard() {
                     </span>
                   )}
                 </div>
-                <div style={{ color: '#666', fontSize: '14px' }}>
+                <div className="cq-friends-leaderboard-item-stats" style={{ color: '#666', fontSize: '14px' }}>
                   {item.completion_count} pomodoro{item.completion_count !== 1 ? 's' : ''} this week
                 </div>
               </div>
 
               {/* Status indicator for current user */}
               {isCurrentUser && (
-                <div style={{
+                <div className="cq-friends-leaderboard-item-you-indicator" style={{
                   padding: '4px 12px',
                   backgroundColor: '#007bff',
                   color: '#fff',

@@ -74,11 +74,11 @@ export default function Digit({ value, title, color }: DigitProps) {
   const rightDigit =
     safeValue >= 10 ? safeValue.toString()[1] : safeValue.toString();
   return (
-    <Container>
-      <Title>{title}</Title>
-      <DigitContainer>
-        <SingleDigit color={color}>{leftDigit}</SingleDigit>
-        <SingleDigit color={color}>{rightDigit}</SingleDigit>
+    <Container className="cq-digit-container">
+      <Title className="cq-digit-title">{title}</Title>
+      <DigitContainer className="cq-digit-digits-container">
+        <SingleDigit color={color} className="cq-digit-digit cq-digit-cq-digit-left">{leftDigit}</SingleDigit>
+        <SingleDigit color={color} className="cq-digit-digit cq-digit-cq-digit-right">{rightDigit}</SingleDigit>
       </DigitContainer>
     </Container>
   );

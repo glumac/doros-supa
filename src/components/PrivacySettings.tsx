@@ -104,15 +104,16 @@ export default function PrivacySettings() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+    <div className="cq-privacy-settings-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <h1 className="cq-privacy-settings-title" style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
         Privacy Settings
       </h1>
-      <p style={{ color: '#666', marginBottom: '32px' }}>
+      <p className="cq-privacy-settings-description" style={{ color: '#666', marginBottom: '32px' }}>
         Manage who can follow you and see your content
       </p>
 
       <div
+        className="cq-privacy-settings-approval-section"
         style={{
           backgroundColor: '#fff',
           borderRadius: '12px',
@@ -121,6 +122,7 @@ export default function PrivacySettings() {
         }}
       >
         <div
+          className="cq-privacy-settings-approval-content"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -128,11 +130,11 @@ export default function PrivacySettings() {
             gap: '20px',
           }}
         >
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+          <div className="cq-privacy-settings-approval-info" style={{ flex: 1 }}>
+            <h3 className="cq-privacy-settings-approval-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
               Require Follow Approval
             </h3>
-            <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+            <p className="cq-privacy-settings-approval-description" style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
               When enabled, users must send a follow request before they can follow you.
               You'll be able to approve or decline each request. When disabled, anyone
               can follow you instantly.
@@ -142,6 +144,7 @@ export default function PrivacySettings() {
           <button
             onClick={handleToggle}
             disabled={saving}
+            className={`cq-privacy-settings-approval-toggle ${requireApproval ? 'cq-privacy-settings-approval-toggle-enabled' : 'cq-privacy-settings-approval-toggle-disabled'}`}
             style={{
               position: 'relative',
               width: '50px',
@@ -155,6 +158,7 @@ export default function PrivacySettings() {
             }}
           >
             <div
+              className="cq-privacy-settings-approval-toggle-slider"
               style={{
                 position: 'absolute',
                 top: '2px',
@@ -172,6 +176,7 @@ export default function PrivacySettings() {
 
         {message && (
           <div
+            className={`cq-privacy-settings-message ${message.includes('success') ? 'cq-privacy-settings-message-success' : 'cq-privacy-settings-message-error'}`}
             style={{
               marginTop: '16px',
               padding: '12px',
@@ -188,6 +193,7 @@ export default function PrivacySettings() {
 
       {/* Blocked Users Section */}
       <div
+        className="cq-privacy-settings-blocked-section"
         style={{
           marginTop: '24px',
           backgroundColor: '#fff',
@@ -196,26 +202,27 @@ export default function PrivacySettings() {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+        <h3 className="cq-privacy-settings-blocked-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
           Blocked Users
         </h3>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+        <p className="cq-privacy-settings-blocked-description" style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
           Users you have blocked cannot follow you, see your content, or send you follow requests.
         </p>
 
         {loadingBlocks ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+          <div className="cq-privacy-settings-blocked-loading" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
             Loading blocked users...
           </div>
         ) : blockedUsers.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+          <div className="cq-privacy-settings-blocked-empty" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
             No blocked users
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="cq-privacy-settings-blocked-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {blockedUsers.map((block) => (
               <div
                 key={block.id}
+                className="cq-privacy-settings-blocked-item"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -225,13 +232,14 @@ export default function PrivacySettings() {
                   borderRadius: '8px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="cq-privacy-settings-blocked-item-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <img
                     src={
                       block.users?.avatar_url ||
                       `https://ui-avatars.com/api/?name=${block.users?.user_name}&background=dc3545&color=fff`
                     }
                     alt={block.users?.user_name}
+                    className="cq-privacy-settings-blocked-item-avatar"
                     style={{
                       width: '40px',
                       height: '40px',
@@ -239,17 +247,18 @@ export default function PrivacySettings() {
                       objectFit: 'cover',
                     }}
                   />
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
+                  <div className="cq-privacy-settings-blocked-item-details">
+                    <div className="cq-privacy-settings-blocked-item-name" style={{ fontWeight: '600', fontSize: '15px' }}>
                       {block.users?.user_name}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
+                    <div className="cq-privacy-settings-blocked-item-date" style={{ fontSize: '12px', color: '#666' }}>
                       Blocked {new Date(block.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => handleUnblock(block.blocked_id)}
+                  className="cq-privacy-settings-blocked-item-unblock-button"
                   style={{
                     padding: '6px 16px',
                     backgroundColor: '#fff',
@@ -279,6 +288,7 @@ export default function PrivacySettings() {
       </div>
 
       <div
+        className="cq-privacy-settings-note"
         style={{
           marginTop: '24px',
           padding: '16px',
@@ -288,7 +298,7 @@ export default function PrivacySettings() {
           color: '#666',
         }}
       >
-        <p style={{ margin: 0, lineHeight: '1.6' }}>
+        <p className="cq-privacy-settings-note-text" style={{ margin: 0, lineHeight: '1.6' }}>
           <strong>Note:</strong> This setting only controls who can follow you. Your profile
           visibility and content sharing preferences can be managed separately in the future.
           Existing followers will not be affected by changes to this setting.

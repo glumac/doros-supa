@@ -32,8 +32,9 @@ describe('Login CSS behavior', () => {
     it('renders login page with full screen layout', () => {
       const { container } = renderLogin();
 
-      const flexContainer = container.querySelector('.h-screen');
+      const flexContainer = container.querySelector('.cq-login-wrapper');
       expect(flexContainer).toBeInTheDocument();
+      expect(flexContainer).toHaveClass('h-screen');
     });
 
     it('displays Crush Quest title', () => {
@@ -54,7 +55,7 @@ describe('Login CSS behavior', () => {
     it('displays background image', () => {
       const { container } = renderLogin();
 
-      const image = container.querySelector('img[src*="tomatoes"]');
+      const image = container.querySelector('.cq-login-background-image');
       expect(image).toBeInTheDocument();
       expect(image).toHaveClass('w-full', 'h-full', 'object-cover');
     });
@@ -106,7 +107,7 @@ describe('Login CSS behavior', () => {
     it('hides info text by default', () => {
       const { container } = renderLogin();
 
-      const infoText = container.querySelector('[style*="opacity"]');
+      const infoText = container.querySelector('.cq-login-info-content-1');
       expect(infoText).toBeInTheDocument();
     });
 
@@ -124,9 +125,10 @@ describe('Login CSS behavior', () => {
       const { container } = renderLogin();
       const user = userEvent.setup();
 
-      // Find elements with transition-all class
-      const transitionElements = container.querySelectorAll('.transition-all');
-      expect(transitionElements.length).toBeGreaterThan(0);
+      // Find elements with transition-all class using semantic classname
+      const infoContent = container.querySelector('.cq-login-info-content-1');
+      expect(infoContent).toBeInTheDocument();
+      expect(infoContent).toHaveClass('transition-all');
 
       const buttons = screen.getAllByRole('button', { name: '???' });
       await user.click(buttons[0]);
@@ -142,9 +144,9 @@ describe('Login CSS behavior', () => {
     it('centers content with absolute positioning', () => {
       const { container } = renderLogin();
 
-      const absoluteContainer = container.querySelector('.absolute.flex.flex-col');
+      const absoluteContainer = container.querySelector('.cq-login-content');
       expect(absoluteContainer).toBeInTheDocument();
-      expect(absoluteContainer).toHaveClass('justify-center', 'items-center');
+      expect(absoluteContainer).toHaveClass('absolute', 'flex', 'flex-col', 'justify-center', 'items-center');
     });
 
     it('applies shadow to login button', () => {

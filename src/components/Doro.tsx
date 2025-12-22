@@ -43,7 +43,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
       if (image_url.startsWith("http://") || image_url.startsWith("https://")) {
         // Check if it's a Supabase storage URL - if so, getImageSignedUrl will handle it
         // Otherwise, it's an external URL - use directly
-        if (!image_url.includes("/pomodoro-images/")) {
+        if (!image_url.includes("/pomocq-doro-images/")) {
           setImageURL(image_url);
           return;
         }
@@ -161,28 +161,28 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
   };
 
   return (
-    <div className="my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
-      <div className="flex justify-between items-center relative">
+    <div className="cq-doro-card my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
+      <div className="cq-doro-header flex justify-between items-center relative">
         <Link
           to={`/user/${users?.id}`}
-          className="items-center relative z-10"
+          className="cq-doro-user-link items-center relative z-10"
           // write react style to scale to 102% on hover
         >
-          <div className="flex relative items-center">
-            <div className="w-10">
+          <div className="cq-doro-user-info flex relative items-center">
+            <div className="cq-doro-user-avatar-container w-10">
               <img
-                className="w-8 h-8 rounded-full object-cover block"
+                className="cq-doro-user-avatar w-8 h-8 rounded-full object-cover block"
                 src={users?.avatar_url || ''}
                 alt="user-profile"
               />
             </div>
-            <p className="text-green-700 font-bold text-lg relative items-center hover:shadow-md hover:text-green-800">
+            <p className="cq-doro-user-name text-green-700 font-bold text-lg relative items-center hover:shadow-md hover:text-green-800">
               {users?.user_name}
             </p>
           </div>
         </Link>
-        <div className="flex justify-end items-center ">
-          <div className="">
+        <div className="cq-doro-header-actions flex justify-end items-center ">
+          <div className="cq-doro-delete-container">
             {users?.id === authUser?.id && (
               <button
                 type="button"
@@ -193,13 +193,13 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                 title="Delete Pomodoro"
                 onMouseEnter={() => setDeleteHovered(true)}
                 onMouseLeave={() => setDeleteHovered(false)}
-                className="bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
+                className="cq-doro-delete-button bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
               >
                 {deleteHovered ? <AiTwotoneDelete /> : <AiOutlineDelete />}
               </button>
             )}
           </div>
-          <p>
+          <p className="cq-doro-timestamp">
             {launch_at && new Date(launch_at).toString() !== 'Invalid Date'
               ? isToday(new Date(launch_at))
                 ? `Today ${format(new Date(launch_at), "h:mm a")}`
@@ -216,33 +216,33 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
         </div>
       </div>
       <Link
-        to={`/doro-detail/${id}`}
-        className="before:content before:absolute before:top-0 before:left-0 before:w-full before:h-full before:rounded-3xl"
+        to={`/cq-doro-detail/${id}`}
+        className="cq-doro-content-link before:content before:absolute before:top-0 before:left-0 before:w-full before:h-full before:rounded-3xl"
       >
-        <div className="gap-2 mt-6 sm:block md:flex justify-between mb-4 md:mb-0">
-          <dl className="leading-tight mb-3">
+        <div className="cq-doro-content gap-2 mt-6 sm:block md:flex justify-between mb-4 md:mb-0">
+          <dl className="cq-doro-details leading-tight mb-3">
             {task && (
-              <div className="mb-2 flex">
-                <dt className="font-bold text-gray-500 w-16 text-lg shrink-0 leading-tight ">
+              <div className="cq-doro-task mb-2 flex">
+                <dt className="cq-doro-task-label font-bold text-gray-500 w-16 text-lg shrink-0 leading-tight ">
                   Task:
                 </dt>
-                <dd className="text-dark text-lg leading-tight ">{task}</dd>
+                <dd className="cq-doro-task-value text-dark text-lg leading-tight ">{task}</dd>
               </div>
             )}
             {notes && (
-              <div className="mb-2 flex">
-                <dt className="font-bold text-gray-500 w-16 text-lg  shrink-0 leading-tight   ">
+              <div className="cq-doro-notes mb-2 flex">
+                <dt className="cq-doro-notes-label font-bold text-gray-500 w-16 text-lg  shrink-0 leading-tight   ">
                   Notes:
                 </dt>
-                <dd className="text-dark text-lg leading-tight ">{notes}</dd>
+                <dd className="cq-doro-notes-value text-dark text-lg leading-tight ">{notes}</dd>
               </div>
             )}
           </dl>
 
           {imageURL && (
-            <div className="relative cursor-zoom-in w-auto rounded-lg overflow-hidden transition-all duration-500 ease-in-out basis-1/3 shrink-0 ">
+            <div className="cq-doro-image-container relative cursor-zoom-in w-auto rounded-lg overflow-hidden transition-all duration-500 ease-in-out basis-1/3 shrink-0 ">
               <img
-                className="rounded-lg block"
+                className="cq-doro-image rounded-lg block"
                 src={imageURL}
                 alt="User Pomodoro"
               />
@@ -253,20 +253,20 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
 
       {/* likes */}
       {(doro?.likes?.length ?? 0) > 0 && (
-        <div className="flex mt-3 gap-2">
-          <h2 className="text-lg font-medium">
+        <div className="cq-doro-likes-section flex mt-3 gap-2">
+          <h2 className="cq-doro-likes-title text-lg font-medium">
             Likes{" "}
             {(doro?.likes?.length ?? 0) > 0 && <span>({doro?.likes?.length})</span>}
           </h2>
-          <div>
+          <div className="cq-doro-likes-avatars">
             {(doro?.likes?.length ?? 0) > 0 && (
-              <div className="mt-1.5">
-                <div className="flex gap-0.5">
+              <div className="cq-doro-likes-list mt-1.5">
+                <div className="cq-doro-likes-avatars-container flex gap-0.5">
                   {doro?.likes?.map((like, index) => (
-                    <div key={like.id}>
-                      <Link to={`user/${like.users?.id}`}>
+                    <div key={like.id} className="cq-doro-like-avatar-item">
+                      <Link to={`user/${like.users?.id}`} className="cq-doro-like-avatar-link">
                         <img
-                          className="w-5 h-5 mr-0.5 rounded-full object-cover block relative"
+                          className="cq-doro-like-avatar w-5 h-5 mr-0.5 rounded-full object-cover block relative"
                           src={like.users?.avatar_url || ''}
                           alt="user-profile"
                         />
@@ -279,8 +279,8 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
           </div>
         </div>
       )}
-      <div className="mb-2">
-        <div className="flex items-center shrink-0">
+      <div className="cq-doro-like-button-container mb-2">
+        <div className="cq-doro-like-button-wrapper flex items-center shrink-0">
           {hasLiked ? (
             <button
               type="button"
@@ -288,7 +288,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                 e.stopPropagation();
                 removeLike(id);
               }}
-              className={removeStyle}
+              className={`cq-doro-unlike-button ${removeStyle}`}
             >
               Unlike
             </button>
@@ -300,7 +300,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
               }}
               type="button"
               disabled={likingDoro}
-              className={addStyle}
+              className={`cq-doro-like-button ${addStyle}`}
               style={{
                 cursor: likingDoro ? "auto" : "pointer",
                 paddingLeft: likingDoro ? "20px" : "",
@@ -313,36 +313,36 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
         </div>
       </div>
       {/* comments */}
-      <div>
-        <div>
+      <div className="cq-doro-comments-section">
+        <div className="cq-doro-comments-list-container">
           {(doro?.comments?.length ?? 0) > 0 && (
-            <div className="my-3">
-              <h2 className="text-lg font-medium">
+            <div className="cq-doro-comments-list my-3">
+              <h2 className="cq-doro-comments-title text-lg font-medium">
                 <span>Comments</span>
                 <span> </span>
                 {(doro?.comments?.length ?? 0) > 0 && (
                   <span>({doro?.comments?.length})</span>
                 )}
               </h2>
-              <div>
+              <div className="cq-doro-comments-items">
                 {doro?.comments?.map((comment, index) => (
                   <div
                     key={comment.id}
-                    className="flex items-start gap-1.5 mb-1"
+                    className="cq-doro-comment-item flex items-start gap-1.5 mb-1"
                   >
-                    <div className="flex content-center shrink-0">
+                    <div className="cq-doro-comment-avatar-container flex content-center shrink-0">
                       <Link
                         to={`/user/${comment.users?.id}`}
-                        className="items-center"
+                        className="cq-doro-comment-user-link items-center"
                       >
                         <img
-                          className="w-4 h-4 rounded-full object-cover block relative top-1"
+                          className="cq-doro-comment-avatar w-4 h-4 rounded-full object-cover block relative top-1"
                           src={comment.users?.avatar_url || ''}
                           alt="user-profile"
                         />
                       </Link>
                     </div>
-                    <p>
+                    <p className="cq-doro-comment-text">
                       <span key="cool">{comment.comment_text}</span>
                       <span key="double-cool"> </span>
                       {comment.users?.id === authUser?.id && (
@@ -357,7 +357,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                             setCommentDeleteHovered(comment.id)
                           }
                           onMouseLeave={() => setCommentDeleteHovered("")}
-                          className="text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
+                          className="cq-doro-comment-delete-button text-red-600 text-large relative top-0.5 inline-flex items-center justify-center outline-none"
                         >
                           {comment.id === commentDeleteHovered ? (
                             <AiTwotoneDelete />
@@ -375,21 +375,21 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
         </div>
         <button
           type="button"
-          className={showAddComment ? removeStyle : addStyle}
+          className={`cq-doro-comment-toggle-button ${showAddComment ? removeStyle : addStyle}`}
           aria-expanded={showAddComment}
           onClick={toggleShowAddComment}
           aria-controls={`${doro.id}-commenting`}
         >
           {showAddComment ? "Cancel Comment" : "Comment"}
         </button>
-        <div id={`${doro.id}-commenting`}>
+        <div id={`${doro.id}-commenting`} className="cq-doro-comment-form-container">
           {showAddComment && (
-            <div className="flex items-end">
+            <div className="cq-doro-comment-form flex items-end">
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Add a comment"
-                className="block relative leading-tight outline-none text-base border-2 mr-3 border-gray-200 flex-grow p-2"
+                className="cq-doro-comment-input block relative leading-tight outline-none text-base border-2 mr-3 border-gray-200 flex-grow p-2"
               ></textarea>
               <button
                 onClick={(e) => {
@@ -398,7 +398,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                 }}
                 disabled={comment?.length === 0 || addingComment}
                 type="button"
-                className="relative bg-red-600 text-white font-bold py-0.5 text-base rounded-lg transition hover:shadow-md outline-none disabled:opacity-70 px-3"
+                className="cq-doro-comment-submit-button relative bg-red-600 text-white font-bold py-0.5 text-base rounded-lg transition hover:shadow-md outline-none disabled:opacity-70 px-3"
               >
                 {addingComment ? "Submitting" : "Submit"}
               </button>

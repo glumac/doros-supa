@@ -50,11 +50,11 @@ export default function TimerStyled({ seconds, minutes }: TimerStyledProps) {
   }
 
   return (
-    <TimerContainer>
+    <TimerContainer className="cq-timer-styled-container">
       <Digit color={color} value={minutes} title="MINUTES" />
-      <SeparatorContainer>
-        <Separator />
-        <Separator />
+      <SeparatorContainer className="cq-timer-styled-separator-container">
+        <Separator className="cq-timer-styled-separator" />
+        <Separator className="cq-timer-styled-separator" />
       </SeparatorContainer>
       <Digit color={color} value={seconds} title="SECONDS" />
     </TimerContainer>

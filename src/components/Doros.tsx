@@ -8,7 +8,7 @@ interface DorosProps {
 }
 
 const Doros = ({ doros, reloadFeed }: DorosProps) => (
-  <div className="animate-slide-fwd max-w-lg lg:max-w-2xl mx-auto">
+  <div className="cq-doros-container animate-slide-fwd max-w-lg lg:max-w-2xl mx-auto">
     {doros?.map((doro) => (
       <Doro
         key={doro.id}

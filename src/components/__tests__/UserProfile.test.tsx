@@ -43,7 +43,7 @@ const mockDoros = [
 const renderWithRouter = (userId: string, authUser = mockUser) => {
   return render(
     <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user: authUser, loading: false }}>
+      <AuthContext.Provider value={{ user: authUser, userProfile: authUser, loading: false }}>
         <Routes>
           <Route path="/user/:userId" element={<UserProfile />} />
         </Routes>
@@ -486,6 +486,7 @@ describe('UserProfile', () => {
   });
 
   it('should show loading spinner while fetching data', () => {
+    // Test viewing another user's profile where we need to fetch their data
     vi.mocked(queries.getUserProfile).mockReturnValue(
       new Promise(() => {}) // Never resolves
     );
@@ -493,7 +494,8 @@ describe('UserProfile', () => {
       new Promise(() => {})
     );
 
-    renderWithRouter('user-123');
+    window.history.pushState({}, '', '/user/other-user');
+    renderWithRouter('other-user', mockUser); // View other-user while logged in as mockUser
 
     expect(screen.getByText(/loading profile/i)).toBeInTheDocument();
   });

@@ -34,11 +34,11 @@ const Search = ({ searchTerm }: SearchProps) => {
   }, [searchTerm]);
 
   return (
-    <div>
-      {loading && <Spinner />}
-      {pins?.length !== 0 && <Doros doros={pins} />}
+    <div className="cq-search-container">
+      {loading && <div className="cq-search-loading"><Spinner /></div>}
+      {pins?.length !== 0 && <div className="cq-search-results"><Doros doros={pins} /></div>}
       {pins?.length === 0 && searchTerm !== "" && !loading && (
-        <div className="mt-10 text-center text-xl ">No Pins Found!</div>
+        <div className="cq-search-empty mt-10 text-center text-xl ">No Pins Found!</div>
       )}
     </div>
   );

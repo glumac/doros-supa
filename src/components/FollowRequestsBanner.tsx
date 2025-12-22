@@ -51,6 +51,7 @@ export default function FollowRequestsBanner() {
   return (
     <div
       onClick={() => navigate(`/user/${user.id}?tab=requests`)}
+      className="cq-follow-requests-banner-container"
       style={{
         position: 'sticky',
         top: 0,
@@ -74,9 +75,11 @@ export default function FollowRequestsBanner() {
         e.currentTarget.style.backgroundColor = '#007bff';
       }}
     >
-      <span style={{ marginRight: '8px' }}>🔔</span>
-      You have {requestCount} pending follow request{requestCount !== 1 ? 's' : ''}
-      <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.9 }}>
+      <span className="cq-follow-requests-banner-icon" style={{ marginRight: '8px' }}>🔔</span>
+      <span className="cq-follow-requests-banner-message">
+        You have {requestCount} pending follow request{requestCount !== 1 ? 's' : ''}
+      </span>
+      <span className="cq-follow-requests-banner-hint" style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.9 }}>
         → Click to review
       </span>
     </div>

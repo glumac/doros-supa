@@ -24,12 +24,12 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
   const displayData = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
 
   return (
-    <div>
+    <div className="cq-compact-leaderboard-container">
       {/* Tab Headers */}
-      <div className="flex gap-1 px-3 mb-2">
+      <div className="cq-compact-leaderboard-tabs flex gap-1 px-3 mb-2">
         <button
           onClick={() => setActiveTab('global')}
-          className={`flex-1 text-xs py-1 px-2 rounded transition-all ${
+          className={`cq-compact-leaderboard-tab cq-compact-leaderboard-tab-global flex-1 text-xs py-1 px-2 rounded transition-all ${
             activeTab === 'global'
               ? 'bg-green-700 text-white font-semibold'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -39,7 +39,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
         </button>
         <button
           onClick={() => setActiveTab('friends')}
-          className={`flex-1 text-xs py-1 px-2 rounded transition-all ${
+          className={`cq-compact-leaderboard-tab cq-compact-leaderboard-tab-friends flex-1 text-xs py-1 px-2 rounded transition-all ${
             activeTab === 'friends'
               ? 'bg-green-700 text-white font-semibold'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -50,13 +50,13 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
       </div>
 
       {/* Leaderboard List */}
-      <div>
+      <div className="cq-compact-leaderboard-list">
         {loading ? (
-          <div className="text-xs text-center py-2 text-gray-500">
+          <div className="cq-compact-leaderboard-loading text-xs text-center py-2 text-gray-500">
             Loading...
           </div>
         ) : displayData.length === 0 ? (
-          <div className="text-xs text-center border-2 border-green-200 mx-3 p-2">
+          <div className="cq-compact-leaderboard-empty text-xs text-center border-2 border-green-200 mx-3 p-2">
             {activeTab === 'friends' ? (
               <>
                 No friends yet!
@@ -77,16 +77,16 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
               to={`user/${leader.user_id}`}
               key={leader.user_id}
               onClick={handleCloseSidebar}
-              className="flex gap-2 px-2 py-1 font-bold items-center mx-3 text-green-700 hover:text-green-800 transition-all duration-200 ease-in-out"
+              className="cq-compact-leaderboard-item flex gap-2 px-2 py-1 font-bold items-center mx-3 text-green-700 hover:text-green-800 transition-all duration-200 ease-in-out"
             >
               <img
                 src={leader.avatar_url || 'https://via.placeholder.com/32'}
-                className="w-8 h-8 rounded-full basis-3"
+                className="cq-compact-leaderboard-item-avatar w-8 h-8 rounded-full basis-3"
                 alt="user-profile"
               />
-              <div className="flex justify-between basis-full">
-                <p className="text-sm">{leader.user_name}</p>
-                <p className="font-medium text-slate-800 text-sm">
+              <div className="cq-compact-leaderboard-item-info flex justify-between basis-full">
+                <p className="cq-compact-leaderboard-item-name text-sm">{leader.user_name}</p>
+                <p className="cq-compact-leaderboard-item-count font-medium text-slate-800 text-sm">
                   {leader.completion_count}
                 </p>
               </div>

@@ -52,24 +52,24 @@ const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-6 mb-4">
+    <div className="cq-pagination-container flex justify-center items-center gap-2 mt-6 mb-4">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || isLoading}
-        className="px-4 py-2 bg-green-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition"
+        className="cq-pagination-button cq-pagination-button-prev px-4 py-2 bg-green-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition"
         aria-label="Previous page"
       >
         Previous
       </button>
 
-      <div className="flex gap-1" role="navigation" aria-label="Pagination">
+      <div className="cq-pagination-pages flex gap-1" role="navigation" aria-label="Pagination">
         {getPageNumbers().map((page, index) => (
           <React.Fragment key={index}>
             {typeof page === "number" ? (
               <button
                 onClick={() => onPageChange(page)}
                 disabled={isLoading}
-                className={`px-3 py-2 rounded transition ${
+                className={`cq-pagination-page cq-pagination-page-${page} ${currentPage === page ? 'cq-pagination-page-active' : ''} px-3 py-2 rounded transition ${
                   currentPage === page
                     ? "bg-green-600 text-white font-bold"
                     : "bg-gray-200 hover:bg-gray-300 text-gray-700"
@@ -80,7 +80,7 @@ const Pagination: React.FC<PaginationProps> = ({
                 {page}
               </button>
             ) : (
-              <span className="px-3 py-2 text-gray-500" aria-hidden="true">
+              <span className="cq-pagination-ellipsis px-3 py-2 text-gray-500" aria-hidden="true">
                 ...
               </span>
             )}
@@ -91,7 +91,7 @@ const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages || isLoading}
-        className="px-4 py-2 bg-green-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition"
+        className="cq-pagination-button cq-pagination-button-next px-4 py-2 bg-green-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition"
         aria-label="Next page"
       >
         Next

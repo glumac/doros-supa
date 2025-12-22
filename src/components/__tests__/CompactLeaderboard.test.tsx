@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import CompactLeaderboard from '../CompactLeaderboard';
 import { AuthContext } from '../../contexts/AuthContext';
+import { LeaderboardProvider } from '../../contexts/LeaderboardContext';
 import * as queries from '../../lib/queries';
 
 vi.mock('../../lib/queries');
@@ -48,8 +49,10 @@ const mockFriendsData = [
 const renderWithAuth = (user = mockUser, closeToggle = vi.fn()) => {
   return render(
     <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        <CompactLeaderboard closeToggle={closeToggle} />
+      <AuthContext.Provider value={{ user, userProfile: user, session: null, loading: false }}>
+        <LeaderboardProvider>
+          <CompactLeaderboard closeToggle={closeToggle} />
+        </LeaderboardProvider>
       </AuthContext.Provider>
     </BrowserRouter>
   );
@@ -58,6 +61,11 @@ const renderWithAuth = (user = mockUser, closeToggle = vi.fn()) => {
 describe('CompactLeaderboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set default mocks for LeaderboardProvider
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
+      error: null
+    });
   });
 
   it('should render global leaderboard by default', async () => {
