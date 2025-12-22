@@ -86,6 +86,18 @@ describe('UserProfile', () => {
       data: [],
       error: null
     });
+
+    // Mock functions needed by FollowButton component
+    vi.mocked(queries.isBlockedByUser).mockResolvedValue(false);
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    // Mock getUserProfile for FollowButton's checkUserSettings (default, can be overridden per test)
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
   });
 
   it('should load and display user profile', async () => {

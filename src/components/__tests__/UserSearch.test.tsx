@@ -8,7 +8,7 @@ import * as queries from '../../lib/queries';
 
 vi.mock('../../lib/queries', () => ({
   searchUsers: vi.fn(),
-  getSuggestedUsers: vi.fn().mockResolvedValue({ data: [], error: null }),
+  getSuggestedUsers: vi.fn(),
   isFollowingUser: vi.fn(),
   getUserProfile: vi.fn(),
   getFollowRequestStatus: vi.fn(),

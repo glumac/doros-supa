@@ -15,6 +15,7 @@ vi.mock('../../lib/queries', () => ({
   getFollowRequestStatus: vi.fn(),
   createFollowRequest: vi.fn(),
   cancelFollowRequest: vi.fn(),
+  isBlockedByUser: vi.fn(),
 }));
 
 const mockUser = {
@@ -37,6 +38,8 @@ const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
 describe('FollowButton', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set default mock return values
+    vi.mocked(queries.isBlockedByUser).mockResolvedValue(false);
   });
 
   it('should not render when viewing own profile', () => {
