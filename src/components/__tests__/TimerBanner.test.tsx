@@ -31,6 +31,8 @@ const mockDoroContextValue = {
   setIsPaused: vi.fn(),
   inProgress: true,
   setInProgress: vi.fn(),
+  timerState: null,
+  setTimerState: vi.fn(),
 };
 
 const renderTimerBanner = (contextOverrides = {}, route = '/') => {
@@ -57,10 +59,22 @@ describe('TimerBanner CSS behavior', () => {
       expect(screen.getByText('Pomodoro in Progress')).toBeInTheDocument();
     });
 
-    it('is not visible when timer is inactive', () => {
-      renderTimerBanner({ isActive: false });
+    it('is not visible when timer is inactive and not completed', () => {
+      renderTimerBanner({ isActive: false, completed: false });
 
       expect(screen.queryByText('Pomodoro in Progress')).not.toBeInTheDocument();
+    });
+
+    it('is visible when timer is completed', () => {
+      renderTimerBanner({ isActive: false, completed: true });
+
+      expect(screen.getByText('Pomodoro Complete')).toBeInTheDocument();
+    });
+
+    it('is not visible on create-doro page even when completed', () => {
+      renderTimerBanner({ isActive: false, completed: true }, '/create-doro');
+
+      expect(screen.queryByText('Pomodoro Complete')).not.toBeInTheDocument();
     });
 
     it('is not visible on create-doro page even when active', () => {
@@ -123,6 +137,43 @@ describe('TimerBanner CSS behavior', () => {
       renderTimerBanner({ isActive: true, isPaused: true });
 
       expect(screen.getByText('Pomodoro Paused')).toBeInTheDocument();
+    });
+  });
+
+  describe('completed state display', () => {
+    it('shows "Pomodoro Complete" when completed', () => {
+      renderTimerBanner({ isActive: false, completed: true });
+
+      expect(screen.getByText('Pomodoro Complete')).toBeInTheDocument();
+    });
+
+    it('applies green background when completed', () => {
+      const { container } = renderTimerBanner({ isActive: false, completed: true });
+
+      const banner = container.querySelector('.cq-timer-banner-container');
+      expect(banner).toHaveClass('bg-green-600', 'hover:bg-green-700');
+      expect(banner).not.toHaveClass('bg-red-600', 'hover:bg-red-700');
+    });
+
+    it('applies green text color to task when completed', () => {
+      renderTimerBanner({ isActive: false, completed: true, task: 'My task' });
+
+      const taskElement = screen.getByText('My task');
+      expect(taskElement).toHaveClass('text-green-100');
+    });
+
+    it('does not show timer display when completed', () => {
+      renderTimerBanner({ isActive: false, completed: true, timeLeft: 1500000 });
+
+      expect(screen.queryByText('25:00')).not.toBeInTheDocument();
+    });
+
+    it('does not animate tomato icon when completed', () => {
+      const { container } = renderTimerBanner({ isActive: false, completed: true });
+
+      const tomatoIcon = container.querySelector('.cq-timer-banner-icon');
+      expect(tomatoIcon).toBeInTheDocument();
+      expect(tomatoIcon).not.toHaveClass('animate-pulse');
     });
   });
 
