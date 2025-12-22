@@ -7,7 +7,7 @@ import { getPomodoroDetail } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
-import { format, isToday } from "date-fns";
+import { format, isToday, getYear } from "date-fns";
 import { getImageSignedUrl } from "../lib/storage";
 import { Doro, User } from "../types/models";
 
@@ -242,7 +242,14 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     {" "}
                     {isToday(new Date(doro.launch_at))
                       ? `Today ${format(new Date(doro.launch_at), "h:mm a")}`
-                      : format(new Date(doro.launch_at), "MMM dd, h:mm a")}
+                      : (() => {
+                          const date = new Date(doro.launch_at);
+                          const currentYear = getYear(new Date());
+                          const dateYear = getYear(date);
+                          return dateYear === currentYear
+                            ? format(date, "MMM dd, h:mm a")
+                            : format(date, "MMM dd, yyyy h:mm a");
+                        })()}
                   </dd>
                 </div>
               )}

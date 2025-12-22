@@ -12,6 +12,10 @@ vi.mock('../../lib/supabaseClient', () => ({
   }
 }));
 
+vi.mock('../../lib/storage', () => ({
+  getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg')
+}));
+
 const mockDoro = {
   id: 'doro-123',
   task: 'Write tests',
@@ -270,10 +274,89 @@ describe('Doro', () => {
     expect(image).toHaveAttribute('src', 'https://example.com/image.jpg');
   });
 
-  it('should format date correctly', () => {
-    renderWithAuth();
+  describe('Date formatting', () => {
+    it('should show "Today" format for today\'s date', () => {
+      const today = new Date();
+      const todayISO = today.toISOString();
+      const doroWithToday = {
+        ...mockDoro,
+        launch_at: todayISO
+      };
 
-    // Should show relative time or formatted date
-    expect(screen.getByText(/test user/i)).toBeInTheDocument();
+      renderWithAuth(doroWithToday);
+
+      // Should show "Today" followed by time
+      const dateText = screen.getByText(/^Today/);
+      expect(dateText).toBeInTheDocument();
+    });
+
+    it('should not show year for dates in current year', () => {
+      const currentYear = new Date().getFullYear();
+      const dateInCurrentYear = new Date(currentYear, 5, 15, 14, 30); // June 15, current year, 2:30 PM
+      const doroWithCurrentYear = {
+        ...mockDoro,
+        launch_at: dateInCurrentYear.toISOString()
+      };
+
+      renderWithAuth(doroWithCurrentYear);
+
+      // Should show format like "Jun 15 2:30 PM" without year
+      const dateText = screen.getByText(/Jun 15/);
+      expect(dateText).toBeInTheDocument();
+      // Should not contain the year
+      expect(dateText.textContent).not.toContain(currentYear.toString());
+    });
+
+    it('should show year for dates from previous year', () => {
+      const previousYear = new Date().getFullYear() - 1;
+      const dateFromPreviousYear = new Date(previousYear, 2, 10, 9, 15); // March 10, previous year, 9:15 AM
+      const doroWithPreviousYear = {
+        ...mockDoro,
+        launch_at: dateFromPreviousYear.toISOString()
+      };
+
+      renderWithAuth(doroWithPreviousYear);
+
+      // Should show format like "Mar 10, 2023 9:15 AM" with year
+      const dateText = screen.getByText(new RegExp(`Mar 10, ${previousYear}`));
+      expect(dateText).toBeInTheDocument();
+    });
+
+    it('should show year for dates from future year', () => {
+      const futureYear = new Date().getFullYear() + 1;
+      const dateFromFutureYear = new Date(futureYear, 11, 25, 16, 45); // December 25, future year, 4:45 PM
+      const doroWithFutureYear = {
+        ...mockDoro,
+        launch_at: dateFromFutureYear.toISOString()
+      };
+
+      renderWithAuth(doroWithFutureYear);
+
+      // Should show format like "Dec 25, 2025 4:45 PM" with year
+      const dateText = screen.getByText(new RegExp(`Dec 25, ${futureYear}`));
+      expect(dateText).toBeInTheDocument();
+    });
+
+    it('should show "Date unavailable" for invalid dates', () => {
+      const doroWithInvalidDate = {
+        ...mockDoro,
+        launch_at: 'invalid-date'
+      };
+
+      renderWithAuth(doroWithInvalidDate);
+
+      expect(screen.getByText('Date unavailable')).toBeInTheDocument();
+    });
+
+    it('should show "Date unavailable" when launch_at is null', () => {
+      const doroWithoutDate = {
+        ...mockDoro,
+        launch_at: null
+      };
+
+      renderWithAuth(doroWithoutDate);
+
+      expect(screen.getByText('Date unavailable')).toBeInTheDocument();
+    });
   });
 });

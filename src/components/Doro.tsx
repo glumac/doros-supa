@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
-import { format, isToday } from "date-fns";
+import { format, isToday, getYear } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { addStyle, removeStyle } from "../utils/styleDefs";
@@ -203,7 +203,14 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
             {launch_at && new Date(launch_at).toString() !== 'Invalid Date'
               ? isToday(new Date(launch_at))
                 ? `Today ${format(new Date(launch_at), "h:mm a")}`
-                : format(new Date(launch_at), "MMM dd h:mm a")
+                : (() => {
+                    const date = new Date(launch_at);
+                    const currentYear = getYear(new Date());
+                    const dateYear = getYear(date);
+                    return dateYear === currentYear
+                      ? format(date, "MMM dd h:mm a")
+                      : format(date, "MMM dd, yyyy h:mm a");
+                  })()
               : 'Date unavailable'}
           </p>
         </div>
