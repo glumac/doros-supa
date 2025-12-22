@@ -13,8 +13,8 @@ export async function getFeed(limit = 20, currentUserId?: string) {
       `
       *,
       users:user_id (*),
-      likes (id, user_id, users:user_id (id, user_name)),
-      comments (id, comment_text, user_id, users:user_id (id, user_name))
+      likes (id, user_id, users:user_id (id, user_name, avatar_url)),
+      comments (id, comment_text, user_id, users:user_id (id, user_name, avatar_url))
     `
     )
     .eq("completed", true)
@@ -85,8 +85,8 @@ export async function getUserPomodoros(
       `
       *,
       users:user_id (*),
-      likes (id, user_id, users:user_id (id, user_name)),
-      comments (id, comment_text, user_id, users:user_id (id, user_name))
+      likes (id, user_id, users:user_id (id, user_name, avatar_url)),
+      comments (id, comment_text, user_id, users:user_id (id, user_name, avatar_url))
     `,
       { count: "exact" }
     )
