@@ -44,6 +44,9 @@ interface CreateDoroProps {
   user?: User;
 }
 
+// Dev flag: Set to true to make pomodoros last 5 seconds instead of 25 minutes
+const DEV_MODE_SHORT_TIMER = import.meta.env.DEV && import.meta.env.VITE_DEV_SHORT_TIMER === 'true';
+
 // Helper function to give minutes and seconds
 const formatTime = (ms: number | null): FormatTimeResult => {
   if (!ms) return { minutes: 0, seconds: 0 };
@@ -310,7 +313,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         return;
       }
 
-      const { imageUrl, error } = await uploadPomodoroImage(selectedFile, user._id);
+      const { imagePath, error } = await uploadPomodoroImage(selectedFile, user._id);
 
       if (error) {
         setLoading(false);
@@ -318,8 +321,16 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
           "Sorry, that image did not work. (Note: HEIC - some iPhone- images are not supported yet if you upload from a computer and not iPhone :/)"
         );
         console.log("Upload failed:", error);
-      } else if (imageUrl) {
-        setImageAsset({ _id: imageUrl, url: imageUrl });
+      } else if (imagePath) {
+        // Generate a signed URL for immediate display
+        const { getImageSignedUrl } = await import("../lib/storage");
+        const signedUrl = await getImageSignedUrl(imagePath);
+        if (signedUrl) {
+          setImageAsset({ _id: imagePath, url: signedUrl });
+        } else {
+          // Fallback: store path, will generate signed URL when saving
+          setImageAsset({ _id: imagePath, url: imagePath });
+        }
         setLoading(false);
       }
     } else {
@@ -347,13 +358,17 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       setSaving(true);
 
       try {
+        // Store the path (not URL) in the database
+        // imageAsset._id contains the path, imageAsset.url is the signed URL for display
+        const imagePath = imageAsset?._id || null;
+
         const { error } = await supabase.from("pomodoros").insert({
           user_id: user._id,
           launch_at: launchAt || new Date().toISOString(),
           task,
           notes: notes || null,
           completed,
-          image_url: imageAsset?.url || null,
+          image_url: imagePath, // Store path, not signed URL
         });
 
         if (error) {
@@ -397,7 +412,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             >
               deep work
             </a>{" "}
-            will you focus on for the next 25 minutes?
+            will you focus on for the next {DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}?
           </label>
           <div className="flex items-stretch mt-5 gap-2 flex-wrap">
             <input
@@ -414,7 +429,9 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                startTimer(25);
+                // Use 5 seconds in dev mode, otherwise 25 minutes
+                const durationInMinutes = DEV_MODE_SHORT_TIMER ? 5 / 60 : 25;
+                startTimer(durationInMinutes);
               }}
               className="bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5"
             >
@@ -426,7 +443,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       {doroContext.inProgress && (
         <div className="bg-white border-solid border-2 border-red-600 rounded-3xl p-5 max-w-lg lg:max-w-2xl mx-auto">
           <div className="flex mb-3 justify-between items-center relative">
-            <h3 className="text-dark text-lg">25 minutes</h3>
+            <h3 className="text-dark text-lg">{DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}</h3>
             <div>
               {launchAt && (
                 <div className="flex gap-2">

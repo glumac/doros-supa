@@ -6,6 +6,7 @@ import { format, isToday } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { addStyle, removeStyle } from "../utils/styleDefs";
+import { getImageSignedUrl } from "../lib/storage";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
 
 interface DoroProps {
@@ -27,7 +28,27 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
 
   const { users, id, task, notes, launch_at, image_url } = doro;
 
-  const imageURL = image_url || null;
+  const [imageURL, setImageURL] = useState<string | null>(null);
+
+  // Convert image path to signed URL for private bucket
+  useEffect(() => {
+    if (image_url) {
+      getImageSignedUrl(image_url)
+        .then((signedUrl) => {
+          if (signedUrl) {
+            setImageURL(signedUrl);
+          } else {
+            setImageURL(null);
+          }
+        })
+        .catch((error) => {
+          console.error("Error generating signed URL:", error);
+          setImageURL(null);
+        });
+    } else {
+      setImageURL(null);
+    }
+  }, [image_url]);
 
   const deletePin = async (id: string) => {
     const { error } = await supabase.from("pomodoros").delete().eq("id", id);

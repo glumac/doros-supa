@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday } from "date-fns";
+import { getImageSignedUrl } from "../lib/storage";
 import { Doro, User } from "../types/models";
 
 interface DoroDetailProps {
@@ -22,6 +23,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   const [likingDoro, setLikingDoro] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
   const [deleteHovered, setDeleteHovered] = useState(false);
+  const [imageURL, setImageURL] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +34,26 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
       title.innerHTML = `${doro.task} - Crush Quest`;
     }
   }, [doro]);
+
+  // Convert image path to signed URL for private bucket
+  useEffect(() => {
+    if (doro?.image_url) {
+      getImageSignedUrl(doro.image_url)
+        .then((signedUrl) => {
+          if (signedUrl) {
+            setImageURL(signedUrl);
+          } else {
+            setImageURL(null);
+          }
+        })
+        .catch((error) => {
+          console.error("Error generating signed URL:", error);
+          setImageURL(null);
+        });
+    } else {
+      setImageURL(null);
+    }
+  }, [doro?.image_url]);
 
   let alreadyLiked = doro?.likes?.filter(
     (item) => item?.user_id === authUser?.id
@@ -136,12 +158,12 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
           className="flex xl:flex-row flex-col m-auto rounded-3xl ptb-3 bg-white"
           style={{ maxWidth: "1500px" }}
         >
-          {doro?.image_url && (
+          {imageURL && (
             <div className="flex justify-center items-center md:items-start flex-initial">
               <img
                 style={{ maxHeight: "600px" }}
                 className="rounded-lg self-center"
-                src={doro.image_url}
+                src={imageURL}
                 alt="user-post"
               />
             </div>
