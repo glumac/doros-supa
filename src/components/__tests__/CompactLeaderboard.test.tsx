@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import CompactLeaderboard from '../CompactLeaderboard';
 import { AuthContext } from '../../contexts/AuthContext';
+import { LeaderboardProvider } from '../../contexts/LeaderboardContext';
 import * as queries from '../../lib/queries';
 
 vi.mock('../../lib/queries');
@@ -48,8 +49,15 @@ const mockFriendsData = [
 const renderWithAuth = (user = mockUser, closeToggle = vi.fn()) => {
   return render(
     <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        <CompactLeaderboard closeToggle={closeToggle} />
+      <AuthContext.Provider value={{
+        user,
+        userProfile: user,
+        loading: false,
+        session: null
+      }}>
+        <LeaderboardProvider>
+          <CompactLeaderboard closeToggle={closeToggle} />
+        </LeaderboardProvider>
       </AuthContext.Provider>
     </BrowserRouter>
   );
@@ -63,6 +71,10 @@ describe('CompactLeaderboard', () => {
   it('should render global leaderboard by default', async () => {
     vi.mocked(queries.getGlobalLeaderboard).mockResolvedValue({
       data: mockGlobalData,
+      error: null
+    });
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
       error: null
     });
 
@@ -102,6 +114,10 @@ describe('CompactLeaderboard', () => {
       data: mockGlobalData,
       error: null
     });
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
+      error: null
+    });
 
     renderWithAuth();
 
@@ -113,6 +129,9 @@ describe('CompactLeaderboard', () => {
 
   it('should show loading state', () => {
     vi.mocked(queries.getGlobalLeaderboard).mockReturnValue(
+      new Promise(() => {}) // Never resolves
+    );
+    vi.mocked(queries.getFriendsLeaderboard).mockReturnValue(
       new Promise(() => {}) // Never resolves
     );
 
@@ -155,6 +174,10 @@ describe('CompactLeaderboard', () => {
       data: largeDataset,
       error: null
     });
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
+      error: null
+    });
 
     renderWithAuth();
 
@@ -170,6 +193,10 @@ describe('CompactLeaderboard', () => {
 
     vi.mocked(queries.getGlobalLeaderboard).mockResolvedValue({
       data: mockGlobalData,
+      error: null
+    });
+    vi.mocked(queries.getFriendsLeaderboard).mockResolvedValue({
+      data: [],
       error: null
     });
 

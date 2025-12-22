@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLeaderboards } from '../contexts/LeaderboardContext';
+import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface LeaderboardUser {
   user_id: string;
@@ -80,7 +81,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
               className="flex gap-2 px-2 py-1 font-bold items-center mx-3 text-green-700 hover:text-green-800 transition-all duration-200 ease-in-out"
             >
               <img
-                src={leader.avatar_url || 'https://via.placeholder.com/32'}
+                src={leader.avatar_url || getAvatarPlaceholder(32)}
                 className="w-8 h-8 rounded-full basis-3"
                 alt="user-profile"
               />

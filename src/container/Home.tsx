@@ -7,11 +7,11 @@ import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
 import { useAuth } from "../contexts/AuthContext";
 import { LeaderboardProvider } from "../contexts/LeaderboardContext";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const Home = () => {
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const [homeInProgress, setHomeInProgress] = useState(false);
-  const [homeLeaderBoard, setHomeLeaderBoard] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user: authUser, userProfile, loading } = useAuth();
 
@@ -97,22 +97,11 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
-  // Create a user object compatible with old components (temporary)
-  // Use useMemo to prevent recreating the object on every render
-  const user = useMemo(() => {
-    return userProfile ? {
-      _id: userProfile.id,
-      userName: userProfile.user_name,
-      image: userProfile.avatar_url,
-    } : null;
-  }, [userProfile?.id, userProfile?.user_name, userProfile?.avatar_url]);
 
   // Memoize context object to prevent unnecessary re-renders
   const contextStuff = useMemo(() => ({
     inProgress: homeInProgress,
     setInProgress: setHomeInProgress,
-    leaderBoard: homeLeaderBoard,
-    setLeaderBoard: setHomeLeaderBoard,
     timerState,
     setTimerState,
     isActive,
@@ -129,7 +118,6 @@ const Home = () => {
     setCompleted,
   }), [
     homeInProgress,
-    homeLeaderBoard,
     timerState,
     isActive,
     isPaused,
@@ -153,7 +141,7 @@ const Home = () => {
         <div>
           <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
             <div className="hidden md:flex h-screen flex-initial">
-              {user ? <Sidebar user={user} /> : <Sidebar />}
+              {userProfile ? <Sidebar user={userProfile} /> : <Sidebar />}
             </div>
             <div className="flex md:hidden flex-row bg-white">
               <div className="p-2 w-full flex flex-row justify-between items-center shadow-md">
@@ -167,9 +155,9 @@ const Home = () => {
                     Crush Quest
                   </h1>
                 </Link>
-                <Link to={`user/${user?._id}`}>
+                <Link to={`user/${userProfile?.id}`}>
                   <img
-                    src={user?.image}
+                    src={userProfile?.avatar_url || getAvatarPlaceholder(36)}
                     alt="user-pic"
                     className="w-9 h-9 rounded-full "
                   />
@@ -190,7 +178,7 @@ const Home = () => {
                       onClick={() => setToggleSidebar(false)}
                     />
                   </div>
-                  {user ? <Sidebar closeToggle={setToggleSidebar} user={user} /> : <Sidebar closeToggle={setToggleSidebar} />}
+                  {userProfile ? <Sidebar closeToggle={setToggleSidebar} user={userProfile} /> : <Sidebar closeToggle={setToggleSidebar} />}
                 </div>
               )}
             </div>
@@ -202,7 +190,7 @@ const Home = () => {
               <Routes>
                 <Route path="/user/:userId" element={<UserProfile />} />
                 <Route path="/privacy-settings" element={<PrivacySettings />} />
-                <Route path="/*" element={<DoroWrapper user={user} />} />
+                <Route path="/*" element={<DoroWrapper user={userProfile} />} />
               </Routes>
             </div>
           </div>

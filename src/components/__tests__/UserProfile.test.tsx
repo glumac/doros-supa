@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import UserProfile from '../UserProfile';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
@@ -41,22 +41,25 @@ const mockDoros = [
 ];
 
 const renderWithRouter = (userId: string, authUser = mockUser) => {
+  // Determine if viewing own profile
+  const isOwnProfile = authUser?.id === userId;
+  // For own profile, use authUser as userProfile; for others, it will be fetched
+  // This matches component behavior: when viewing own profile, it uses authUserProfile from context
+  const userProfile = isOwnProfile ? mockUser : null;
+
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user: authUser, loading: false }}>
+    <MemoryRouter initialEntries={[`/user/${userId}`]} future={{ v7_relativeSplatPath: true }}>
+      <AuthContext.Provider value={{
+        user: authUser,
+        userProfile: userProfile,
+        loading: false,
+        session: null
+      }}>
         <Routes>
           <Route path="/user/:userId" element={<UserProfile />} />
         </Routes>
       </AuthContext.Provider>
-    </BrowserRouter>,
-    { wrapper: ({ children }) => (
-      <div>
-        {children}
-        <div id="navigation-mock">
-          <a href={`/user/${userId}`}>Navigate</a>
-        </div>
-      </div>
-    )}
+    </MemoryRouter>
   );
 };
 
@@ -93,9 +96,9 @@ describe('UserProfile', () => {
       data: null,
       error: null
     });
-    // Mock getUserProfile for FollowButton's checkUserSettings (default, can be overridden per test)
+    // Mock getUserProfile - default to mockUser, can be overridden per test
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: mockUser,
       error: null
     });
   });
@@ -486,6 +489,8 @@ describe('UserProfile', () => {
   });
 
   it('should show loading spinner while fetching data', () => {
+    // Test loading state when viewing another user's profile (getUserProfile never resolves)
+    const otherUserId = 'other-user-123';
     vi.mocked(queries.getUserProfile).mockReturnValue(
       new Promise(() => {}) // Never resolves
     );
@@ -493,7 +498,8 @@ describe('UserProfile', () => {
       new Promise(() => {})
     );
 
-    renderWithRouter('user-123');
+    // View another user's profile (not own profile) so getUserProfile is called
+    renderWithRouter(otherUserId, mockUser);
 
     expect(screen.getByText(/loading profile/i)).toBeInTheDocument();
   });

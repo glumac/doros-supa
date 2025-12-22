@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeaderboards } from '../contexts/LeaderboardContext';
+import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface LeaderboardUser {
   user_id: string;
@@ -100,7 +101,7 @@ export default function FriendsLeaderboard() {
 
               {/* Avatar */}
               <img
-                src={item.avatar_url || 'https://via.placeholder.com/50'}
+                src={item.avatar_url || getAvatarPlaceholder(50)}
                 alt={item.user_name}
                 style={{
                   width: '50px',

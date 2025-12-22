@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, getBlockedUsers, unblockUser } from '../lib/queries';
 import { supabase } from '../lib/supabaseClient';
+import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 export default function PrivacySettings() {
   const { user } = useAuth();
@@ -227,10 +228,7 @@ export default function PrivacySettings() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <img
-                    src={
-                      block.users?.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${block.users?.user_name}&background=dc3545&color=fff`
-                    }
+                    src={block.users?.avatar_url || getAvatarPlaceholder(40)}
                     alt={block.users?.user_name}
                     style={{
                       width: '40px',

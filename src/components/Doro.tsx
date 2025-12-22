@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { getImageSignedUrl } from "../lib/storage";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 interface DoroProps {
   doro: DoroType;
@@ -172,7 +173,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
             <div className="w-10">
               <img
                 className="w-8 h-8 rounded-full object-cover block"
-                src={users?.avatar_url || ''}
+                src={users?.avatar_url || getAvatarPlaceholder(32)}
                 alt="user-profile"
               />
             </div>
@@ -267,7 +268,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                       <Link to={`user/${like.users?.id}`}>
                         <img
                           className="w-5 h-5 mr-0.5 rounded-full object-cover block relative"
-                          src={like.users?.avatar_url || ''}
+                          src={like.users?.avatar_url || getAvatarPlaceholder(20)}
                           alt="user-profile"
                         />
                       </Link>
@@ -337,7 +338,7 @@ const Doro = ({ doro, reloadFeed }: DoroProps) => {
                       >
                         <img
                           className="w-4 h-4 rounded-full object-cover block relative top-1"
-                          src={comment.users?.avatar_url || ''}
+                          src={comment.users?.avatar_url || getAvatarPlaceholder(16)}
                           alt="user-profile"
                         />
                       </Link>

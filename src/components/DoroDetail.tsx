@@ -10,6 +10,7 @@ import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday, getYear } from "date-fns";
 import { getImageSignedUrl } from "../lib/storage";
 import { Doro, User } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 interface DoroDetailProps {
   user?: User;
@@ -206,7 +207,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                 className="flex gap-2 items-center bg-white text-green-700 font-bold text-lg relative hover:text-green-800 "
               >
                 <img
-                  src={doro?.users?.avatar_url || ''}
+                  src={doro?.users?.avatar_url || getAvatarPlaceholder(40)}
                   className="w-10 h-10 rounded-full"
                   alt="user-profile"
                 />
@@ -292,7 +293,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                               <div key={like.id} className="">
                                 <img
                                   className="w-5 h-5 mr-0.5 rounded-full object-cover block"
-                                  src={like.users?.avatar_url || ''}
+                                  src={like.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
                               />
                             </div>
@@ -358,7 +359,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                             >
                               <img
                                 className="w-5 h-5 rounded-full object-cover block relative top-1"
-                                src={comment.users?.avatar_url || ''}
+                                src={comment.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
                               />
                             </Link>

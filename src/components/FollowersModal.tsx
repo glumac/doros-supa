@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getFollowersList, getFollowingList } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
 import FollowButton from './FollowButton';
+import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface FollowersModalProps {
   userId: string;
@@ -213,7 +214,7 @@ export default function FollowersModal({
                   }}
                 >
                   <img
-                    src={followUser.avatar_url || `https://ui-avatars.com/api/?name=${followUser.user_name}&background=007bff&color=fff`}
+                    src={followUser.avatar_url || getAvatarPlaceholder(44)}
                     alt={followUser.user_name}
                     style={{
                       width: '44px',

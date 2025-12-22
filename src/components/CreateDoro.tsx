@@ -12,7 +12,8 @@ import DoroContext from "../utils/DoroContext";
 import { removeStyle } from "../utils/styleDefs";
 import TimerStyled from "./TimerStyled";
 import { GiTomato } from "react-icons/gi";
-import { User, Doro } from "../types/models";
+import { User } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 interface FormatTimeResult {
   minutes: number;
@@ -33,12 +34,6 @@ interface SanityAsset {
   url: string;
 }
 
-interface Leader {
-  _id: string;
-  userName: string;
-  image: string;
-  count: number;
-}
 
 interface CreateDoroProps {
   user?: User;
@@ -258,16 +253,10 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   };
 
   const getUpdatedLeaders = async () => {
-    const { data, error } = await getWeeklyLeaderboard(user?._id);
-    if (data && !error) {
-      // Transform Supabase data to match Leader interface
-      const leaders = data.map((item: any) => ({
-        _id: item.user_id,
-        userName: item.user_name,
-        image: item.avatar_url,
-        count: item.completion_count,
-      }));
-      doroContext.setLeaderBoard(leaders);
+    // This function is kept for potential future use, but leaderboard
+    // is now managed by LeaderboardContext, not DoroContext
+    if (user?.id) {
+      await getWeeklyLeaderboard(user.id);
     }
   };
 
@@ -307,13 +296,13 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       setWrongImageType(false);
       setLoading(true);
 
-      if (!user?._id) {
+      if (!user?.id) {
         setLoading(false);
         alert("You must be logged in to upload images");
         return;
       }
 
-      const { imagePath, error } = await uploadPomodoroImage(selectedFile, user._id);
+      const { imagePath, error } = await uploadPomodoroImage(selectedFile, user.id);
 
       if (error) {
         setLoading(false);
@@ -354,7 +343,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   };
 
   const saveDoro = async () => {
-    if (task && user?._id) {
+    if (task && user?.id) {
       setSaving(true);
 
       try {
@@ -363,7 +352,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         const imagePath = imageAsset?._id || null;
 
         const { error } = await supabase.from("pomodoros").insert({
-          user_id: user._id,
+          user_id: user.id,
           launch_at: launchAt || new Date().toISOString(),
           task,
           notes: notes || null,
@@ -597,11 +586,11 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                   {user && (
                     <div className="flex gap-2 mt-2 mb-2 items-center bg-white rounded-lg ">
                       <img
-                        src={user?.image}
+                        src={user?.avatar_url || getAvatarPlaceholder(40)}
                         className="w-10 h-10 rounded-full"
                         alt="user-profile"
                       />
-                      <p className="font-bold">{user?.userName}</p>
+                      <p className="font-bold">{user?.user_name}</p>
                     </div>
                   )}
 

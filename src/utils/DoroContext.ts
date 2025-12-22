@@ -12,8 +12,6 @@ export interface TimerState {
 export interface DoroContextValue {
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
-  leaderBoard: any[];
-  setLeaderBoard: React.Dispatch<React.SetStateAction<any[]>>;
   timerState: TimerState | null;
   setTimerState: React.Dispatch<React.SetStateAction<TimerState | null>>;
   isActive: boolean;
@@ -33,8 +31,6 @@ export interface DoroContextValue {
 export const DoroContext = React.createContext<DoroContextValue>({
   inProgress: false,
   setInProgress: () => {},
-  leaderBoard: [],
-  setLeaderBoard: () => {},
   timerState: null,
   setTimerState: () => {},
   isActive: false,

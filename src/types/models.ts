@@ -46,13 +46,6 @@ export interface Doro {
   comments?: Comment[];
 }
 
-// Legacy compatibility type for Home.tsx (temporary)
-export interface LegacyUser {
-  _id: string;
-  userName: string;
-  image: string;
-}
-
 export interface TimerState {
   seconds: number;
   minutes: number;

@@ -21,6 +21,7 @@ import Pagination from "./Pagination";
 import FollowersModal from "./FollowersModal";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { User, Doro, DecodedJWT } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
   const [user, setUser] = useState<User>();
@@ -217,7 +218,7 @@ const UserProfile = () => {
             />
             <img
               className="rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
-              src={user?.avatar_url || ''}
+              src={user?.avatar_url || getAvatarPlaceholder(80)}
               alt="user-pic"
             />
           </div>
@@ -284,10 +285,7 @@ const UserProfile = () => {
                       >
                         <div className="flex items-center gap-3">
                           <img
-                            src={
-                              request.users?.avatar_url ||
-                              `https://ui-avatars.com/api/?name=${request.users?.user_name}&background=007bff&color=fff`
-                            }
+                            src={request.users?.avatar_url || getAvatarPlaceholder(40)}
                             alt={request.users?.user_name}
                             className="w-10 h-10 rounded-full"
                           />

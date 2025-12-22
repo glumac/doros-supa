@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useContext } from "react";
+import React from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
-import { getWeeklyLeaderboard } from "../lib/queries";
 import { RiHomeFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
 import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { GiTomato } from "react-icons/gi";
-import DoroContext from "../utils/DoroContext";
 import { removeStyle } from "../utils/styleDefs";
-import { User, Doro, LegacyUser } from "../types/models";
+import { User, Doro } from "../types/models";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 import CompactLeaderboard from "./CompactLeaderboard";
 
 const isNotActiveStyle =
@@ -17,19 +16,12 @@ const isActiveStyle =
 
 interface SidebarProps {
   closeToggle?: (value: boolean) => void;
-  user?: LegacyUser;
-}
-
-interface Leader extends LegacyUser {
-  count: number;
+  user?: User;
 }
 
 const Sidebar = ({ closeToggle, user }: SidebarProps) => {
-  const [weekDoros, setWeekDoros] = useState<Doro[]>();
-  const [weekLeaders, setWeekLeaders] = useState<Leader[]>();
-  const [loading, setLoading] = useState(false);
+  const onCreateDoroPage = useLocation().pathname === "/create-doro";
 
-  const doroContext = useContext(DoroContext);
   const getPreviousMonday = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -49,34 +41,10 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
 
   const lastMonday = getPreviousMonday();
   const upcomingSunday = getNextSunday();
-  const onCreateDoroPage = useLocation().pathname === "/create-doro";
-
-  // console.log("getPreviousMonday", lastMondayISO);
 
   const handleCloseSidebar = () => {
     if (closeToggle) closeToggle(false);
   };
-
-  useEffect(() => {
-    if (!user?._id) return;
-
-    setLoading(true);
-
-    getWeeklyLeaderboard(user._id).then(({ data, error }) => {
-      if (data && !error) {
-        // Transform Supabase data to match Leader interface
-        const leaders = data.map((item: any) => ({
-          _id: item.user_id,
-          userName: item.user_name,
-          image: item.avatar_url,
-          count: item.completion_count,
-        }));
-
-        doroContext.setLeaderBoard(leaders);
-      }
-      setLoading(false);
-    });
-  }, [user?._id]);
 
   return (
     <div className="flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">
@@ -98,7 +66,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
               <Link
                 to="/create-doro"
                 onClick={handleCloseSidebar}
-                className="bg-red-600 font-semibold flex gap-2 text-white rounded-lg h-12 px-1 mx-3 md:h-8 flex text-base justify-center items-center transition hover:shadow-md hover:bg-red-700"
+                className="bg-red-600 font-semibold flex gap-2 text-white rounded-lg h-12 px-1 mx-3 md:h-8 text-base justify-center items-center transition hover:shadow-md hover:bg-red-700"
               >
                 <span>Launch</span>
                 <GiTomato />
@@ -157,24 +125,28 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
             </div>
           </div>
 
-          <CompactLeaderboard closeToggle={closeToggle} />
+          {closeToggle ? (
+            <CompactLeaderboard closeToggle={closeToggle} />
+          ) : (
+            <CompactLeaderboard />
+          )}
         </div>
       </div>
       {user && (
         <Link
-          to={`/user/${user?._id}`}
+          to={`/user/${user?.id}`}
           className="flex my-5 mb-3 gap-2 p-2 items-center bg-white rounded-lg shadow-lg mx-3"
           onClick={handleCloseSidebar}
         >
           <img
-            src={user?.image || 'https://via.placeholder.com/40'}
+            src={user?.avatar_url || getAvatarPlaceholder(40)}
             className="w-10 h-10 rounded-full"
             alt="user-profile"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40';
+              (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
             }}
           />
-          <p>{user?.userName}</p>
+          <p>{user?.user_name}</p>
           <IoIosArrowForward />
         </Link>
       )}

@@ -4,14 +4,28 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
 // Mock Supabase client
-vi.mock('../lib/supabaseClient', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-      onAuthStateChange: vi.fn(),
+vi.mock('../lib/supabaseClient', () => {
+  const mockSelect = vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      single: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    }),
+  });
+
+  return {
+    supabase: {
+      auth: {
+        getSession: vi.fn(),
+        onAuthStateChange: vi.fn(),
+      },
+      from: vi.fn().mockReturnValue({
+        select: mockSelect,
+      }),
     },
-  },
-}));
+  };
+});
 
 // Test component to access auth context
 function TestComponent() {
@@ -69,12 +83,31 @@ describe('AuthContext', () => {
 
   it('should load user session on mount', async () => {
     const unsubscribe = vi.fn();
+    const mockUserProfile = {
+      id: 'test-user-123',
+      user_name: 'Test User',
+      email: 'test@example.com',
+    };
+
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
     vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
       data: { subscription: { unsubscribe } },
+    } as any);
+
+    // Mock the user profile fetch
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockUserProfile,
+          error: null,
+        }),
+      }),
+    });
+    vi.mocked(supabase.from).mockReturnValue({
+      select: mockSelect,
     } as any);
 
     render(
@@ -118,6 +151,11 @@ describe('AuthContext', () => {
   it('should update when auth state changes', async () => {
     const unsubscribe = vi.fn();
     let authCallback: any;
+    const mockUserProfile = {
+      id: 'test-user-123',
+      user_name: 'Test User',
+      email: 'test@example.com',
+    };
 
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: null },
@@ -130,6 +168,19 @@ describe('AuthContext', () => {
         data: { subscription: { unsubscribe } },
       } as any;
     });
+
+    // Mock the user profile fetch
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockUserProfile,
+          error: null,
+        }),
+      }),
+    });
+    vi.mocked(supabase.from).mockReturnValue({
+      select: mockSelect,
+    } as any);
 
     render(
       <AuthProvider>

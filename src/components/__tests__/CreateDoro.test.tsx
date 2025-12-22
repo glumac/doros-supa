@@ -25,10 +25,12 @@ vi.mock('../../lib/queries', () => ({
 }));
 
 const mockUser = {
-  _id: 'user-123',
-  userName: 'Test User',
-  image: 'https://example.com/avatar.jpg',
+  id: 'user-123',
+  user_name: 'Test User',
+  avatar_url: 'https://example.com/avatar.jpg',
   email: 'test@example.com',
+  privacy_setting: 'public',
+  require_follow_approval: false,
 };
 
 const mockDoroContextValue = {

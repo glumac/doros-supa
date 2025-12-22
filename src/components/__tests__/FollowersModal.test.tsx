@@ -341,11 +341,11 @@ describe('FollowersModal', () => {
       expect(screen.getByText('Follower Two')).toBeInTheDocument();
     });
 
-    // Check that there's an image with ui-avatars in its src
+    // Check that there's an image with the placeholder data URI (SVG) in its src
     const images = screen.getAllByRole('img');
-    const hasUIAvatar = images.some(img =>
-      img.getAttribute('src')?.includes('ui-avatars.com')
+    const hasPlaceholder = images.some(img =>
+      img.getAttribute('src')?.startsWith('data:image/svg+xml')
     );
-    expect(hasUIAvatar).toBe(true);
+    expect(hasPlaceholder).toBe(true);
   });
 });

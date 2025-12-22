@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchUsers, getSuggestedUsers } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
 import FollowButton from './FollowButton';
+import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface SearchResult {
   user_id: string;
@@ -179,7 +180,7 @@ export default function UserSearch() {
             >
               {/* Avatar */}
               <img
-                src={result.avatar_url || 'https://via.placeholder.com/50'}
+                src={result.avatar_url || getAvatarPlaceholder(50)}
                 alt={result.user_name}
                 style={{
                   width: '50px',
@@ -259,7 +260,7 @@ export default function UserSearch() {
                   >
                     {/* Avatar */}
                     <img
-                      src={result.avatar_url || 'https://via.placeholder.com/50'}
+                      src={result.avatar_url || getAvatarPlaceholder(50)}
                       alt={result.user_name}
                       style={{
                         width: '50px',
