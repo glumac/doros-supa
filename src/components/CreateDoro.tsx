@@ -382,7 +382,14 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   return (
     <div className="cq-create-doro-container mt-5">
       {!doroContext.inProgress && !completed && (
-        <div className="cq-create-doro-form bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto">
+        <form
+          className="cq-create-doro-form bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const durationInMinutes = DEV_MODE_SHORT_TIMER ? 5 / 60 : 25;
+            startTimer(durationInMinutes);
+          }}
+        >
           <h1 className="cq-create-doro-title text-4xl sm:text-3xl font-bold mb-5">Let's flow.</h1>
 
           <label
@@ -412,19 +419,13 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             />
 
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Use 5 seconds in dev mode, otherwise 25 minutes
-                const durationInMinutes = DEV_MODE_SHORT_TIMER ? 5 / 60 : 25;
-                startTimer(durationInMinutes);
-              }}
+              type="submit"
               className="cq-create-doro-start-button bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5"
             >
               Start!
             </button>
           </div>
-        </div>
+        </form>
       )}
       {doroContext.inProgress && (
         <div className="cq-create-doro-timer-container bg-white border-solid border-2 border-red-600 rounded-3xl p-5 max-w-lg lg:max-w-2xl mx-auto">
