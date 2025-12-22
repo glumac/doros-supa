@@ -32,7 +32,7 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
             <img
               src={user.avatar_url || getAvatarPlaceholder(48)}
               alt="user-pic"
-              className="cq-navbar-user-avatar w-14 h-12 rounded-lg "
+              className="cq-navbar-user-avatar w-12 h-12 rounded-lg object-cover"
             />
           </Link>
         </div>
