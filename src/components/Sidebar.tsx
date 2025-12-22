@@ -7,7 +7,7 @@ import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { GiTomato } from "react-icons/gi";
 import DoroContext from "../utils/DoroContext";
 import { removeStyle } from "../utils/styleDefs";
-import { User, Doro } from "../types/models";
+import { User, Doro, LegacyUser } from "../types/models";
 import CompactLeaderboard from "./CompactLeaderboard";
 
 const isNotActiveStyle =
@@ -17,10 +17,10 @@ const isActiveStyle =
 
 interface SidebarProps {
   closeToggle?: (value: boolean) => void;
-  user?: User;
+  user?: LegacyUser;
 }
 
-interface Leader extends User {
+interface Leader extends LegacyUser {
   count: number;
 }
 
@@ -162,16 +162,19 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
       </div>
       {user && (
         <Link
-          to={`user/${user?.id}`}
+          to={`/user/${user?._id}`}
           className="flex my-5 mb-3 gap-2 p-2 items-center bg-white rounded-lg shadow-lg mx-3"
           onClick={handleCloseSidebar}
         >
           <img
-            src={user?.avatar_url || ''}
+            src={user?.image || 'https://via.placeholder.com/40'}
             className="w-10 h-10 rounded-full"
             alt="user-profile"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40';
+            }}
           />
-          <p>{user?.user_name}</p>
+          <p>{user?.userName}</p>
           <IoIosArrowForward />
         </Link>
       )}
