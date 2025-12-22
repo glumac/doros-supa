@@ -37,7 +37,7 @@ const renderTimerBanner = (contextOverrides = {}, route = '/') => {
   const contextValue = { ...mockDoroContextValue, ...contextOverrides };
 
   return render(
-    <MemoryRouter initialEntries={[route]}>
+    <MemoryRouter initialEntries={[route]} future={{ v7_relativeSplatPath: true }}>
       <DoroContext.Provider value={contextValue}>
         <TimerBanner />
       </DoroContext.Provider>

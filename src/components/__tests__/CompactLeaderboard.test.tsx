@@ -47,7 +47,7 @@ const mockFriendsData = [
 
 const renderWithAuth = (user = mockUser, closeToggle = vi.fn()) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         <CompactLeaderboard closeToggle={closeToggle} />
       </AuthContext.Provider>

@@ -27,7 +27,7 @@ const mockUser = {
 
 const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         {component}
       </AuthContext.Provider>
@@ -49,7 +49,7 @@ describe('FollowButton', () => {
 
   it('should not render when not logged in', () => {
     render(
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <AuthContext.Provider value={{ user: null, loading: false }}>
           <FollowButton userId="other-user" />
         </AuthContext.Provider>

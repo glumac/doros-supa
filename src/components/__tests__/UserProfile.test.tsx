@@ -42,7 +42,7 @@ const mockDoros = [
 
 const renderWithRouter = (userId: string, authUser = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user: authUser, loading: false }}>
         <Routes>
           <Route path="/user/:userId" element={<UserProfile />} />

@@ -19,7 +19,7 @@ const renderNavbar = (props = {}, route = '/') => {
   };
 
   return render(
-    <MemoryRouter initialEntries={[route]}>
+    <MemoryRouter initialEntries={[route]} future={{ v7_relativeSplatPath: true }}>
       <Navbar {...defaultProps} />
     </MemoryRouter>
   );

@@ -53,7 +53,7 @@ const renderCreateDoro = (contextOverrides = {}, userOverrides = {}) => {
   const user = { ...mockUser, ...userOverrides };
 
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <DoroContext.Provider value={contextValue}>
         <CreateDoro user={user} />
       </DoroContext.Provider>
@@ -70,21 +70,21 @@ describe('CreateDoro CSS behavior', () => {
   describe('timer display visibility', () => {
     it('renders component successfully', () => {
       const { container } = renderCreateDoro();
-      
+
       // Component should render
       expect(container).toBeInTheDocument();
     });
 
     it('shows timer labels when active', () => {
       renderCreateDoro({ isActive: true, timeLeft: 1500000, inProgress: true });
-      
+
       // Timer labels should be visible when active
       expect(screen.queryByText('MINUTES') || screen.queryByText('minutes')).toBeTruthy();
     });
 
     it('displays UI when paused', () => {
       const { container } = renderCreateDoro({ isPaused: true, timeLeft: 900000 });
-      
+
       // Component should still render when paused
       expect(container).toBeInTheDocument();
     });
@@ -108,7 +108,7 @@ describe('CreateDoro CSS behavior', () => {
 
     it('displays task value from context', () => {
       renderCreateDoro({ task: 'My important task' });
-      
+
       const taskInput = screen.getByDisplayValue('My important task');
       expect(taskInput).toBeInTheDocument();
     });

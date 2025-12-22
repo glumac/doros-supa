@@ -38,7 +38,7 @@ const mockSearchResults = [
 
 const renderWithAuth = (user = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         <UserSearch />
       </AuthContext.Provider>
@@ -162,7 +162,7 @@ describe('UserSearch', () => {
 
   it('should require authentication to search', () => {
     render(
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <AuthContext.Provider value={{ user: null, loading: false }}>
           <UserSearch />
         </AuthContext.Provider>

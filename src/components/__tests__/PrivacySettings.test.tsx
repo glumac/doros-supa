@@ -34,7 +34,7 @@ const mockUser = {
 
 const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         {component}
       </AuthContext.Provider>
@@ -59,7 +59,7 @@ describe('PrivacySettings', () => {
 
   it('should show login message when user is not logged in', () => {
     render(
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <AuthContext.Provider value={{ user: null, loading: false }}>
           <PrivacySettings />
         </AuthContext.Provider>

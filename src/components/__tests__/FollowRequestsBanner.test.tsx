@@ -21,7 +21,7 @@ const renderWithRouter = (component: React.ReactElement, user = mockUser, initia
   window.history.pushState({}, '', initialPath);
 
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         <Routes>
           <Route path="*" element={component} />
@@ -47,7 +47,7 @@ describe('FollowRequestsBanner', () => {
     });
 
     render(
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <AuthContext.Provider value={{ user: null, loading: false }}>
           <FollowRequestsBanner />
         </AuthContext.Provider>

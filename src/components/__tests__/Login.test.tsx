@@ -17,7 +17,7 @@ vi.mock('../../lib/supabaseClient', () => ({
 
 const renderLogin = () => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <Login />
     </BrowserRouter>
   );

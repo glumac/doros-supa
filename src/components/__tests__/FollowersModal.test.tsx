@@ -61,7 +61,7 @@ const mockFollowing = [
 
 const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         {component}
       </AuthContext.Provider>

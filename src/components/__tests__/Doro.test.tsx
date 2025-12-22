@@ -67,7 +67,7 @@ const mockUser = {
 
 const renderWithAuth = (doro = mockDoro, user = mockUser, reloadFeed = vi.fn()) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         <Doro doro={doro} reloadFeed={reloadFeed} />
       </AuthContext.Provider>

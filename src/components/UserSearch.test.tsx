@@ -38,7 +38,7 @@ vi.mock('react-router-dom', async () => {
 
 const renderUserSearch = () => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <UserSearch />
     </BrowserRouter>
   );

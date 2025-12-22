@@ -59,7 +59,7 @@ const mockUser = {
 
 const renderWithAuth = (user = mockUser) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthContext.Provider value={{ user, loading: false }}>
         <Feed />
       </AuthContext.Provider>
