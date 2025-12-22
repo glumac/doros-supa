@@ -32,15 +32,27 @@ export default function UserSearch() {
   async function loadSuggestions() {
     if (!user) return;
 
-    const { data, error } = await getSuggestedUsers(user.id, 15);
+    try {
+      const result = await getSuggestedUsers(user.id, 15);
 
-    if (error) {
-      console.error('Error loading suggestions:', error);
-    } else if (data) {
-      console.log('✅ Suggested users RAW data:', data);
-      console.log('✅ First user completion_count:', data[0]?.completion_count);
-      console.log('✅ First user full object:', data[0]);
-      setSuggestedUsers(data);
+      // Handle case where result might be undefined
+      if (!result) {
+        console.warn('getSuggestedUsers returned undefined');
+        return;
+      }
+
+      const { data, error } = result;
+
+      if (error) {
+        console.error('Error loading suggestions:', error);
+      } else if (data) {
+        console.log('✅ Suggested users RAW data:', data);
+        console.log('✅ First user completion_count:', data[0]?.completion_count);
+        console.log('✅ First user full object:', data[0]);
+        setSuggestedUsers(data);
+      }
+    } catch (error) {
+      console.error('Exception loading suggestions:', error);
     }
   }
 

@@ -49,46 +49,68 @@ export default function FollowButton({
   }, [user, userId, initialIsFollowing]);
 
   async function checkUserSettings() {
-    const { data: targetUser } = await getUserProfile(userId);
-    if (targetUser) {
-      setRequiresApproval(targetUser.require_follow_approval || false);
+    try {
+      const result = await getUserProfile(userId);
+      if (!result) return;
+
+      const { data: targetUser } = result;
+      if (targetUser) {
+        setRequiresApproval(targetUser.require_follow_approval || false);
+      }
+    } catch (error) {
+      console.error('Error checking user settings:', error);
     }
   }
 
   async function checkBlockStatus() {
     if (!user) return;
-    const blocked = await isBlockedByUser(user.id, userId);
-    setIsBlocked(blocked);
+    try {
+      const blocked = await isBlockedByUser(user.id, userId);
+      setIsBlocked(blocked || false);
+    } catch (error) {
+      console.error('Error checking block status:', error);
+      setIsBlocked(false);
+    }
   }
 
   async function checkFollowStatus(initialFollowing?: boolean) {
     if (!user) return;
 
-    // If initialFollowing is provided and true, set to following immediately
-    // but still check for requested status as a fallback
-    if (initialFollowing === true) {
-      setFollowState('following');
-      // Still check if there's a pending request (shouldn't happen, but be safe)
-      const { data: request } = await getFollowRequestStatus(user.id, userId);
-      if (request) {
-        setFollowState('requested');
+    try {
+      // If initialFollowing is provided and true, set to following immediately
+      // but still check for requested status as a fallback
+      if (initialFollowing === true) {
+        setFollowState('following');
+        // Still check if there's a pending request (shouldn't happen, but be safe)
+        const requestResult = await getFollowRequestStatus(user.id, userId);
+        if (requestResult) {
+          const { data: request } = requestResult;
+          if (request) {
+            setFollowState('requested');
+          }
+        }
+        return;
       }
-      return;
-    }
 
-    // Check if already following
-    const { isFollowing: following } = await isFollowingUser(user.id, userId);
-    if (following) {
-      setFollowState('following');
-      return;
-    }
+      // Check if already following
+      const followingResult = await isFollowingUser(user.id, userId);
+      if (followingResult && followingResult.isFollowing) {
+        setFollowState('following');
+        return;
+      }
 
-    // Check if request is pending
-    const { data: request } = await getFollowRequestStatus(user.id, userId);
-    if (request) {
-      setFollowState('requested');
-    } else {
-      setFollowState('not-following');
+      // Check if request is pending
+      const requestResult = await getFollowRequestStatus(user.id, userId);
+      if (requestResult) {
+        const { data: request } = requestResult;
+        if (request) {
+          setFollowState('requested');
+        } else {
+          setFollowState('not-following');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking follow status:', error);
     }
   }
 

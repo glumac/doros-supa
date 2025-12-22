@@ -9,6 +9,8 @@ import { supabase } from '../../lib/supabaseClient';
 
 vi.mock('../../lib/queries', () => ({
   getUserProfile: vi.fn(),
+  getBlockedUsers: vi.fn(),
+  unblockUser: vi.fn(),
 }));
 
 vi.mock('../../lib/supabaseClient', () => ({
@@ -43,6 +45,16 @@ const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
 describe('PrivacySettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock implementations
+    vi.mocked(queries.getBlockedUsers).mockResolvedValue({
+      data: [],
+      error: null
+    });
+    vi.mocked(queries.unblockUser).mockResolvedValue({
+      data: null,
+      error: null
+    });
   });
 
   it('should show login message when user is not logged in', () => {

@@ -82,6 +82,12 @@ describe('UserSearch', () => {
       session: null,
       loading: false,
     });
+
+    // Mock getSuggestedUsers to prevent unhandled errors
+    vi.mocked(queries.getSuggestedUsers).mockResolvedValue({
+      data: [],
+      error: null,
+    });
   });
 
   it('should show login message when user is not logged in', () => {
