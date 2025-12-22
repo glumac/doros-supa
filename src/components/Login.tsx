@@ -18,7 +18,8 @@ const Login = () => {
           redirectTo: `${window.location.origin}/`,
           queryParams: {
             access_type: "offline",
-            prompt: "consent",
+            // Removed prompt: "consent" to allow automatic re-authentication
+            // Users will only be prompted if they haven't authorized before
           },
         },
       });
