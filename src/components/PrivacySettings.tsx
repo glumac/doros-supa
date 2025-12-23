@@ -136,9 +136,9 @@ export default function PrivacySettings() {
               Require Follow Approval
             </h3>
             <p className="cq-privacy-settings-approval-description" style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-              When enabled, users must send a follow request before they can follow you.
-              You'll be able to approve or decline each request. When disabled, anyone
-              can follow you instantly.
+              When enabled, users must send a follow request before they can follow you.</p>
+              <p className="cq-privacy-settings-approval-description" style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0, marginTop: '8px' }}>
+              You'll be able to approve or decline each request. Your weekly pomodoro totals will still appear on the global leaderboard, and your total pomodoro count will still be visible in search. However, individual pomodoros will only be visible to approved followers. When disabled, anyone can follow you instantly.
             </p>
           </div>
 
@@ -283,24 +283,6 @@ export default function PrivacySettings() {
             ))}
           </div>
         )}
-      </div>
-
-      <div
-        className="cq-privacy-settings-note"
-        style={{
-          marginTop: '24px',
-          padding: '16px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          fontSize: '14px',
-          color: '#666',
-        }}
-      >
-        <p className="cq-privacy-settings-note-text" style={{ margin: 0, lineHeight: '1.6' }}>
-          <strong>Note:</strong> This setting only controls who can follow you. Your profile
-          visibility and content sharing preferences can be managed separately in the future.
-          Existing followers will not be affected by changes to this setting.
-        </p>
       </div>
     </div>
   );

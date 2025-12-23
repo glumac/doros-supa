@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import PrivacySettings from '../PrivacySettings';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
@@ -25,17 +26,29 @@ vi.mock('../../lib/supabaseClient', () => ({
   }
 }));
 
-const mockUser = {
+const mockUser: User = {
+  id: 'user-123',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: '2024-01-01T00:00:00.000Z',
+  email: 'test@example.com',
+} as User;
+
+const mockUserProfile = {
   id: 'user-123',
   user_name: 'Test User',
   email: 'test@example.com',
-  avatar_url: 'https://example.com/avatar.jpg'
+  avatar_url: 'https://example.com/avatar.jpg',
+  require_follow_approval: false,
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
 };
 
-const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
+const renderWithAuth = (component: React.ReactElement, user: User | null = mockUser) => {
   return render(
     <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
+      <AuthContext.Provider value={{ user, session: null, userProfile: mockUserProfile, loading: false }}>
         {component}
       </AuthContext.Provider>
     </BrowserRouter>
@@ -52,7 +65,6 @@ describe('PrivacySettings', () => {
       error: null
     });
     vi.mocked(queries.unblockUser).mockResolvedValue({
-      data: null,
       error: null
     });
   });
@@ -60,7 +72,7 @@ describe('PrivacySettings', () => {
   it('should show login message when user is not logged in', () => {
     render(
       <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-        <AuthContext.Provider value={{ user: null, loading: false }}>
+        <AuthContext.Provider value={{ user: null, session: null, userProfile: null, loading: false }}>
           <PrivacySettings />
         </AuthContext.Provider>
       </BrowserRouter>
@@ -83,7 +95,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -100,7 +118,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -118,7 +142,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: true
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: true,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -138,7 +168,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -171,7 +207,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -205,7 +247,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -240,7 +288,13 @@ describe('PrivacySettings', () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -265,28 +319,18 @@ describe('PrivacySettings', () => {
     expect(toggleButton).toBeDisabled();
   });
 
-  it('should display informational note', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: {
-        id: 'user-123',
-        require_follow_approval: false
-      },
-      error: null
-    });
-
-    renderWithAuth(<PrivacySettings />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/This setting only controls who can follow you/i)).toBeInTheDocument();
-      expect(screen.getByText(/Existing followers will not be affected/i)).toBeInTheDocument();
-    });
-  });
 
   it('should display description of what the setting does', async () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
-        require_follow_approval: false
+        user_name: 'Test User',
+        email: 'test@example.com',
+        avatar_url: null,
+        privacy_setting: null,
+        require_follow_approval: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
       },
       error: null
     });
@@ -294,7 +338,11 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/When enabled, users must send a follow request/i)).toBeInTheDocument();
+      expect(screen.getByText(/When enabled, users must send a follow request before they can follow you/i)).toBeInTheDocument();
+      expect(screen.getByText(/You'll be able to approve or decline each request/i)).toBeInTheDocument();
+      expect(screen.getByText(/Your weekly pomodoro totals will still appear on the global leaderboard/i)).toBeInTheDocument();
+      expect(screen.getByText(/your total pomodoro count will still be visible in search/i)).toBeInTheDocument();
+      expect(screen.getByText(/individual pomodoros will only be visible to approved followers/i)).toBeInTheDocument();
       expect(screen.getByText(/When disabled, anyone can follow you instantly/i)).toBeInTheDocument();
     });
   });

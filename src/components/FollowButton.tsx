@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   isFollowingUser,
-  followUser,
-  unfollowUser,
   getFollowRequestStatus,
-  createFollowRequest,
-  cancelFollowRequest,
   getUserProfile,
   isBlockedByUser,
 } from '../lib/queries';
+import {
+  useFollowMutation,
+  useUnfollowMutation,
+  useCreateFollowRequestMutation,
+  useCancelFollowRequestMutation,
+} from '../hooks/useMutations';
 
 interface FollowButtonProps {
   userId: string;
@@ -31,8 +33,15 @@ export default function FollowButton({
     initialIsFollowing ? 'following' : 'not-following'
   );
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(initialIsFollowing === undefined);
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+
+  // React Query mutations
+  const followMutation = useFollowMutation();
+  const unfollowMutation = useUnfollowMutation();
+  const createRequestMutation = useCreateFollowRequestMutation();
+  const cancelRequestMutation = useCancelFollowRequestMutation();
 
   useEffect(() => {
     if (user && userId !== user.id) {
@@ -81,6 +90,7 @@ export default function FollowButton({
       // but still check for requested status as a fallback
       if (initialFollowing === true) {
         setFollowState('following');
+        setChecking(false);
         // Still check if there's a pending request (shouldn't happen, but be safe)
         const requestResult = await getFollowRequestStatus(user.id, userId);
         if (requestResult) {
@@ -96,6 +106,7 @@ export default function FollowButton({
       const followingResult = await isFollowingUser(user.id, userId);
       if (followingResult && followingResult.isFollowing) {
         setFollowState('following');
+        setChecking(false);
         return;
       }
 
@@ -109,8 +120,10 @@ export default function FollowButton({
           setFollowState('not-following');
         }
       }
+      setChecking(false);
     } catch (error) {
       console.error('Error checking follow status:', error);
+      setChecking(false);
     }
   }
 
@@ -121,20 +134,32 @@ export default function FollowButton({
     try {
       if (followState === 'following') {
         // Unfollow
-        await unfollowUser(user.id, userId);
+        await unfollowMutation.mutateAsync({
+          myUserId: user.id,
+          theirUserId: userId,
+        });
         setFollowState('not-following');
         onFollowChange?.(false);
       } else if (followState === 'requested') {
         // Cancel request
-        await cancelFollowRequest(user.id, userId);
+        await cancelRequestMutation.mutateAsync({
+          requesterId: user.id,
+          targetId: userId,
+        });
         setFollowState('not-following');
       } else {
         // Follow or request to follow
         if (requiresApproval) {
-          await createFollowRequest(user.id, userId);
+          await createRequestMutation.mutateAsync({
+            requesterId: user.id,
+            targetId: userId,
+          });
           setFollowState('requested');
         } else {
-          await followUser(user.id, userId);
+          await followMutation.mutateAsync({
+            myUserId: user.id,
+            theirUserId: userId,
+          });
           setFollowState('following');
           onFollowChange?.(true);
         }
@@ -148,6 +173,9 @@ export default function FollowButton({
 
   // Don't show button if not logged in, viewing own profile, or blocked
   if (!user || userId === user.id || isBlocked) return null;
+
+  // Don't render button until we've checked the status (prevents flash)
+  if (checking) return null;
 
   const buttonConfig = {
     'not-following': {

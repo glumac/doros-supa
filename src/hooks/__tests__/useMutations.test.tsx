@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
-import { useCreatePomodoroMutation } from '../useMutations';
+import { useCreatePomodoroMutation, useFollowMutation, useUnfollowMutation } from '../useMutations';
 import { supabase } from '../../lib/supabaseClient';
+import * as queries from '../../lib/queries';
 
 // Mock supabase
 vi.mock('../../lib/supabaseClient', () => ({
@@ -209,6 +210,164 @@ describe('useCreatePomodoroMutation', () => {
 
     expect(invalidateQueriesSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ['user', 'pomodoros'] })
+    );
+  });
+});
+
+describe('useFollowMutation', () => {
+  let queryClient: QueryClient;
+
+  const createWrapper = () => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    return ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should follow a user successfully', async () => {
+    const mockFollowUser = vi.fn().mockResolvedValue({
+      data: { follower_id: 'user-123', following_id: 'user-456' },
+      error: null,
+    });
+
+    vi.spyOn(queries, 'followUser').mockImplementation(mockFollowUser);
+
+    const { result } = renderHook(() => useFollowMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ myUserId: 'user-123', theirUserId: 'user-456' });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockFollowUser).toHaveBeenCalledWith('user-123', 'user-456');
+  });
+
+  it('should invalidate all relevant queries on successful follow', async () => {
+    vi.spyOn(queries, 'followUser').mockResolvedValue({
+      data: { follower_id: 'user-123', following_id: 'user-456' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useFollowMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    result.current.mutate({ myUserId: 'user-123', theirUserId: 'user-456' });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Verify all expected queries are invalidated
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['leaderboard', 'friends', 'user-123'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'profile', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'public-profile', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'pomodoros', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['feed'] })
+    );
+  });
+});
+
+describe('useUnfollowMutation', () => {
+  let queryClient: QueryClient;
+
+  const createWrapper = () => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    return ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should unfollow a user successfully', async () => {
+    const mockUnfollowUser = vi.fn().mockResolvedValue({
+      error: null,
+    });
+
+    vi.spyOn(queries, 'unfollowUser').mockImplementation(mockUnfollowUser);
+
+    const { result } = renderHook(() => useUnfollowMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ myUserId: 'user-123', theirUserId: 'user-456' });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockUnfollowUser).toHaveBeenCalledWith('user-123', 'user-456');
+  });
+
+  it('should invalidate all relevant queries on successful unfollow', async () => {
+    vi.spyOn(queries, 'unfollowUser').mockResolvedValue({
+      error: null,
+    });
+
+    const { result } = renderHook(() => useUnfollowMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    result.current.mutate({ myUserId: 'user-123', theirUserId: 'user-456' });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Verify all expected queries are invalidated
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['leaderboard', 'friends', 'user-123'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'profile', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'public-profile', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['user', 'pomodoros', 'user-456'] })
+    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['feed'] })
     );
   });
 });

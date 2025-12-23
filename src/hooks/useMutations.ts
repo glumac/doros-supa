@@ -126,9 +126,13 @@ export function useFollowMutation() {
     },
     onSuccess: (_, variables) => {
       // Invalidate leaderboard and profile queries
-      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends", variables.myUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.theirUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.theirUserId] });
+      // Invalidate user's pomodoros to immediately show/hide based on privacy
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.theirUserId] });
+      // Invalidate feed as following affects what appears in feed
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
 }
@@ -152,9 +156,13 @@ export function useUnfollowMutation() {
     },
     onSuccess: (_, variables) => {
       // Invalidate leaderboard and profile queries
-      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends", variables.myUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.theirUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.theirUserId] });
+      // Invalidate user's pomodoros to immediately show/hide based on privacy
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.theirUserId] });
+      // Invalidate feed as unfollowing affects what appears in feed
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
 }
@@ -218,16 +226,25 @@ export function useApproveFollowRequestMutation() {
     mutationFn: async ({
       requestId,
       userId,
+      requesterId,
     }: {
       requestId: string;
       userId: string;
+      requesterId?: string;
     }) => {
       const { error } = await approveFollowRequest(requestId, userId);
       if (error) throw error;
+      return { requesterId };
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["followRequests"] });
-      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends", variables.userId] });
+      // Invalidate the requester's view of our profile and pomodoros
+      if (data?.requesterId) {
+        queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.userId] });
+      }
+      // Invalidate feed as approved follow affects what appears in feed
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
 }
@@ -277,6 +294,7 @@ export function useBlockUserMutation() {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.blockedId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["feed"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["followRequests"] });
@@ -305,6 +323,7 @@ export function useUnblockUserMutation() {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.blockedId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
@@ -326,7 +345,7 @@ export function useUpdatePrivacyMutation() {
     }) => {
       const { data, error } = await supabase
         .from("users")
-        .update({ is_private: isPrivate })
+        .update({ require_follow_approval: isPrivate })
         .eq("id", userId);
 
       if (error) throw error;

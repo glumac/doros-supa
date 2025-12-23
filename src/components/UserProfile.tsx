@@ -25,7 +25,7 @@ import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
   const [user, setUser] = useState<User>();
-  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [isFollowing, setIsFollowing] = useState<boolean | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [followingCount, setFollowingCount] = useState<number>(0);
@@ -62,6 +62,9 @@ const UserProfile = () => {
 
   useEffect(() => {
     if (!userId) return;
+
+    // Reset follow status when userId changes
+    setIsFollowing(undefined);
 
     // Wait for auth to finish loading before making decisions
     if (authLoading) {
@@ -103,6 +106,9 @@ const UserProfile = () => {
       isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
         setIsFollowing(isFollowing);
       });
+    } else {
+      // Reset when viewing own profile or no auth user
+      setIsFollowing(undefined);
     }
 
     // Check for tab parameter in URL
@@ -253,7 +259,11 @@ const UserProfile = () => {
               </div>
             ) : (
               <div className="cq-user-profile-follow-button-container">
-                <FollowButton userId={userId!} onFollowChange={handleFollowChange} />
+                <FollowButton
+                  userId={userId!}
+                  initialIsFollowing={isFollowing}
+                  onFollowChange={handleFollowChange}
+                />
               </div>
             )}
           </div>
