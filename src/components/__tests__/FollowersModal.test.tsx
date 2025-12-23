@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FollowersModal from '../FollowersModal';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
@@ -60,12 +61,21 @@ const mockFollowing = [
 ];
 
 const renderWithAuth = (component: React.ReactElement, user = mockUser) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        {component}
-      </AuthContext.Provider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <AuthContext.Provider value={{ user, loading: false }}>
+          {component}
+        </AuthContext.Provider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 

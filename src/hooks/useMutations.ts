@@ -129,6 +129,10 @@ export function useFollowMutation() {
       queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends", variables.myUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.theirUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "followers", variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "following", variables.myUserId] });
+      queryClient.invalidateQueries({ queryKey: ["follow", "isFollowing", variables.myUserId, variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["followRequests", "status", variables.myUserId, variables.theirUserId] });
       // Invalidate user's pomodoros to immediately show/hide based on privacy
       queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.theirUserId] });
       // Invalidate feed as following affects what appears in feed
@@ -159,6 +163,10 @@ export function useUnfollowMutation() {
       queryClient.invalidateQueries({ queryKey: ["leaderboard", "friends", variables.myUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.theirUserId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "followers", variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "following", variables.myUserId] });
+      queryClient.invalidateQueries({ queryKey: ["follow", "isFollowing", variables.myUserId, variables.theirUserId] });
+      queryClient.invalidateQueries({ queryKey: ["followRequests", "status", variables.myUserId, variables.theirUserId] });
       // Invalidate user's pomodoros to immediately show/hide based on privacy
       queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.theirUserId] });
       // Invalidate feed as unfollowing affects what appears in feed
@@ -188,6 +196,7 @@ export function useCreateFollowRequestMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.targetId] });
       queryClient.invalidateQueries({ queryKey: ["followRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["followRequests", "status", variables.requesterId, variables.targetId] });
     },
   });
 }
@@ -212,6 +221,7 @@ export function useCancelFollowRequestMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.targetId] });
       queryClient.invalidateQueries({ queryKey: ["followRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["followRequests", "status", variables.requesterId, variables.targetId] });
     },
   });
 }

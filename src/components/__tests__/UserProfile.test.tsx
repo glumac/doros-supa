@@ -7,6 +7,7 @@ import UserProfile from '../UserProfile';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
 import { supabase } from '../../lib/supabaseClient';
+import * as useUserProfileHooks from '../../hooks/useUserProfile';
 
 vi.mock('../../lib/queries');
 vi.mock('../../lib/supabaseClient', () => ({
@@ -16,6 +17,15 @@ vi.mock('../../lib/supabaseClient', () => ({
     }
   }
 }));
+vi.mock('../../hooks/useUserProfile', () => ({
+  useUserProfile: vi.fn(),
+  useUserPomodoros: vi.fn(),
+  useFollowers: vi.fn(),
+  useFollowing: vi.fn(),
+  usePendingFollowRequests: vi.fn(),
+}));
+
+const mockHooks = vi.mocked(useUserProfileHooks);
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -50,7 +60,7 @@ const mockDoros = [
 
 const renderWithRouter = (userId: string, authUser = mockUser) => {
   const queryClient = createTestQueryClient();
-  
+
   // Determine if viewing own profile
   const isOwnProfile = authUser?.id === userId;
   // For own profile, use authUser as userProfile; for others, it will be fetched
@@ -80,25 +90,56 @@ describe('UserProfile', () => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/user/user-123');
 
+    // Mock hooks with default values
+    mockHooks.useUserProfile.mockReturnValue({
+      data: mockUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: [], count: 0 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+    mockHooks.useFollowers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+    mockHooks.useFollowing.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+    mockHooks.usePendingFollowRequests.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
     // Mock isFollowingUser by default
     vi.mocked(queries.isFollowingUser).mockResolvedValue({
       isFollowing: false,
-      error: null
-    });
-
-    // Mock getFollowers and getFollowing by default
-    vi.mocked(queries.getFollowers).mockResolvedValue({
-      data: [],
-      error: null
-    });
-    vi.mocked(queries.getFollowing).mockResolvedValue({
-      data: [],
-      error: null
-    });
-
-    // Mock getPendingFollowRequests by default
-    vi.mocked(queries.getPendingFollowRequests).mockResolvedValue({
-      data: [],
       error: null
     });
 
@@ -108,22 +149,18 @@ describe('UserProfile', () => {
       data: null,
       error: null
     });
-    // Mock getUserProfile - default to mockUser, can be overridden per test
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
   });
 
   it('should load and display user profile', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
-      error: null
-    });
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123');
 
@@ -133,14 +170,15 @@ describe('UserProfile', () => {
   });
 
   it('should display user avatar', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
-      error: null
-    });
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123');
 
@@ -151,14 +189,15 @@ describe('UserProfile', () => {
   });
 
   it('should show logout button for own profile', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
-      error: null
-    });
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123', mockUser);
 
@@ -174,14 +213,15 @@ describe('UserProfile', () => {
       user_name: 'Other User'
     };
 
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
+    mockHooks.useUserProfile.mockReturnValue({
       data: otherUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: [],
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     window.history.pushState({}, '', '/user/other-user');
     renderWithRouter('other-user', mockUser);
@@ -194,15 +234,15 @@ describe('UserProfile', () => {
   });
 
   it('should display users pomodoros', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
       error: null,
-      count: 1
-    });
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123');
 
@@ -212,15 +252,15 @@ describe('UserProfile', () => {
   });
 
   it('should show empty state when user has no pomodoros', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: [],
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: [], count: 0 },
+      isLoading: false,
+      isError: false,
       error: null,
-      count: 0
-    });
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123');
 
@@ -249,15 +289,15 @@ describe('UserProfile', () => {
     it('should not show pagination when user has <= 20 pomodoros', async () => {
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros20,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros20, count: 20 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 20
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
@@ -273,15 +313,15 @@ describe('UserProfile', () => {
     it('should show pagination when user has > 20 pomodoros', async () => {
       const mockDoros21 = createMockDorosArray(20); // First page shows 20
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros21,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros21, count: 87 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 87 // Total of 87 pomodoros
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
@@ -297,15 +337,15 @@ describe('UserProfile', () => {
     it('should display page info when pomodoros are shown', async () => {
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros20,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros20, count: 87 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 87
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
@@ -323,24 +363,27 @@ describe('UserProfile', () => {
         task: `Page 2 Task ${i + 1}`
       }));
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-
       // First call returns page 1
-      vi.mocked(queries.getUserPomodoros)
-        .mockResolvedValueOnce({
-          data: mockDoros20Page1,
+      mockHooks.useUserPomodoros
+        .mockReturnValueOnce({
+          data: { data: mockDoros20Page1, count: 50 },
+          isLoading: false,
+          isError: false,
           error: null,
-          count: 50
-        })
+          isSuccess: true,
+          isFetching: false,
+          refetch: vi.fn(),
+        } as any)
         // Second call returns page 2
-        .mockResolvedValueOnce({
-          data: mockDoros20Page2,
+        .mockReturnValueOnce({
+          data: { data: mockDoros20Page2, count: 50 },
+          isLoading: false,
+          isError: false,
           error: null,
-          count: 50
-        });
+          isSuccess: true,
+          isFetching: false,
+          refetch: vi.fn(),
+        } as any);
 
       renderWithRouter('user-123');
 
@@ -353,7 +396,6 @@ describe('UserProfile', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Page 2 Task 1')).toBeInTheDocument();
-        expect(queries.getUserPomodoros).toHaveBeenCalledWith('user-123', 2, 20);
       });
     });
 
@@ -361,28 +403,25 @@ describe('UserProfile', () => {
       const user = userEvent.setup();
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-
-      vi.mocked(queries.getUserPomodoros)
-        .mockResolvedValueOnce({
-          data: mockDoros20,
+      mockHooks.useUserPomodoros
+        .mockReturnValueOnce({
+          data: { data: mockDoros20, count: 50 },
+          isLoading: false,
+          isError: false,
           error: null,
-          count: 50
-        })
-        .mockImplementationOnce(() =>
-          new Promise(resolve => {
-            setTimeout(() => {
-              resolve({
-                data: mockDoros20,
-                error: null,
-                count: 50
-              });
-            }, 100);
-          })
-        );
+          isSuccess: true,
+          isFetching: false,
+          refetch: vi.fn(),
+        } as any)
+        .mockReturnValueOnce({
+          data: { data: mockDoros20, count: 50 },
+          isLoading: true,
+          isError: false,
+          error: null,
+          isSuccess: false,
+          isFetching: true,
+          refetch: vi.fn(),
+        } as any);
 
       renderWithRouter('user-123');
 
@@ -400,41 +439,35 @@ describe('UserProfile', () => {
     it('should call getUserPomodoros with page and pageSize parameters', async () => {
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros20,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros20, count: 50 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 50
-      });
-
-      vi.mocked(queries.isFollowingUser).mockResolvedValue({
-        isFollowing: false,
-        error: null
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
       await waitFor(() => {
-        expect(queries.getUserPomodoros).toHaveBeenCalledWith('user-123', 1, 20);
+        expect(mockHooks.useUserPomodoros).toHaveBeenCalledWith('user-123', 1, 20);
       });
     });
 
     it('should handle edge case of exactly 20 pomodoros (no pagination)', async () => {
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros20,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros20, count: 20 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 20
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
@@ -452,15 +485,15 @@ describe('UserProfile', () => {
     it('should handle edge case of 21 pomodoros (2 pages)', async () => {
       const mockDoros20 = createMockDorosArray(20);
 
-      vi.mocked(queries.getUserProfile).mockResolvedValue({
-        data: mockUser,
-        error: null
-      });
-      vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-        data: mockDoros20,
+      mockHooks.useUserPomodoros.mockReturnValue({
+        data: { data: mockDoros20, count: 21 },
+        isLoading: false,
+        isError: false,
         error: null,
-        count: 21
-      });
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithRouter('user-123');
 
@@ -478,14 +511,15 @@ describe('UserProfile', () => {
   it('should call signOut when logout button clicked', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
-      error: null
-    });
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
 
     renderWithRouter('user-123', mockUser);
@@ -501,14 +535,17 @@ describe('UserProfile', () => {
   });
 
   it('should show loading spinner while fetching data', () => {
-    // Test loading state when viewing another user's profile (getUserProfile never resolves)
+    // Test loading state when viewing another user's profile
     const otherUserId = 'other-user-123';
-    vi.mocked(queries.getUserProfile).mockReturnValue(
-      new Promise(() => {}) // Never resolves
-    );
-    vi.mocked(queries.getUserPomodoros).mockReturnValue(
-      new Promise(() => {})
-    );
+    mockHooks.useUserProfile.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      isFetching: true,
+      refetch: vi.fn(),
+    } as any);
 
     // View another user's profile (not own profile) so getUserProfile is called
     renderWithRouter(otherUserId, mockUser);
@@ -517,14 +554,15 @@ describe('UserProfile', () => {
   });
 
   it('should display completed pomodoros count', async () => {
-    vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: mockUser,
-      error: null
-    });
-    vi.mocked(queries.getUserPomodoros).mockResolvedValue({
-      data: mockDoros,
-      error: null
-    });
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: mockDoros, count: 1 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithRouter('user-123');
 

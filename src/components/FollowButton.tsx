@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '../contexts/AuthContext';
-import {
-  isFollowingUser,
-  getFollowRequestStatus,
-  getUserProfile,
-  isBlockedByUser,
-} from '../lib/queries';
 import {
   useFollowMutation,
   useUnfollowMutation,
   useCreateFollowRequestMutation,
   useCancelFollowRequestMutation,
 } from '../hooks/useMutations';
+import { useUserProfile } from "../hooks/useUserProfile";
+import { useHasPendingFollowRequest, useIsBlockedByUser, useIsFollowingUser } from "../hooks/useFollowStatus";
 
 interface FollowButtonProps {
   userId: string;
@@ -29,13 +26,8 @@ export default function FollowButton({
   initialIsFollowing
 }: FollowButtonProps) {
   const { user } = useAuth();
-  const [followState, setFollowState] = useState<FollowState>(
-    initialIsFollowing ? 'following' : 'not-following'
-  );
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(initialIsFollowing === undefined);
-  const [requiresApproval, setRequiresApproval] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
 
   // React Query mutations
   const followMutation = useFollowMutation();
@@ -43,89 +35,35 @@ export default function FollowButton({
   const createRequestMutation = useCreateFollowRequestMutation();
   const cancelRequestMutation = useCancelFollowRequestMutation();
 
-  useEffect(() => {
-    if (user && userId !== user.id) {
-      // If initialIsFollowing is provided, use it but still check for requested status
-      if (initialIsFollowing !== undefined) {
-        // Still need to check if there's a pending request (edge case)
-        checkFollowStatus(initialIsFollowing);
-      } else {
-        checkFollowStatus();
-      }
-      checkUserSettings();
-      checkBlockStatus();
-    }
-  }, [user, userId, initialIsFollowing]);
+  const { data: targetUser } = useUserProfile(userId);
+  const requiresApproval = !!targetUser?.require_follow_approval;
 
-  async function checkUserSettings() {
-    try {
-      const result = await getUserProfile(userId);
-      if (!result) return;
+  const { data: isBlocked = false, isLoading: isLoadingBlockStatus } = useIsBlockedByUser(
+    user?.id,
+    userId
+  );
+  const { data: isFollowing = false, isLoading: isLoadingFollowing } = useIsFollowingUser(
+    user?.id,
+    userId,
+    initialIsFollowing
+  );
+  const { data: hasPendingRequest = false, isLoading: isLoadingRequestStatus } = useHasPendingFollowRequest(
+    user?.id,
+    userId
+  );
 
-      const { data: targetUser } = result;
-      if (targetUser) {
-        setRequiresApproval(targetUser.require_follow_approval || false);
-      }
-    } catch (error) {
-      console.error('Error checking user settings:', error);
-    }
-  }
+  const checking =
+    !user ||
+    userId === user.id ||
+    isLoadingBlockStatus ||
+    isLoadingRequestStatus ||
+    (initialIsFollowing === undefined && isLoadingFollowing);
 
-  async function checkBlockStatus() {
-    if (!user) return;
-    try {
-      const blocked = await isBlockedByUser(user.id, userId);
-      setIsBlocked(blocked || false);
-    } catch (error) {
-      console.error('Error checking block status:', error);
-      setIsBlocked(false);
-    }
-  }
-
-  async function checkFollowStatus(initialFollowing?: boolean) {
-    if (!user) return;
-
-    try {
-      // If initialFollowing is provided and true, set to following immediately
-      // but still check for requested status as a fallback
-      if (initialFollowing === true) {
-        setFollowState('following');
-        setChecking(false);
-        // Still check if there's a pending request (shouldn't happen, but be safe)
-        const requestResult = await getFollowRequestStatus(user.id, userId);
-        if (requestResult) {
-          const { data: request } = requestResult;
-          if (request) {
-            setFollowState('requested');
-          }
-        }
-        return;
-      }
-
-      // Check if already following
-      const followingResult = await isFollowingUser(user.id, userId);
-      if (followingResult && followingResult.isFollowing) {
-        setFollowState('following');
-        setChecking(false);
-        return;
-      }
-
-      // Check if request is pending
-      const requestResult = await getFollowRequestStatus(user.id, userId);
-      if (requestResult) {
-        const { data: request } = requestResult;
-        if (request) {
-          setFollowState('requested');
-        } else {
-          setFollowState('not-following');
-        }
-      }
-      setChecking(false);
-    } catch (error) {
-      console.error('Error checking follow status:', error);
-      setChecking(false);
-    }
-  }
+  const followState: FollowState = isFollowing
+    ? "following"
+    : hasPendingRequest
+      ? "requested"
+      : "not-following";
 
   async function handleToggleFollow() {
     if (!user) return;
@@ -138,7 +76,8 @@ export default function FollowButton({
           myUserId: user.id,
           theirUserId: userId,
         });
-        setFollowState('not-following');
+        queryClient.setQueryData(["follow", "isFollowing", user.id, userId], false);
+        queryClient.setQueryData(["followRequests", "status", user.id, userId], false);
         onFollowChange?.(false);
       } else if (followState === 'requested') {
         // Cancel request
@@ -146,21 +85,23 @@ export default function FollowButton({
           requesterId: user.id,
           targetId: userId,
         });
-        setFollowState('not-following');
+        queryClient.setQueryData(["followRequests", "status", user.id, userId], false);
       } else {
         // Follow or request to follow
+        if (!targetUser) return;
         if (requiresApproval) {
           await createRequestMutation.mutateAsync({
             requesterId: user.id,
             targetId: userId,
           });
-          setFollowState('requested');
+          queryClient.setQueryData(["followRequests", "status", user.id, userId], true);
         } else {
           await followMutation.mutateAsync({
             myUserId: user.id,
             theirUserId: userId,
           });
-          setFollowState('following');
+          queryClient.setQueryData(["follow", "isFollowing", user.id, userId], true);
+          queryClient.setQueryData(["followRequests", "status", user.id, userId], false);
           onFollowChange?.(true);
         }
       }
@@ -177,51 +118,31 @@ export default function FollowButton({
   // Don't render button until we've checked the status (prevents flash)
   if (checking) return null;
 
-  const buttonConfig = {
-    'not-following': {
-      text: 'Follow',
-      bgColor: '#007bff',
-      textColor: '#fff',
-      border: 'none',
-      cursor: 'pointer',
-    },
-    following: {
-      text: 'Following',
-      bgColor: '#fff',
-      textColor: '#333',
-      border: '1px solid #ddd',
-      cursor: 'pointer',
-    },
-    requested: {
-      text: 'Requested',
-      bgColor: '#fff',
-      textColor: '#007bff',
-      border: '1px solid #007bff',
-      cursor: 'pointer',
-    },
+  const base =
+    "cq-follow-button inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-all";
+
+  const stateClasses: Record<FollowState, string> = {
+    "not-following": "bg-blue-600 text-white hover:bg-blue-700",
+    following: "bg-white text-gray-800 border border-gray-300 hover:bg-gray-50",
+    requested: "bg-white text-blue-600 border border-blue-600 hover:bg-blue-50",
   };
 
-  const config = buttonConfig[followState];
+  const disabledClasses = loading ? "opacity-60 cursor-not-allowed" : "cursor-pointer";
+  const disableForUnknownPrivacy = followState === "not-following" && !targetUser;
 
   return (
     <button
       onClick={handleToggleFollow}
-      disabled={loading}
-      className={`cq-follow-button cq-follow-button-${followState} ${className}`}
-      style={{
-        padding: '8px 16px',
-        borderRadius: '20px',
-        border: config.border,
-        backgroundColor: config.bgColor,
-        color: config.textColor,
-        cursor: loading ? 'not-allowed' : config.cursor,
-        fontWeight: '600',
-        fontSize: '14px',
-        transition: 'all 0.2s',
-        opacity: loading ? 0.6 : 1
-      }}
+      disabled={loading || disableForUnknownPrivacy}
+      className={`${base} ${stateClasses[followState]} ${disabledClasses} cq-follow-button-${followState} ${className}`}
     >
-      {loading ? '...' : config.text}
+      {loading
+        ? "..."
+        : followState === "following"
+          ? "Following"
+          : followState === "requested"
+            ? "Requested"
+            : "Follow"}
     </button>
   );
 }

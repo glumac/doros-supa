@@ -4,6 +4,9 @@ import {
   getUserPomodoros,
   getPublicUserProfile,
   getPendingFollowRequestsCount,
+  getFollowers,
+  getFollowing,
+  getPendingFollowRequests,
 } from "../lib/queries";
 
 /**
@@ -87,6 +90,60 @@ export function usePendingFollowRequestsCount(userId: string | undefined) {
     },
     enabled: !!userId,
     refetchInterval: 1000 * 30, // Refetch every 30 seconds for real-time updates
+  });
+}
+
+/**
+ * Hook to fetch a user's followers
+ * @param userId - User ID to fetch followers for
+ */
+export function useFollowers(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["user", "followers", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error } = await getFollowers(userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+/**
+ * Hook to fetch users that a user is following
+ * @param userId - User ID to fetch following list for
+ */
+export function useFollowing(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["user", "following", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error } = await getFollowing(userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+/**
+ * Hook to fetch pending follow requests for a user
+ * @param userId - User ID to fetch follow requests for
+ */
+export function usePendingFollowRequests(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["followRequests", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID is required");
+      const { data, error } = await getPendingFollowRequests(userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 30, // 30 seconds - follow requests change frequently
   });
 }
 

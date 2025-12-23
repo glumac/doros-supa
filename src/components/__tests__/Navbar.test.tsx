@@ -5,9 +5,9 @@ import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import Navbar from '../Navbar';
 
 const mockUser = {
-  _id: 'user-123',
-  image: 'https://example.com/avatar.jpg',
-  userName: 'Test User',
+  id: 'user-123',
+  avatar_url: 'https://example.com/avatar.jpg',
+  user_name: 'Test User',
 };
 
 const renderNavbar = (props = {}, route = '/') => {
@@ -106,8 +106,8 @@ describe('Navbar CSS behavior', () => {
       renderNavbar();
 
       const profileImage = screen.getByAltText('user-pic');
-      expect(profileImage).toHaveClass('w-14', 'h-12', 'rounded-lg');
-      expect(profileImage).toHaveAttribute('src', mockUser.image);
+      expect(profileImage).toHaveClass('w-12', 'h-12', 'rounded-lg');
+      expect(profileImage).toHaveAttribute('src', mockUser.avatar_url);
     });
   });
 

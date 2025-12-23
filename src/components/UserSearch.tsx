@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchUsers, getSuggestedUsers } from '../lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSearchUsers, useSuggestedUsers } from '../hooks/useUserSearch';
 import { useAuth } from '../contexts/AuthContext';
 import FollowButton from './FollowButton';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
@@ -17,84 +18,41 @@ interface SearchResult {
 export default function UserSearch() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [suggestedUsers, setSuggestedUsers] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  // Load suggested users on mount
+  // Use React Query hooks
+  const { data: results = [], isLoading: isSearching, isError: isSearchError } = useSearchUsers(
+    debouncedSearchTerm,
+    user?.id
+  );
+  const { data: suggestedUsers = [], isLoading: isLoadingSuggestions } = useSuggestedUsers(
+    user?.id,
+    15
+  );
+
+  // Debounce search term (300ms delay)
   useEffect(() => {
-    if (user) {
-      loadSuggestions();
-    }
-  }, [user?.id]);
-
-  async function loadSuggestions() {
-    if (!user) return;
-
-    try {
-      const result = await getSuggestedUsers(user.id, 15);
-
-      // Handle case where result might be undefined
-      if (!result) {
-        console.warn('getSuggestedUsers returned undefined');
-        return;
-      }
-
-      const { data, error } = result;
-
-      if (error) {
-        console.error('Error loading suggestions:', error);
-      } else if (data) {
-        console.log('✅ Suggested users RAW data:', data);
-        console.log('✅ First user completion_count:', data[0]?.completion_count);
-        console.log('✅ First user full object:', data[0]);
-        setSuggestedUsers(data);
-      }
-    } catch (error) {
-      console.error('Exception loading suggestions:', error);
-    }
-  }
-
-  // Debounced search
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setResults([]);
-      setHasSearched(false);
-      return;
-    }
-
     const timer = setTimeout(() => {
-      performSearch();
+      setDebouncedSearchTerm(searchTerm);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, user?.id]);
+  }, [searchTerm]);
 
-  async function performSearch() {
-    if (!user || !searchTerm.trim()) return;
+  const hasSearched = debouncedSearchTerm.length > 0;
+  const loading = isSearching || isLoadingSuggestions;
 
-    setLoading(true);
-    setHasSearched(true);
-
-    const { data, error } = await searchUsers(searchTerm, user.id);
-
-    if (error) {
-      console.error('Error searching users:', error);
-    } else if (data) {
-      console.log('🔍 Search results RAW data:', data);
-      console.log('🔍 First result completion_count:', data[0]?.completion_count);
-      console.log('🔍 First result full object:', data[0]);
-      setResults(data);
-    }
-
-    setLoading(false);
-  }
+  const handleFollowChange = (userId: string, isFollowing: boolean) => {
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['users', 'search'] });
+    queryClient.invalidateQueries({ queryKey: ['users', 'suggested'] });
+  };
 
   if (!user) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+      <div className="text-center py-5 text-gray-600">
         Please log in to search for users
       </div>
     );
@@ -102,103 +60,64 @@ export default function UserSearch() {
 
   return (
     <div className="cq-user-search-container user-search">
-      <h2 className="cq-user-search-title" style={{ marginBottom: '20px', fontSize: '24px', fontWeight: '600' }}>
+      <h2 className="cq-user-search-title mb-5 text-2xl font-semibold">
         🔍 Find Friends
       </h2>
 
       {/* Search Input */}
-      <div className="cq-user-search-input-container" style={{ marginBottom: '20px' }}>
+      <div className="cq-user-search-input-container mb-5">
         <input
           type="text"
           placeholder="Search users by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="cq-user-search-input"
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            fontSize: '16px',
-            borderRadius: '12px',
-            border: '2px solid #e0e0e0',
-            outline: 'none',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = '#007bff';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = '#e0e0e0';
-          }}
+          className="cq-user-search-input w-full px-4 py-3 text-base rounded-xl border-2 border-gray-300 outline-none transition-colors focus:border-blue-500"
         />
       </div>
 
       {/* Loading State */}
       {loading && (
-        <div className="cq-user-search-loading" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        <div className="cq-user-search-loading text-center py-5 text-gray-600">
           Searching...
         </div>
       )}
 
       {/* No Results */}
       {!loading && hasSearched && results.length === 0 && (
-        <div className="cq-user-search-no-results" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p className="cq-user-search-no-results-message" style={{ fontSize: '18px', marginBottom: '10px' }}>😕 No users found matching "{searchTerm}"</p>
+        <div className="cq-user-search-no-results text-center py-10 text-gray-600">
+          <p className="cq-user-search-no-results-message text-lg mb-2.5">
+            😕 No users found matching "{debouncedSearchTerm}"
+          </p>
           <p className="cq-user-search-no-results-hint">Try a different search term</p>
         </div>
       )}
 
       {/* Search Results */}
-      {!loading && results.length > 0 && (
+      {!loading && hasSearched && results.length > 0 && (
         <div className="cq-user-search-results search-results">
-          <p className="cq-user-search-results-count" style={{ color: '#666', marginBottom: '15px' }}>
+          <p className="cq-user-search-results-count text-gray-600 mb-4">
             Found {results.length} user{results.length !== 1 ? 's' : ''}
           </p>
 
           {results.map((result) => (
             <div
               key={result.user_id}
-              className="cq-user-search-result-item search-result-item"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '15px',
-                marginBottom: '10px',
-                backgroundColor: '#fff',
-                borderRadius: '12px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
+              className="cq-user-search-result-item search-result-item flex items-center p-4 mb-2.5 bg-white rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
               onClick={() => navigate(`/user/${result.user_id}`)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-              }}
             >
               {/* Avatar */}
               <img
                 src={result.avatar_url || getAvatarPlaceholder(50)}
                 alt={result.user_name}
-                className="cq-user-search-result-avatar"
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '50%',
-                  marginRight: '15px',
-                  objectFit: 'cover'
-                }}
+                className="cq-user-search-result-avatar w-12 h-12 rounded-full mr-4 object-cover"
               />
 
               {/* User Info */}
-              <div className="cq-user-search-result-info" style={{ flex: 1 }}>
-                <div className="cq-user-search-result-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+              <div className="cq-user-search-result-info flex-1">
+                <div className="cq-user-search-result-name font-semibold text-base mb-1">
                   {result.user_name}
                 </div>
-                <div className="cq-user-search-result-stats" style={{ color: '#666', fontSize: '14px' }}>
+                <div className="cq-user-search-result-stats text-gray-600 text-sm">
                   {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
                   {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
                 </div>
@@ -209,16 +128,7 @@ export default function UserSearch() {
                 <FollowButton
                   userId={result.user_id}
                   initialIsFollowing={result.is_following}
-                  onFollowChange={(isFollowing) => {
-                    // Update the search result to reflect new follow state
-                    setResults(prev =>
-                      prev.map(r =>
-                        r.user_id === result.user_id
-                          ? { ...r, is_following: isFollowing }
-                          : r
-                      )
-                    );
-                  }}
+                  onFollowChange={(isFollowing) => handleFollowChange(result.user_id, isFollowing)}
                 />
               </div>
             </div>
@@ -231,55 +141,29 @@ export default function UserSearch() {
         <div className="cq-user-search-suggestions">
           {suggestedUsers.length > 0 ? (
             <>
-              <h3 className="cq-user-search-suggestions-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px', color: '#333' }}>
+              <h3 className="cq-user-search-suggestions-title text-lg font-semibold mb-4 text-gray-800">
                 ✨ Suggested for you
               </h3>
               <div className="cq-user-search-suggestions-list search-results">
                 {suggestedUsers.map((result) => (
                   <div
                     key={result.user_id}
-                    className="cq-user-search-suggestion-item search-result-item"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '15px',
-                      marginBottom: '10px',
-                      backgroundColor: '#fff',
-                      borderRadius: '12px',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
+                    className="cq-user-search-suggestion-item search-result-item flex items-center p-4 mb-2.5 bg-white rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
                     onClick={() => navigate(`/user/${result.user_id}`)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                    }}
                   >
                     {/* Avatar */}
                     <img
                       src={result.avatar_url || getAvatarPlaceholder(50)}
                       alt={result.user_name}
-                      className="cq-user-search-suggestion-avatar"
-                      style={{
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        marginRight: '15px',
-                        objectFit: 'cover'
-                      }}
+                      className="cq-user-search-suggestion-avatar w-12 h-12 rounded-full mr-4 object-cover"
                     />
 
                     {/* User Info */}
-                    <div className="cq-user-search-suggestion-info" style={{ flex: 1 }}>
-                      <div className="cq-user-search-suggestion-name" style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                    <div className="cq-user-search-suggestion-info flex-1">
+                      <div className="cq-user-search-suggestion-name font-semibold text-base mb-1">
                         {result.user_name}
                       </div>
-                      <div className="cq-user-search-suggestion-stats" style={{ color: '#666', fontSize: '14px' }}>
+                      <div className="cq-user-search-suggestion-stats text-gray-600 text-sm">
                         {result.follower_count} follower{result.follower_count !== 1 ? 's' : ''} · {' '}
                         {result.completion_count} pomodoro{result.completion_count !== 1 ? 's' : ''}
                       </div>
@@ -289,16 +173,8 @@ export default function UserSearch() {
                     <div className="cq-user-search-suggestion-follow-button" onClick={(e) => e.stopPropagation()}>
                       <FollowButton
                         userId={result.user_id}
-                        onFollowChange={(isFollowing) => {
-                          // Update the suggestion to reflect new follow state and refresh
-                          setSuggestedUsers(prev =>
-                            prev.filter(r => r.user_id !== result.user_id)
-                          );
-                          // Optionally reload suggestions to get fresh ones
-                          if (isFollowing) {
-                            loadSuggestions();
-                          }
-                        }}
+                        initialIsFollowing={result.is_following}
+                        onFollowChange={(isFollowing) => handleFollowChange(result.user_id, isFollowing)}
                       />
                     </div>
                   </div>
@@ -306,8 +182,8 @@ export default function UserSearch() {
               </div>
             </>
           ) : (
-            <div className="cq-user-search-empty-state" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-              <p className="cq-user-search-empty-message" style={{ fontSize: '18px', marginBottom: '10px' }}>👋 Start typing to find friends</p>
+            <div className="cq-user-search-empty-state text-center py-10 text-gray-600">
+              <p className="cq-user-search-empty-message text-lg mb-2.5">👋 Start typing to find friends</p>
               <p className="cq-user-search-empty-hint">Search by username to discover new people to follow</p>
             </div>
           )}

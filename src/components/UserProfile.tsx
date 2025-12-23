@@ -1,19 +1,23 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import {
-  getUserProfile,
-  isFollowingUser,
-  getFollowers,
-  getFollowing,
-  getPendingFollowRequests,
   approveFollowRequest,
   rejectFollowRequest,
   blockUser,
 } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
-import { useUserPomodoros } from "../hooks/useUserProfile";
+import {
+  useUserProfile,
+  useUserPomodoros,
+  useFollowers,
+  useFollowing,
+  usePendingFollowRequests,
+} from "../hooks/useUserProfile";
+import { useApproveFollowRequestMutation, useRejectFollowRequestMutation, useBlockUserMutation } from "../hooks/useMutations";
+import { useIsFollowingUser } from "../hooks/useFollowStatus";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 import FollowButton from "./FollowButton";
@@ -24,91 +28,49 @@ import { User, Doro, DecodedJWT } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
-  const [user, setUser] = useState<User>();
-  const [isFollowing, setIsFollowing] = useState<boolean | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [followerCount, setFollowerCount] = useState<number>(0);
-  const [followingCount, setFollowingCount] = useState<number>(0);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [modalTab, setModalTab] = useState<'followers' | 'following'>('followers');
-  const [followRequests, setFollowRequests] = useState<any[]>([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const pageSize = 20;
 
-  // Use React Query hook for pomodoros
+  // Use React Query hooks
+  const { data: user, isLoading: isLoadingProfile } = useUserProfile(
+    authUser?.id === userId ? undefined : userId
+  );
   const { data: pomodorosData, isLoading: isLoadingPage } = useUserPomodoros(userId, currentPage, pageSize);
+  const { data: followers = [] } = useFollowers(userId);
+  const { data: following = [] } = useFollowing(userId);
+  const { data: followRequests = [], isLoading: loadingRequests } = usePendingFollowRequests(
+    authUser?.id === userId ? userId : undefined
+  );
+
   const doros = pomodorosData?.data || [];
   const totalPomodoros = pomodorosData?.count || 0;
+  const followerCount = followers.length;
+  const followingCount = following.length;
+
+  // Use mutation hooks
+  const approveMutation = useApproveFollowRequestMutation();
+  const rejectMutation = useRejectFollowRequestMutation();
+  const blockMutation = useBlockUserMutation();
 
   // Extract the tab param to avoid searchParams object reference changes
   const tabParam = searchParams.get('tab');
 
-  const loadFollowRequests = useCallback(async () => {
-    if (!userId) return;
-    setLoadingRequests(true);
-    try {
-      const { data } = await getPendingFollowRequests(userId);
-      setFollowRequests(data || []);
-    } catch (error) {
-      console.error('Error loading follow requests:', error);
-    } finally {
-      setLoadingRequests(false);
-    }
-  }, [userId]);
+  // Use authUserProfile when viewing own profile
+  const displayUser = authUser?.id === userId ? (authUserProfile as User) : user;
 
   useEffect(() => {
     if (!userId) return;
 
-    // Reset follow status when userId changes
-    setIsFollowing(undefined);
-
     // Wait for auth to finish loading before making decisions
     if (authLoading) {
       return;
-    }
-
-    // If viewing own profile, use userProfile from AuthContext to avoid duplicate fetch
-    if (authUser?.id === userId) {
-      if (authUserProfile) {
-        setUser(authUserProfile as User);
-      } else {
-        // Auth finished loading but no profile - this shouldn't happen, but handle gracefully
-        return;
-      }
-    } else {
-      // For other users, fetch their profile
-      getUserProfile(userId).then(({ data, error }) => {
-        if (data && !error) {
-          setUser(data as User);
-        }
-      });
-    }
-
-    // Load followers and following counts
-    getFollowers(userId).then(({ data }) => {
-      setFollowerCount(data?.length || 0);
-    });
-    getFollowing(userId).then(({ data }) => {
-      setFollowingCount(data?.length || 0);
-    });
-
-    // Load follow requests if viewing own profile
-    if (authUser?.id === userId) {
-      loadFollowRequests();
-    }
-
-    // Check if current user is following this profile user
-    if (authUser?.id && userId !== authUser.id) {
-      isFollowingUser(authUser.id, userId).then(({ isFollowing }) => {
-        setIsFollowing(isFollowing);
-      });
-    } else {
-      // Reset when viewing own profile or no auth user
-      setIsFollowing(undefined);
     }
 
     // Check for tab parameter in URL
@@ -118,36 +80,42 @@ const UserProfile = () => {
         document.getElementById('follow-requests')?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     }
-  }, [userId, authUser?.id, authUserProfile, authLoading, tabParam, loadFollowRequests]);
+  }, [userId, authUser?.id, authLoading, tabParam]);
+
+  const { data: isFollowing = false } = useIsFollowingUser(authUser?.id, userId);
 
   const handleApproveRequest = async (requestId: string) => {
     if (!authUser) return;
-    const { error } = await approveFollowRequest(requestId, authUser.id);
-    if (error) {
-      console.error('Error approving follow request:', error);
-      alert(`Failed to approve request: ${error.message || 'Unknown error'}`);
-      return;
-    }
-    loadFollowRequests();
-    // Refresh follower count
-    getFollowers(userId!).then(({ data }) => {
-      setFollowerCount(data?.length || 0);
-    });
-    // Notify FollowRequestsBanner to refresh
-    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+    approveMutation.mutate(
+      { requestId, userId: authUser.id },
+      {
+        onSuccess: () => {
+          // Additional invalidation for followers count
+          queryClient.invalidateQueries({ queryKey: ['user', 'followers', userId] });
+          // Notify FollowRequestsBanner to refresh
+          window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+        },
+        onError: (error: Error) => {
+          alert(`Failed to approve request: ${error.message || 'Unknown error'}`);
+        },
+      }
+    );
   };
 
   const handleRejectRequest = async (requestId: string) => {
     if (!authUser) return;
-    const { error } = await rejectFollowRequest(requestId, authUser.id);
-    if (error) {
-      console.error('Error rejecting follow request:', error);
-      alert(`Failed to reject request: ${error.message || 'Unknown error'}`);
-      return;
-    }
-    loadFollowRequests();
-    // Notify FollowRequestsBanner to refresh
-    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+    rejectMutation.mutate(
+      { requestId, userId: authUser.id },
+      {
+        onSuccess: () => {
+          // Notify FollowRequestsBanner to refresh
+          window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+        },
+        onError: (error: Error) => {
+          alert(`Failed to reject request: ${error.message || 'Unknown error'}`);
+        },
+      }
+    );
   };
 
   const handleBlockRequest = async (requestId: string, requesterId: string, userName?: string) => {
@@ -158,19 +126,20 @@ const UserProfile = () => {
       return;
     }
 
-    const { error } = await blockUser(authUser.id, requesterId);
-    if (error) {
-      console.error('Error blocking user:', error);
-      alert(`Failed to block user: ${error.message || 'Unknown error'}`);
-      return;
-    }
-    loadFollowRequests();
-    // Refresh follower count in case they were following
-    getFollowers(userId!).then(({ data }) => {
-      setFollowerCount(data?.length || 0);
-    });
-    // Notify FollowRequestsBanner to refresh
-    window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+    blockMutation.mutate(
+      { blockerId: authUser.id, blockedId: requesterId },
+      {
+        onSuccess: () => {
+          // Additional invalidation for followers count
+          queryClient.invalidateQueries({ queryKey: ['user', 'followers', userId] });
+          // Notify FollowRequestsBanner to refresh
+          window.dispatchEvent(new CustomEvent('followRequestUpdated'));
+        },
+        onError: (error: Error) => {
+          alert(`Failed to block user: ${error.message || 'Unknown error'}`);
+        },
+      }
+    );
   };
 
   const openFollowersModal = (tab: 'followers' | 'following') => {
@@ -183,8 +152,10 @@ const UserProfile = () => {
   }, [userId, isFollowing]);
 
   const handleFollowChange = (newFollowStatus: boolean) => {
-    setIsFollowing(newFollowStatus);
     // Pomodoros will reload automatically due to React Query refetch when currentPage resets
+    queryClient.invalidateQueries({ queryKey: ["follow", "isFollowing", authUser?.id, userId] });
+    queryClient.invalidateQueries({ queryKey: ["user", "followers", userId] });
+    queryClient.invalidateQueries({ queryKey: ["user", "following", authUser?.id] });
   };
 
   const handlePageChange = (newPage: number) => {
@@ -199,7 +170,7 @@ const UserProfile = () => {
     navigate("/login");
   };
 
-  if (!user) return <Spinner message="Loading profile" />;
+  if (isLoadingProfile || !displayUser) return <Spinner message="Loading profile" />;
 
   return (
     <div className="cq-user-profile-container relative pb-2 h-full justify-center items-center">
@@ -213,12 +184,12 @@ const UserProfile = () => {
             />
             <img
               className="cq-user-profile-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
-              src={user?.avatar_url || getAvatarPlaceholder(80)}
+              src={displayUser?.avatar_url || getAvatarPlaceholder(80)}
               alt="user-pic"
             />
           </div>
           <h1 className="cq-user-profile-name text-green-700 font-medium text-5xl text-center mt-3">
-            {user?.user_name}
+            {displayUser?.user_name}
           </h1>
 
           {/* Followers/Following Stats */}
@@ -357,7 +328,7 @@ const UserProfile = () => {
               {userId !== authUser?.id && !isFollowing ? (
                 <>
                   <p className="cq-user-profile-pomodoros-empty-message font-medium text-gray-600 mb-3">
-                    Follow {user?.user_name} to see their pomodoros
+                    Follow {displayUser?.user_name} to see their pomodoros
                   </p>
                 </>
               ) : (
@@ -369,10 +340,10 @@ const UserProfile = () => {
       </div>
 
       {/* Followers Modal */}
-      {showFollowersModal && user && (
+      {showFollowersModal && displayUser && (
         <FollowersModal
           userId={userId!}
-          userName={user.user_name}
+          userName={displayUser.user_name}
           initialTab={modalTab}
           onClose={() => setShowFollowersModal(false)}
         />

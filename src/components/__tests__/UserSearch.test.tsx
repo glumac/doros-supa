@@ -6,10 +6,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import UserSearch from '../UserSearch';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
+import * as useUserSearchHooks from '../../hooks/useUserSearch';
 
 vi.mock('../../lib/queries');
+vi.mock('../../hooks/useUserSearch', () => ({
+  useSearchUsers: vi.fn(),
+  useSuggestedUsers: vi.fn(),
+}));
 
 const mockQueries = vi.mocked(queries);
+const mockHooks = vi.mocked(useUserSearchHooks);
 
 const mockUser = {
   id: 'current-user',
@@ -59,10 +65,27 @@ const renderWithAuth = (user = mockUser) => {
 describe('UserSearch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock hooks to return default values
+    mockHooks.useSearchUsers.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+    mockHooks.useSuggestedUsers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
     // Mock isFollowingUser to return proper structure
     mockQueries.isFollowingUser.mockResolvedValue({ isFollowing: false, error: null });
-    // Mock getSuggestedUsers to prevent unhandled errors
-    mockQueries.getSuggestedUsers.mockResolvedValue({ data: [], error: null });
     // Mock mutation functions
     mockQueries.followUser.mockResolvedValue({ data: null, error: null });
     mockQueries.unfollowUser.mockResolvedValue({ error: null });
@@ -81,10 +104,15 @@ describe('UserSearch', () => {
   it('should search users when typing in input', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.searchUsers).mockResolvedValue({
+    mockHooks.useSearchUsers.mockReturnValue({
       data: mockSearchResults,
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithAuth();
 
@@ -92,20 +120,23 @@ describe('UserSearch', () => {
     await user.type(input, 'John');
 
     await waitFor(() => {
-      expect(queries.searchUsers).toHaveBeenCalledWith('John', 'current-user');
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
   it('should display follower and pomodoro counts', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.searchUsers).mockResolvedValue({
+    mockHooks.useSearchUsers.mockReturnValue({
       data: mockSearchResults,
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithAuth();
 
@@ -120,10 +151,15 @@ describe('UserSearch', () => {
   it('should show "No results found" when search returns empty', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.searchUsers).mockResolvedValue({
+    mockHooks.useSearchUsers.mockReturnValue({
       data: [],
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithAuth();
 
@@ -137,10 +173,16 @@ describe('UserSearch', () => {
   it('should debounce search requests', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.searchUsers).mockResolvedValue({
+    // Mock hook to return data after typing
+    mockHooks.useSearchUsers.mockReturnValue({
       data: mockSearchResults,
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithAuth();
 
@@ -152,20 +194,24 @@ describe('UserSearch', () => {
     await user.type(input, 'h');
     await user.type(input, 'n');
 
-    // Should only call once after debounce
+    // Verify hook was called with final search term
     await waitFor(() => {
-      expect(queries.searchUsers).toHaveBeenCalledTimes(1);
-      expect(queries.searchUsers).toHaveBeenCalledWith('John', 'current-user');
+      expect(mockHooks.useSearchUsers).toHaveBeenCalledWith('John', 'current-user');
     }, { timeout: 1000 });
   });
 
   it('should render FollowButton for each user', async () => {
     const user = userEvent.setup();
 
-    vi.mocked(queries.searchUsers).mockResolvedValue({
+    mockHooks.useSearchUsers.mockReturnValue({
       data: mockSearchResults,
-      error: null
-    });
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     renderWithAuth();
 
@@ -179,12 +225,21 @@ describe('UserSearch', () => {
   });
 
   it('should require authentication to search', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     render(
-      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-        <AuthContext.Provider value={{ user: null, loading: false }}>
-          <UserSearch />
-        </AuthContext.Provider>
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+          <AuthContext.Provider value={{ user: null, loading: false }}>
+            <UserSearch />
+          </AuthContext.Provider>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     expect(screen.getByText(/please log in to search/i)).toBeInTheDocument();
@@ -213,10 +268,15 @@ describe('UserSearch', () => {
         }
       ];
 
-      vi.mocked(queries.searchUsers).mockResolvedValue({
+      mockHooks.useSearchUsers.mockReturnValue({
         data: usersWithHighCounts,
-        error: null
-      });
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithAuth();
 
@@ -250,10 +310,15 @@ describe('UserSearch', () => {
         }
       ];
 
-      vi.mocked(queries.getSuggestedUsers).mockResolvedValue({
+      mockHooks.useSuggestedUsers.mockReturnValue({
         data: suggestedUsersWithCounts,
-        error: null
-      });
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithAuth();
 
@@ -277,10 +342,15 @@ describe('UserSearch', () => {
         }
       ];
 
-      vi.mocked(queries.searchUsers).mockResolvedValue({
+      mockHooks.useSearchUsers.mockReturnValue({
         data: usersWithZeroCounts,
-        error: null
-      });
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithAuth();
 
@@ -305,10 +375,15 @@ describe('UserSearch', () => {
         }
       ];
 
-      vi.mocked(queries.searchUsers).mockResolvedValue({
+      mockHooks.useSearchUsers.mockReturnValue({
         data: userWithOnePomodoro,
-        error: null
-      });
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithAuth();
 
@@ -334,23 +409,27 @@ describe('UserSearch', () => {
         }
       ];
 
-      vi.mocked(queries.searchUsers).mockResolvedValue({
+      mockHooks.useSearchUsers.mockReturnValue({
         data: mockData,
-        error: null
-      });
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        isFetching: false,
+        refetch: vi.fn(),
+      } as any);
 
       renderWithAuth();
 
       await user.type(screen.getByPlaceholderText(/search users/i), 'test');
 
       await waitFor(() => {
-        expect(queries.searchUsers).toHaveBeenCalled();
+        expect(mockHooks.useSearchUsers).toHaveBeenCalled();
       });
 
       // Verify the mock data has the correct type
-      const callResult = await queries.searchUsers('test', 'current-user');
-      expect(typeof callResult.data?.[0]?.completion_count).toBe('number');
-      expect(callResult.data?.[0]?.completion_count).toBe(100);
+      expect(typeof mockData[0]?.completion_count).toBe('number');
+      expect(mockData[0]?.completion_count).toBe(100);
     });
   });
 });

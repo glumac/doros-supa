@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Feed from '../Feed';
 import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
@@ -58,12 +59,21 @@ const mockUser = {
 };
 
 const renderWithAuth = (user = mockUser) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        <Feed />
-      </AuthContext.Provider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <AuthContext.Provider value={{ user, loading: false }}>
+          <Feed />
+        </AuthContext.Provider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 

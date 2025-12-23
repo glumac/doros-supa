@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateDoro from '../CreateDoro';
 import DoroContext from '../../utils/DoroContext';
 
@@ -53,13 +54,21 @@ const mockDoroContextValue = {
 const renderCreateDoro = (contextOverrides = {}, userOverrides = {}) => {
   const contextValue = { ...mockDoroContextValue, ...contextOverrides };
   const user = { ...mockUser, ...userOverrides };
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
 
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <DoroContext.Provider value={contextValue}>
-        <CreateDoro user={user} />
-      </DoroContext.Provider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <DoroContext.Provider value={contextValue}>
+          <CreateDoro user={user} />
+        </DoroContext.Provider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
