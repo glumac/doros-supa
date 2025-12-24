@@ -66,13 +66,14 @@ const Doro = ({ doro }: DoroProps) => {
         if (signedUrl) {
           setImageURL(signedUrl);
         } else {
-          // Fallback: try using the original value
-          setImageURL(image_url);
+          // If signed URL creation failed (e.g., image doesn't exist in storage),
+          // set to null so image doesn't try to load invalid path
+          setImageURL(null);
         }
       } catch (error) {
         console.error("Error generating signed URL:", error);
-        // Fallback: try using the original value
-        setImageURL(image_url);
+        // On unexpected error, don't try to load invalid path
+        setImageURL(null);
       }
     };
 
@@ -222,6 +223,10 @@ const Doro = ({ doro }: DoroProps) => {
                 className="cq-doro-image rounded-lg block"
                 src={imageURL}
                 alt="User Pomodoro"
+                onError={(e) => {
+                  // Hide image if it fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             </div>
           )}

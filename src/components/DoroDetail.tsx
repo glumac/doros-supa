@@ -91,13 +91,14 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
         if (signedUrl) {
           setImageURL(signedUrl);
         } else {
-          // Fallback: try using the original value (might be a public URL or different format)
-          setImageURL(doro.image_url);
+          // If signed URL creation failed (e.g., image doesn't exist in storage),
+          // set to null so image doesn't try to load invalid path
+          setImageURL(null);
         }
       } catch (error) {
         console.error("Error generating signed URL:", error);
-        // Fallback: try using the original value
-        setImageURL(doro.image_url);
+        // On unexpected error, don't try to load invalid path
+        setImageURL(null);
       }
     };
 

@@ -69,6 +69,13 @@ export async function getImageSignedUrl(
     .createSignedUrl(path, expiresIn);
 
   if (error) {
+    // "Object not found" is expected when images are missing from storage
+    // (e.g., from data migration or deleted files). Handle silently.
+    if (error.message?.includes("Object not found") || error.message?.includes("not found")) {
+      // Silently return null for missing images
+      return null;
+    }
+    // Log other unexpected errors
     console.error("Error creating signed URL:", error);
     console.error("Path attempted:", path);
     return null;
