@@ -47,7 +47,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   };
 
   return (
-    <div className="cq-sidebar-container flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">
+    <div className="cq-sidebar-container flex flex-col justify-between bg-white h-full overflow-y-auto min-w-210">
       <div className="cq-sidebar-content flex items-center flex-col">
         <Link
           to="/"
