@@ -302,9 +302,14 @@ export function useBlockUserMutation() {
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["blocks"] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.blockedId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "followers", variables.blockerId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "following", variables.blockerId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "followers", variables.blockedId] });
+      queryClient.invalidateQueries({ queryKey: ["user", "following", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["feed"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["followRequests"] });
@@ -331,6 +336,7 @@ export function useUnblockUserMutation() {
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["blocks"] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.blockedId] });

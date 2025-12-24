@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getFollowRequestStatus, isBlockedByUser, isFollowingUser } from "../lib/queries";
+import { getBlockStatus, getFollowRequestStatus, isBlockedByUser, isFollowingUser } from "../lib/queries";
 
 export function useIsFollowingUser(
   myUserId: string | undefined,
@@ -46,6 +46,21 @@ export function useIsBlockedByUser(
     queryFn: async () => {
       if (!currentUserId || !otherUserId) throw new Error("User IDs are required");
       return await isBlockedByUser(currentUserId, otherUserId);
+    },
+    enabled: !!currentUserId && !!otherUserId && currentUserId !== otherUserId,
+    staleTime: 1000 * 60 * 2, // 2m
+  });
+}
+
+export function useBlockStatus(
+  currentUserId: string | undefined,
+  otherUserId: string | undefined
+) {
+  return useQuery({
+    queryKey: ["blocks", "status", currentUserId, otherUserId],
+    queryFn: async () => {
+      if (!currentUserId || !otherUserId) throw new Error("User IDs are required");
+      return await getBlockStatus(currentUserId, otherUserId);
     },
     enabled: !!currentUserId && !!otherUserId && currentUserId !== otherUserId,
     staleTime: 1000 * 60 * 2, // 2m

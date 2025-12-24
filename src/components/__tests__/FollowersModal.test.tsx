@@ -18,6 +18,9 @@ vi.mock('../../lib/queries', () => ({
   createFollowRequest: vi.fn(),
   cancelFollowRequest: vi.fn(),
   isBlockedByUser: vi.fn(),
+  getBlockStatus: vi.fn(),
+  blockUser: vi.fn(),
+  unblockUser: vi.fn(),
 }));
 
 const mockUser = {
@@ -97,6 +100,7 @@ describe('FollowersModal', () => {
       error: null
     });
     vi.mocked(queries.isBlockedByUser).mockResolvedValue(false);
+    vi.mocked(queries.getBlockStatus).mockResolvedValue({ iBlocked: false, theyBlocked: false });
   });
 
   it('should render modal with user name in header', async () => {
@@ -284,6 +288,72 @@ describe('FollowersModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/Page 1 of 2/)).toBeInTheDocument();
     });
+  });
+
+  it('should allow blocking a user from the list and remove them from view', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    vi.mocked(queries.getFollowersList).mockResolvedValue({
+      data: mockFollowers,
+      count: 2,
+      error: null
+    });
+    vi.mocked(queries.blockUser).mockResolvedValue({ data: { id: 'block-1' } as any, error: null } as any);
+
+    renderWithAuth(
+      <FollowersModal
+        userId="user-123"
+        userName="John Doe"
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Follower One')).toBeInTheDocument();
+      expect(screen.getByText('Follower Two')).toBeInTheDocument();
+    });
+
+    // BlockButton starts disabled while block status loads; wait until it's enabled and labeled "Block".
+    let blockButton: HTMLButtonElement | null = null;
+    await waitFor(() => {
+      const btn = screen.getAllByRole('button', { name: 'Block' })[0] as HTMLButtonElement | undefined;
+      expect(btn).toBeTruthy();
+      expect(btn).toBeEnabled();
+      blockButton = btn || null;
+    });
+
+    await user.click(blockButton!);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Follower One')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should not show block link when already following the user', async () => {
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: true,
+      error: null
+    });
+    vi.mocked(queries.getFollowersList).mockResolvedValue({
+      data: mockFollowers,
+      count: 2,
+      error: null
+    });
+
+    renderWithAuth(
+      <FollowersModal
+        userId="user-123"
+        userName="John Doe"
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Follower One')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: 'Block' })).not.toBeInTheDocument();
   });
 
   it('should navigate to next page', async () => {

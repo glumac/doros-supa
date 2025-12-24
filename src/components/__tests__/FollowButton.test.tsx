@@ -17,6 +17,7 @@ vi.mock('../../lib/queries', () => ({
   createFollowRequest: vi.fn(),
   cancelFollowRequest: vi.fn(),
   isBlockedByUser: vi.fn(),
+  getBlockStatus: vi.fn(),
 }));
 
 const mockUser = {
@@ -50,6 +51,7 @@ describe('FollowButton', () => {
     vi.clearAllMocks();
     // Set default mock return values
     vi.mocked(queries.isBlockedByUser).mockResolvedValue(false);
+    vi.mocked(queries.getBlockStatus).mockResolvedValue({ iBlocked: false, theyBlocked: false });
   });
 
   it('should not render when viewing own profile', () => {
@@ -75,6 +77,50 @@ describe('FollowButton', () => {
       </QueryClientProvider>
     );
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('should not render when I have blocked the other user', async () => {
+    vi.mocked(queries.getBlockStatus).mockResolvedValue({ iBlocked: true, theyBlocked: false });
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should not render when they have blocked me', async () => {
+    vi.mocked(queries.getBlockStatus).mockResolvedValue({ iBlocked: false, theyBlocked: true });
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+    vi.mocked(queries.getFollowRequestStatus).mockResolvedValue({
+      data: null,
+      error: null
+    });
+    vi.mocked(queries.getUserProfile).mockResolvedValue({
+      data: { require_follow_approval: false },
+      error: null
+    });
+
+    renderWithAuth(<FollowButton userId="other-user" />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
   });
 
   it('should show "Follow" when not following user', async () => {

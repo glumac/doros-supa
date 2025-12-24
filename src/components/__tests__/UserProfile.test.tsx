@@ -149,6 +149,9 @@ describe('UserProfile', () => {
       data: null,
       error: null
     });
+
+    // Mock block status used by profile + BlockButton
+    vi.mocked((queries as any).getBlockStatus).mockResolvedValue({ iBlocked: false, theyBlocked: false });
   });
 
   it('should load and display user profile', async () => {
@@ -230,6 +233,91 @@ describe('UserProfile', () => {
       expect(screen.getByText('Other User')).toBeInTheDocument();
       // FollowButton should be rendered
       expect(screen.queryByRole('button', { name: /log out/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('should show block button for other users profiles when not following', async () => {
+    const otherUser = {
+      ...mockUser,
+      id: 'other-user',
+      user_name: 'Other User'
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: otherUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    window.history.pushState({}, '', '/user/other-user');
+    renderWithRouter('other-user', mockUser);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Block' })).toBeInTheDocument();
+    });
+  });
+
+  it('should not show block button for other users profiles when already following', async () => {
+    const otherUser = {
+      ...mockUser,
+      id: 'other-user',
+      user_name: 'Other User'
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: otherUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: true,
+      error: null
+    });
+
+    window.history.pushState({}, '', '/user/other-user');
+    renderWithRouter('other-user', mockUser);
+
+    await waitFor(() => {
+      expect(screen.getByText('Other User')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: 'Block' })).not.toBeInTheDocument();
+  });
+
+  it('should show blocked-state view when I have blocked the profile user', async () => {
+    const otherUser = {
+      ...mockUser,
+      id: 'other-user',
+      user_name: 'Other User'
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: otherUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked((queries as any).getBlockStatus).mockResolvedValue({ iBlocked: true, theyBlocked: false });
+
+    window.history.pushState({}, '', '/user/other-user');
+    renderWithRouter('other-user', mockUser);
+
+    await waitFor(() => {
+      expect(screen.getByText(/You blocked Other User/i)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: 'Unblock' }).length).toBeGreaterThan(0);
     });
   });
 

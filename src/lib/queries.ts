@@ -572,6 +572,28 @@ export async function isBlockedByUser(
   return !!data;
 }
 
+// Get block status in both directions
+// - iBlocked: currentUserId has blocked otherUserId
+// - theyBlocked: otherUserId has blocked currentUserId
+export async function getBlockStatus(currentUserId: string, otherUserId: string) {
+  const [{ data: iBlockedRow }, { data: theyBlockedRow }] = await Promise.all([
+    supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", currentUserId)
+      .eq("blocked_id", otherUserId)
+      .maybeSingle(),
+    supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", otherUserId)
+      .eq("blocked_id", currentUserId)
+      .maybeSingle(),
+  ]);
+
+  return { iBlocked: !!iBlockedRow, theyBlocked: !!theyBlockedRow };
+}
+
 // Get list of blocked users
 export async function getBlockedUsers(blockerId: string) {
   const { data, error } = await supabase

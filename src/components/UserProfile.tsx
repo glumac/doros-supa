@@ -18,9 +18,11 @@ import {
 } from "../hooks/useUserProfile";
 import { useApproveFollowRequestMutation, useRejectFollowRequestMutation, useBlockUserMutation } from "../hooks/useMutations";
 import { useIsFollowingUser } from "../hooks/useFollowStatus";
+import { useBlockStatus } from "../hooks/useFollowStatus";
 import Doros from "./Doros";
 import Spinner from "./Spinner";
 import FollowButton from "./FollowButton";
+import BlockButton from "./BlockButton";
 import Pagination from "./Pagination";
 import FollowersModal from "./FollowersModal";
 import { addStyle, removeStyle } from "../utils/styleDefs";
@@ -83,6 +85,8 @@ const UserProfile = () => {
   }, [userId, authUser?.id, authLoading, tabParam]);
 
   const { data: isFollowing = false } = useIsFollowingUser(authUser?.id, userId);
+  const { data: blockStatus } = useBlockStatus(authUser?.id, userId);
+  const iBlocked = !!blockStatus?.iBlocked;
 
   const handleApproveRequest = async (requestId: string) => {
     if (!authUser) return;
@@ -229,12 +233,19 @@ const UserProfile = () => {
                 </button>
               </div>
             ) : (
-              <div className="cq-user-profile-follow-button-container">
+              <div className="cq-user-profile-visitor-actions flex gap-2 items-center">
                 <FollowButton
                   userId={userId!}
                   initialIsFollowing={isFollowing}
                   onFollowChange={handleFollowChange}
                 />
+                {!isFollowing && (
+                  <BlockButton
+                    targetUserId={userId!}
+                    targetUserName={displayUser?.user_name}
+                    className="cq-user-profile-block-button"
+                  />
+                )}
               </div>
             )}
           </div>
@@ -298,43 +309,62 @@ const UserProfile = () => {
         </div>
 
         <div className="cq-user-profile-pomodoros-content px-2">
-          {doros && doros.length > 0 && totalPomodoros > 0 && (
-            <div className="cq-user-profile-pomodoros-count text-center text-gray-600 text-sm mb-3">
-              Showing {((currentPage - 1) * pageSize) + 1}–
-              {Math.min(currentPage * pageSize, totalPomodoros)} of {totalPomodoros} pomodoros
-            </div>
-          )}
-
-          {isLoadingPage ? (
-            <div className="cq-user-profile-pomodoros-loading">
-              <Spinner message="Loading pomodoros..." />
-            </div>
-          ) : doros && doros.length > 0 ? (
-            <>
-              <div className="cq-user-profile-pomodoros-list">
-                <Doros doros={doros as any} />
+          {userId !== authUser?.id && iBlocked ? (
+            <div className="cq-user-profile-blocked-state flex flex-col items-center justify-center text-center bg-white rounded-lg shadow-md p-6 mx-4">
+              <div className="cq-user-profile-blocked-title text-lg font-semibold text-gray-800">
+                You blocked {displayUser?.user_name}.
               </div>
-              <div className="cq-user-profile-pomodoros-pagination">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  isLoading={isLoadingPage}
+              <div className="cq-user-profile-blocked-description text-sm text-gray-600 mt-2">
+                Unblock to see their content again.
+              </div>
+              <div className="cq-user-profile-blocked-actions mt-4">
+                <BlockButton
+                  targetUserId={userId!}
+                  targetUserName={displayUser?.user_name}
                 />
               </div>
-            </>
+            </div>
           ) : (
-            <div className="cq-user-profile-pomodoros-empty flex flex-col justify-center items-center w-full text-1xl mt-2">
-              {userId !== authUser?.id && !isFollowing ? (
+            <>
+              {doros && doros.length > 0 && totalPomodoros > 0 && (
+                <div className="cq-user-profile-pomodoros-count text-center text-gray-600 text-sm mb-3">
+                  Showing {((currentPage - 1) * pageSize) + 1}–
+                  {Math.min(currentPage * pageSize, totalPomodoros)} of {totalPomodoros} pomodoros
+                </div>
+              )}
+
+              {isLoadingPage ? (
+                <div className="cq-user-profile-pomodoros-loading">
+                  <Spinner message="Loading pomodoros..." />
+                </div>
+              ) : doros && doros.length > 0 ? (
                 <>
-                  <p className="cq-user-profile-pomodoros-empty-message font-medium text-gray-600 mb-3">
-                    Follow {displayUser?.user_name} to see their pomodoros
-                  </p>
+                  <div className="cq-user-profile-pomodoros-list">
+                    <Doros doros={doros as any} />
+                  </div>
+                  <div className="cq-user-profile-pomodoros-pagination">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                      isLoading={isLoadingPage}
+                    />
+                  </div>
                 </>
               ) : (
-                <p className="cq-user-profile-pomodoros-empty-message font-bold">No Pomodoros Found!</p>
+                <div className="cq-user-profile-pomodoros-empty flex flex-col justify-center items-center w-full text-1xl mt-2">
+                  {userId !== authUser?.id && !isFollowing ? (
+                    <>
+                      <p className="cq-user-profile-pomodoros-empty-message font-medium text-gray-600 mb-3">
+                        Follow {displayUser?.user_name} to see their pomodoros
+                      </p>
+                    </>
+                  ) : (
+                    <p className="cq-user-profile-pomodoros-empty-message font-bold">No Pomodoros Found!</p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

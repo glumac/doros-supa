@@ -8,7 +8,7 @@ import {
   useCancelFollowRequestMutation,
 } from '../hooks/useMutations';
 import { useUserProfile } from "../hooks/useUserProfile";
-import { useHasPendingFollowRequest, useIsBlockedByUser, useIsFollowingUser } from "../hooks/useFollowStatus";
+import { useBlockStatus, useHasPendingFollowRequest, useIsFollowingUser } from "../hooks/useFollowStatus";
 
 interface FollowButtonProps {
   userId: string;
@@ -38,10 +38,11 @@ export default function FollowButton({
   const { data: targetUser } = useUserProfile(userId);
   const requiresApproval = !!targetUser?.require_follow_approval;
 
-  const { data: isBlocked = false, isLoading: isLoadingBlockStatus } = useIsBlockedByUser(
+  const { data: blockStatus, isLoading: isLoadingBlockStatus } = useBlockStatus(
     user?.id,
     userId
   );
+  const isBlocked = !!blockStatus?.iBlocked || !!blockStatus?.theyBlocked;
   const { data: isFollowing = false, isLoading: isLoadingFollowing } = useIsFollowingUser(
     user?.id,
     userId,

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { getFollowersList, getFollowingList } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
 import FollowButton from './FollowButton';
+import BlockButton from './BlockButton';
+import { useIsFollowingUser } from '../hooks/useFollowStatus';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 
 interface FollowersModalProps {
@@ -18,6 +20,45 @@ interface FollowUser {
   id: string;
   user_name: string;
   avatar_url?: string;
+}
+
+function FollowersModalRowActions({
+  currentUserId,
+  targetUserId,
+  targetUserName,
+  onBlocked,
+}: {
+  currentUserId: string | undefined;
+  targetUserId: string;
+  targetUserName: string;
+  onBlocked: () => void;
+}) {
+  const { data: amIFollowing = false } = useIsFollowingUser(currentUserId, targetUserId);
+
+  return (
+    <div className="cq-followers-modal-item-actions" style={{ display: 'flex', alignItems: 'center' }}>
+      <FollowButton userId={targetUserId} initialIsFollowing={amIFollowing} />
+      {!amIFollowing && currentUserId && currentUserId !== targetUserId && (
+        <>
+          <span
+            className="cq-followers-modal-item-block-separator"
+            style={{ margin: "0 8px", color: "#111", opacity: 0.6, userSelect: "none" }}
+          >
+            ·
+          </span>
+          <BlockButton
+            targetUserId={targetUserId}
+            targetUserName={targetUserName}
+            className="cq-followers-modal-item-block-button"
+            onChanged={(next) => {
+              // If we just blocked them, remove from list immediately.
+              if (next.iBlocked) onBlocked();
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function FollowersModal({
@@ -66,6 +107,15 @@ export default function FollowersModal({
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const displayedUsers = activeTab === 'followers' ? followers : following;
+
+  const removeUserFromList = (removedUserId: string) => {
+    if (activeTab === 'followers') {
+      setFollowers((prev) => prev.filter((u) => u.id !== removedUserId));
+    } else {
+      setFollowing((prev) => prev.filter((u) => u.id !== removedUserId));
+    }
+    setTotalCount((c) => Math.max(0, c - 1));
+  };
 
   return (
     <div
@@ -240,9 +290,12 @@ export default function FollowersModal({
                     </div>
                   </div>
                 </Link>
-                <div className="cq-followers-modal-item-follow-button">
-                  <FollowButton userId={followUser.id} />
-                </div>
+                <FollowersModalRowActions
+                  currentUserId={user?.id}
+                  targetUserId={followUser.id}
+                  targetUserName={followUser.user_name}
+                  onBlocked={() => removeUserFromList(followUser.id)}
+                />
               </div>
             ))
           )}
