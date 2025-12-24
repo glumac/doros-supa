@@ -44,7 +44,7 @@ const UserProfile = () => {
   const { data: user, isLoading: isLoadingProfile } = useUserProfile(
     authUser?.id === userId ? undefined : userId
   );
-  const { data: pomodorosData, isLoading: isLoadingPage } = useUserPomodoros(userId, currentPage, pageSize);
+  const { data: pomodorosData, isLoading: isLoadingPage } = useUserPomodoros(userId, currentPage, pageSize, authUser?.id);
   const { data: followers = [] } = useFollowers(userId);
   const { data: following = [] } = useFollowing(userId);
   const { data: followRequests = [], isLoading: loadingRequests } = usePendingFollowRequests(

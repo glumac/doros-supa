@@ -23,16 +23,27 @@ export async function getFeed(limit = 20, currentUserId?: string) {
 
   const { data, error } = await query;
 
-  // Filter out pomodoros from blocked users if currentUserId is provided
+  // Filter out pomodoros in BOTH directions if currentUserId is provided
+  // - Users the current user has blocked
+  // - Users who have blocked the current user
   if (currentUserId && data) {
+    // Optimized: Single query to get all relevant blocks (both directions)
     const { data: blocks } = await supabase
       .from("blocks")
-      .select("blocked_id")
-      .eq("blocker_id", currentUserId);
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
 
-    const blockedIds = new Set(blocks?.map((b) => b.blocked_id) || []);
+    // Create sets for efficient lookup
+    const blockedByMe = new Set(
+      blocks?.filter((b) => b.blocker_id === currentUserId).map((b) => b.blocked_id) || []
+    );
+    const blockedMe = new Set(
+      blocks?.filter((b) => b.blocked_id === currentUserId).map((b) => b.blocker_id) || []
+    );
+
+    // Filter out pomodoros from users in either set
     const filteredData = data.filter(
-      (pomodoro) => !blockedIds.has(pomodoro.user_id)
+      (pomodoro) => !blockedByMe.has(pomodoro.user_id) && !blockedMe.has(pomodoro.user_id)
     );
 
     return { data: filteredData, error };
@@ -42,7 +53,7 @@ export async function getFeed(limit = 20, currentUserId?: string) {
 }
 
 // Pomodoro detail query
-export async function getPomodoroDetail(id: string) {
+export async function getPomodoroDetail(id: string, currentUserId?: string) {
   const { data, error } = await supabase
     .from("pomodoros")
     .select(
@@ -55,6 +66,24 @@ export async function getPomodoroDetail(id: string) {
     )
     .eq("id", id)
     .single();
+
+  // Check if current user is blocked by the pomodoro creator
+  if (currentUserId && data && data.user_id !== currentUserId) {
+    const { data: blockCheck } = await supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", data.user_id)
+      .eq("blocked_id", currentUserId)
+      .maybeSingle();
+
+    if (blockCheck) {
+      // Current user is blocked by pomodoro creator - return error
+      return {
+        data: null,
+        error: new Error("You are blocked by this user and cannot view their content"),
+      };
+    }
+  }
 
   return { data, error };
 }
@@ -74,8 +103,24 @@ export async function getUserProfile(userId: string) {
 export async function getUserPomodoros(
   userId: string,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  currentUserId?: string
 ) {
+  // Check if current user is blocked by the profile owner (defense in depth + better UX)
+  if (currentUserId && currentUserId !== userId) {
+    const { data: blockCheck } = await supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", userId)
+      .eq("blocked_id", currentUserId)
+      .maybeSingle();
+
+    if (blockCheck) {
+      // Current user is blocked by profile owner - return empty results
+      return { data: [], error: null, count: 0 };
+    }
+  }
+
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 

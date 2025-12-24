@@ -2,6 +2,7 @@ import React from "react";
 
 import Doros from "./Doros";
 import { useSearchPomodoros, useFeed } from "../hooks/useFeed";
+import { useAuth } from "../contexts/AuthContext";
 import Spinner from "./Spinner";
 
 interface SearchProps {
@@ -9,10 +10,11 @@ interface SearchProps {
 }
 
 const Search = ({ searchTerm }: SearchProps) => {
+  const { user } = useAuth();
   // Use React Query hooks instead of manual state management
   const { data: pins = [], isLoading: loading } = searchTerm
     ? useSearchPomodoros(searchTerm.toLowerCase())
-    : useFeed(20);
+    : useFeed(20, user?.id);
 
   return (
     <div className="cq-search-container">

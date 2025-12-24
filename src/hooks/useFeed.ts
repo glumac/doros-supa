@@ -38,13 +38,14 @@ export function useSearchPomodoros(searchTerm: string) {
 /**
  * Hook to fetch a single pomodoro's details
  * @param pomodoroId - ID of the pomodoro to fetch
+ * @param currentUserId - Optional current user ID for blocking checks
  */
-export function usePomodoroDetail(pomodoroId: string | undefined) {
+export function usePomodoroDetail(pomodoroId: string | undefined, currentUserId?: string) {
   return useQuery({
-    queryKey: ["pomodoro", pomodoroId],
+    queryKey: ["pomodoro", pomodoroId, currentUserId],
     queryFn: async () => {
       if (!pomodoroId) throw new Error("Pomodoro ID is required");
-      const { data, error } = await getPomodoroDetail(pomodoroId);
+      const { data, error } = await getPomodoroDetail(pomodoroId, currentUserId);
       if (error) throw error;
       return data;
     },

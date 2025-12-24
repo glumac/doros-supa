@@ -540,7 +540,8 @@ describe('UserProfile', () => {
       renderWithRouter('user-123');
 
       await waitFor(() => {
-        expect(mockHooks.useUserPomodoros).toHaveBeenCalledWith('user-123', 1, 20);
+        // When viewing own profile (user-123), currentUserId should be user-123 (authUser.id)
+        expect(mockHooks.useUserPomodoros).toHaveBeenCalledWith('user-123', 1, 20, 'user-123');
       });
     });
 

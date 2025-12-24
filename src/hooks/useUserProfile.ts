@@ -52,20 +52,23 @@ export function usePublicUserProfile(
  * @param userId - User ID to fetch pomodoros for
  * @param page - Page number (1-indexed)
  * @param pageSize - Number of items per page
+ * @param currentUserId - Optional current user ID for blocking checks
  */
 export function useUserPomodoros(
   userId: string | undefined,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  currentUserId?: string
 ) {
   return useQuery({
-    queryKey: ["user", "pomodoros", userId, page, pageSize],
+    queryKey: ["user", "pomodoros", userId, page, pageSize, currentUserId],
     queryFn: async () => {
       if (!userId) throw new Error("User ID is required");
       const { data, error, count } = await getUserPomodoros(
         userId,
         page,
-        pageSize
+        pageSize,
+        currentUserId
       );
       if (error) throw error;
       return { data, count };

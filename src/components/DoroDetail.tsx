@@ -33,7 +33,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   const navigate = useNavigate();
 
   // Use React Query hooks
-  const { data: doro, isLoading } = usePomodoroDetail(doroId);
+  const { data: doro, isLoading } = usePomodoroDetail(doroId, authUser?.id);
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
   const commentMutation = useCommentMutation();

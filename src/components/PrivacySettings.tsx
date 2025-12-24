@@ -207,7 +207,7 @@ export default function PrivacySettings() {
           Blocked Users
         </h3>
         <p className="cq-privacy-settings-blocked-description" style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
-          Users you have blocked cannot follow you, see your content, or send you follow requests.
+          Users you have blocked cannot follow you, see your content, or send you follow requests. They will not appear in your leader boards, feeds, or suggested users.
         </p>
 
         {loadingBlocks ? (
