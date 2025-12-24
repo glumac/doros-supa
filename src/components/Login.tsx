@@ -89,8 +89,8 @@ const Login = () => {
                 style={{ opacity: showingWhatIs ? 1 : 0 }}
               >
                 <p className="cq-login-info-text-1 font-semibold">
-                  Crush Quest is a place where FOM (Friends of Mike) support
-                  each other as we make our 2023 dreams come true.
+                  Crush Quest is a social Pomodoro app (think... Strava for productivity). Here, FOM (Friends of Mike) support
+                  each other as we make our 2026 dreams come true.
                 </p>
                 <br />
                 <button
