@@ -22,7 +22,8 @@
 ### State Management
 
 - **TanStack Query** for server state (queries/mutations with automatic caching, invalidation)
-  - 5min staleTime, 10min gcTime, refetchOnWindowFocus enabled
+  - Default: 5min staleTime, 10min gcTime, refetchOnWindowFocus enabled
+  - Some hooks override staleTime (e.g., `useFeed` uses 2min, `useSearchPomodoros` uses 5min)
   - Custom hooks in `hooks/` directory (`useMutations`, `useFeed`, `useLeaderboard`, `useUserProfile`)
 - **Context API** for global auth state (`AuthContext`)
   - Provides: `user`, `session`, `userProfile`, `loading`
@@ -158,17 +159,22 @@ __tests__/
 
 ### Privacy System
 
-- **Public accounts:** Visible to all, no approval needed
-- **Private accounts:** Require follow approval
-- **Follow requests:** Stored in `follow_requests` table
-- **Blocks:** Hard filter (blocker can't see blocked user's content)
+- **Followers Only setting:** Controlled by `followers_only` boolean column
+  - `followers_only = false`: Pomodoros appear in global feed, anyone can follow instantly
+  - `followers_only = true`: Requires follow approval, pomodoros only visible to approved followers
+- **Follow requests:** Stored in `follow_requests` table (for users with `followers_only = true`)
+- **Blocks:** Hard filter (blocker can't see blocked user's content, bidirectional)
 
 ### Feed
 
+- **Two feed types:**
+  - `global`: Shows all pomodoros from users with `followers_only = false`
+  - `following`: Shows only pomodoros from users you follow (or your own)
+- Feed type controlled via URL param `?feed=global` or `?feed=following`
 - Completed pomodoros only
 - Filtered by:
   1. RLS policies (privacy + follows)
-  2. Blocks (application level)
+  2. Blocks (application level, bidirectional)
 - Sorted by created_at DESC
 - Pagination support
 
@@ -181,10 +187,25 @@ __tests__/
 
 ### Storage
 
-- Supabase Storage for pomodoro images
-- RLS policies on buckets
-- Signed URLs for secure access
-- Helper: `getImageSignedUrl()` in `lib/storage.ts`
+- **Supabase Storage** for pomodoro images
+- **Bucket:** `pomodoro-images` (private bucket, requires signed URLs)
+- **File Structure:** Images stored as `userId/timestamp.ext` (e.g., `user-123/1234567890.jpg`)
+- **Database:** Path stored in `pomodoros.image_url` column (not full URL)
+- **RLS Policies:** Storage bucket policies match pomodoros table policies:
+  - Users can read their own images
+  - Users can read images from users they follow (if not blocked)
+  - Users can read images from users with `followers_only = false` (if not blocked)
+- **Signed URLs:** Generated on-demand via `getImageSignedUrl()` (expires in 1 hour by default)
+- **Helpers:** `lib/storage.ts` provides:
+  - `uploadPomodoroImage()` - Uploads file, returns path (not URL)
+  - `getImageSignedUrl()` - Generates signed URL from stored path
+  - `deletePomodoroImage()` - Deletes image from storage
+- **Display Flow:**
+  1. Component receives `image_url` path from database
+  2. `useEffect` calls `getImageSignedUrl()` to generate signed URL
+  3. Signed URL used in `<img src>` tag
+  4. URLs expire after 1 hour, component regenerates on mount
+- **Note:** Images are currently rendered at full size (no resizing/thumbnails)
 
 ---
 
@@ -204,15 +225,19 @@ __tests__/
 ### Standard Query
 
 ```typescript
-export async function getFeed(limit = 20, currentUserId?: string) {
+export async function getFeed(
+  limit = 20,
+  currentUserId?: string,
+  feedType: "global" | "following" = "global"
+) {
   let query = supabase
     .from("pomodoros")
     .select(
       `
       *,
       users:user_id (*),
-      likes (id, user_id, users:user_id (*)),
-      comments (id, comment_text, user_id, users:user_id (*))
+      likes (id, user_id, users:user_id (id, user_name, avatar_url)),
+      comments (id, comment_text, user_id, users:user_id (id, user_name, avatar_url))
     `
     )
     .eq("completed", true)
@@ -220,7 +245,10 @@ export async function getFeed(limit = 20, currentUserId?: string) {
     .limit(limit);
 
   const { data, error } = await query;
-  // Application-level filtering for blocks
+
+  // Application-level filtering:
+  // - Feed type (global vs following)
+  // - Blocks (bidirectional)
   return { data, error };
 }
 ```
@@ -284,3 +312,5 @@ npm test -- --run    # Run tests once
 6. **Follow the provider wrapper pattern for all component tests**
 7. **User ID comes from Supabase Auth, profiles in users table**
 8. **Privacy + follows + blocks all affect what queries return**
+9. **Feed supports two types: `global` (users with `followers_only = false`) and `following` (followed users only)**
+10. **Privacy is controlled by `followers_only` boolean column (false = visible in global feed, true = followers-only)**
