@@ -7,6 +7,7 @@ import DoroDetail from '../DoroDetail';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { getPomodoroDetail } from '../../lib/queries';
+import { getDetailImageUrl } from '../../lib/storage';
 
 vi.mock('../../lib/supabaseClient', () => ({
   supabase: {
@@ -19,7 +20,21 @@ vi.mock('../../lib/queries', () => ({
 }));
 
 vi.mock('../../lib/storage', () => ({
-  getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg')
+  getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg'),
+  getDetailImageUrl: vi.fn().mockResolvedValue('https://example.com/image-detail.jpg'),
+  getFullSizeImageUrl: vi.fn().mockResolvedValue('https://example.com/image-full.jpg')
+}));
+
+vi.mock('../ImageModal', () => ({
+  default: ({ isOpen, imagePath, onClose }: { isOpen: boolean; imagePath: string; onClose: () => void }) => {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="image-modal" role="dialog">
+        <button onClick={onClose}>Close Modal</button>
+        <span>Image: {imagePath}</span>
+      </div>
+    );
+  }
 }));
 
 const createTestQueryClient = () => new QueryClient({
@@ -84,7 +99,7 @@ const mockUser = {
 
 const renderWithAuth = (user = mockUser, doroId = 'doro-123') => {
   const queryClient = createTestQueryClient();
-  
+
   return render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter future={{ v7_relativeSplatPath: true }}>
@@ -318,6 +333,222 @@ describe('DoroDetail', () => {
         comment_text: 'Nice job!'
       })
     );
+  });
+
+  describe('Image handling', () => {
+    it('should call getDetailImageUrl for detail images', async () => {
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(getDetailImageUrl).toHaveBeenCalledWith('user-123/1234567890.jpg');
+      });
+    });
+
+    it('should not add width/height HTML attributes to image', async () => {
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        const image = screen.getByAltText('user-post');
+        expect(image).not.toHaveAttribute('width');
+        expect(image).not.toHaveAttribute('height');
+        // Should keep existing maxHeight style
+        expect(image).toHaveStyle({ maxHeight: '600px' });
+      });
+    });
+
+    it('should open modal when clicking image', async () => {
+      const user = userEvent.setup();
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('user-post')).toBeInTheDocument();
+      });
+
+      const image = screen.getByAltText('user-post');
+      await user.click(image);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+      });
+    });
+
+    it('should pass correct image path to modal', async () => {
+      const user = userEvent.setup();
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('user-post')).toBeInTheDocument();
+      });
+
+      const image = screen.getByAltText('user-post');
+      await user.click(image);
+
+      await waitFor(() => {
+        expect(screen.getByText('Image: user-123/1234567890.jpg')).toBeInTheDocument();
+      });
+    });
+
+    it('should close modal when close button is clicked', async () => {
+      const user = userEvent.setup();
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('user-post')).toBeInTheDocument();
+      });
+
+      const image = screen.getByAltText('user-post');
+      await user.click(image);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByText('Close Modal');
+      await user.click(closeButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('image-modal')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should keep existing CSS classes and styles on image', async () => {
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        const image = screen.getByAltText('user-post');
+        expect(image).toHaveClass('cq-doro-detail-image');
+        expect(image).toHaveClass('rounded-lg');
+        expect(image).toHaveClass('self-center');
+        expect(image).toHaveStyle({ maxHeight: '600px' });
+      });
+    });
+
+    it('should have image button with proper accessibility attributes', async () => {
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        const imageButton = screen.getByRole('button', { name: /view full size image/i });
+        expect(imageButton).toHaveAttribute('type', 'button');
+        expect(imageButton).toHaveAttribute('aria-label', 'View full size image');
+        expect(imageButton).toHaveClass('cq-doro-detail-image-container');
+      });
+    });
+
+    it('should return focus to image button when modal closes', async () => {
+      const user = userEvent.setup();
+      const doroWithImagePath = {
+        ...mockDoro,
+        image_url: 'user-123/1234567890.jpg'
+      };
+
+      vi.mocked(getPomodoroDetail).mockResolvedValue({
+        data: doroWithImagePath,
+        error: null
+      } as any);
+
+      window.history.pushState({}, '', '/doro-detail/doro-123');
+      renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('user-post')).toBeInTheDocument();
+      });
+
+      const imageButton = screen.getByRole('button', { name: /view full size image/i });
+      await user.click(imageButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByText('Close Modal');
+      await user.click(closeButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('image-modal')).not.toBeInTheDocument();
+      });
+
+      // Focus should return to the image button
+      await waitFor(() => {
+        expect(imageButton).toHaveFocus();
+      }, { timeout: 100 });
+    });
   });
 });
 

@@ -1,6 +1,17 @@
 import { supabase } from "./supabaseClient";
 
 /**
+ * Transform options for image resizing
+ */
+export interface TransformOptions {
+  width?: number;
+  height?: number;
+  resize?: 'cover' | 'contain' | 'fill';
+  quality?: number; // 20-100, default 80
+  format?: 'origin' | 'webp';
+}
+
+/**
  * Upload an image to Supabase Storage
  * Returns the file path (not a URL) which should be stored in the database
  * For private buckets, use getImageSignedUrl() to generate display URLs
@@ -32,10 +43,12 @@ export async function uploadPomodoroImage(file: File, userId: string) {
  *
  * @param imagePath - The path stored in image_url column (e.g., "userId/timestamp.jpg")
  * @param expiresIn - Expiration time in seconds (default: 3600 = 1 hour)
+ * @param transform - Optional transform options for image resizing/optimization
  */
 export async function getImageSignedUrl(
   imagePath: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
+  transform?: TransformOptions
 ): Promise<string | null> {
   if (!imagePath) return null;
 
@@ -66,7 +79,7 @@ export async function getImageSignedUrl(
 
   const { data, error } = await supabase.storage
     .from("pomodoro-images")
-    .createSignedUrl(path, expiresIn);
+    .createSignedUrl(path, expiresIn, transform ? { transform } : undefined);
 
   if (error) {
     // "Object not found" is expected when images are missing from storage
@@ -102,4 +115,47 @@ export async function deletePomodoroImage(imageUrl: string) {
     .remove([filePath]);
 
   return { error };
+}
+
+/**
+ * Get a signed URL for a feed thumbnail image (height: 630px, 2x for retina)
+ * Display height is ~314px controlled by CSS
+ * Width is auto to maintain aspect ratio for both portrait and landscape images
+ */
+export async function getFeedImageUrl(
+  imagePath: string,
+  expiresIn: number = 3600
+): Promise<string | null> {
+  return getImageSignedUrl(imagePath, expiresIn, {
+    height: 630,
+    resize: 'contain',
+    quality: 80,
+  });
+}
+
+/**
+ * Get a signed URL for a detail page image (height: 1200px, 2x for retina)
+ * Display height is ~600px controlled by CSS
+ * Width is auto to maintain aspect ratio for both portrait and landscape images
+ */
+export async function getDetailImageUrl(
+  imagePath: string,
+  expiresIn: number = 3600
+): Promise<string | null> {
+  return getImageSignedUrl(imagePath, expiresIn, {
+    height: 1200,
+    resize: 'contain',
+    quality: 85,
+  });
+}
+
+/**
+ * Get a signed URL for a full-size image (no transform)
+ * Use this for modal or full-resolution display
+ */
+export async function getFullSizeImageUrl(
+  imagePath: string,
+  expiresIn: number = 3600
+): Promise<string | null> {
+  return getImageSignedUrl(imagePath, expiresIn);
 }

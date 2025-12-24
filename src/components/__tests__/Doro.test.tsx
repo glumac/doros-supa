@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Doro from '../Doro';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { getFeedImageUrl } from '../../lib/storage';
 
 vi.mock('../../lib/supabaseClient', () => ({
   supabase: {
@@ -14,7 +15,8 @@ vi.mock('../../lib/supabaseClient', () => ({
 }));
 
 vi.mock('../../lib/storage', () => ({
-  getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg')
+  getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg'),
+  getFeedImageUrl: vi.fn().mockResolvedValue('https://example.com/image-feed.jpg')
 }));
 
 const createTestQueryClient = () => new QueryClient({
@@ -79,7 +81,7 @@ const mockUser = {
 
 const renderWithAuth = (doro = mockDoro, user = mockUser) => {
   const queryClient = createTestQueryClient();
-  
+
   return render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter future={{ v7_relativeSplatPath: true }}>
@@ -277,11 +279,52 @@ describe('Doro', () => {
     });
   });
 
-  it('should render image when present', () => {
+  it('should render image when present', async () => {
+    const doroWithImagePath = {
+      ...mockDoro,
+      image_url: 'user-123/1234567890.jpg'
+    };
+
+    renderWithAuth(doroWithImagePath);
+
+    await waitFor(() => {
+      const image = screen.getByAltText('User Pomodoro');
+      expect(image).toHaveAttribute('src', 'https://example.com/image-feed.jpg');
+    });
+  });
+
+  it('should call getFeedImageUrl for feed images', async () => {
+    const doroWithImagePath = {
+      ...mockDoro,
+      image_url: 'user-123/1234567890.jpg'
+    };
+
+    renderWithAuth(doroWithImagePath);
+
+    await waitFor(() => {
+      expect(getFeedImageUrl).toHaveBeenCalledWith('user-123/1234567890.jpg');
+    });
+  });
+
+  it('should not add width/height HTML attributes to image', async () => {
     renderWithAuth();
 
-    const image = screen.getByAltText('User Pomodoro');
-    expect(image).toHaveAttribute('src', 'https://example.com/image.jpg');
+    await waitFor(() => {
+      const image = screen.getByAltText('User Pomodoro');
+      expect(image).not.toHaveAttribute('width');
+      expect(image).not.toHaveAttribute('height');
+    });
+  });
+
+  it('should keep existing CSS classes on image container', async () => {
+    renderWithAuth();
+
+    await waitFor(() => {
+      const imageContainer = screen.getByAltText('User Pomodoro').closest('.cq-doro-image-container');
+      expect(imageContainer).toHaveClass('cq-doro-image-container');
+      expect(imageContainer).toHaveClass('basis-1/3');
+      expect(imageContainer).toHaveClass('shrink-0');
+    });
   });
 
   describe('Date formatting', () => {

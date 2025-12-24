@@ -12,7 +12,7 @@ import {
   useDeletePomodoroMutation,
 } from "../hooks/useMutations";
 import { addStyle, removeStyle } from "../utils/styleDefs";
-import { getImageSignedUrl } from "../lib/storage";
+import { getFeedImageUrl } from "../lib/storage";
 import { Doro as DoroType, Like, DecodedJWT } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
@@ -60,9 +60,9 @@ const Doro = ({ doro }: DoroProps) => {
         }
       }
 
-      // Convert to signed URL (handles both paths and Supabase storage URLs)
+      // Convert to signed URL with feed-optimized size (2x for retina)
       try {
-        const signedUrl = await getImageSignedUrl(image_url);
+        const signedUrl = await getFeedImageUrl(image_url);
         if (signedUrl) {
           setImageURL(signedUrl);
         } else {

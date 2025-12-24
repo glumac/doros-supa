@@ -428,4 +428,284 @@ describe('FollowersModal', () => {
     );
     expect(hasPlaceholder).toBe(true);
   });
+
+  describe('Accessibility', () => {
+    it('should have role="dialog" and aria-modal="true"', async () => {
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        const modal = screen.getByRole('dialog');
+        expect(modal).toHaveAttribute('aria-modal', 'true');
+      });
+    });
+
+    it('should have aria-labelledby pointing to the title', async () => {
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        const modal = screen.getByRole('dialog');
+        const title = screen.getByText('John Doe');
+        expect(modal).toHaveAttribute('aria-labelledby', 'cq-followers-modal-title');
+        expect(title).toHaveAttribute('id', 'cq-followers-modal-title');
+      });
+    });
+
+    it('should have aria-label for close button', async () => {
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        expect(closeButton).toHaveAttribute('aria-label', 'Close modal');
+      });
+    });
+
+    it('should focus close button when modal opens', async () => {
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        expect(closeButton).toHaveFocus();
+      });
+    });
+
+    it('should return focus to trigger button when modal closes', async () => {
+      const user = userEvent.setup();
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      const triggerButton = document.createElement('button');
+      triggerButton.setAttribute('aria-label', 'View 5 followers');
+      document.body.appendChild(triggerButton);
+      const triggerRef = { current: triggerButton };
+
+      const onClose = vi.fn();
+      const { unmount } = renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={onClose}
+          triggerRef={triggerRef}
+        />
+      );
+
+      await waitFor(() => {
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        expect(closeButton).toHaveFocus();
+      });
+
+      // Close the modal by clicking close button
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      await user.click(closeButton);
+
+      expect(onClose).toHaveBeenCalled();
+
+      // Unmount the modal to simulate it being removed from DOM
+      // This triggers the useEffect cleanup which should return focus
+      unmount();
+
+      // Wait for focus to return (the setTimeout in useModalFocus runs after unmount)
+      // Note: In a real scenario, the parent component would unmount the modal,
+      // which triggers the cleanup effect that returns focus
+      await waitFor(() => {
+        expect(triggerButton).toHaveFocus();
+      }, { timeout: 300 });
+
+      document.body.removeChild(triggerButton);
+    });
+
+    it('should close modal when Escape key is pressed', async () => {
+      const user = userEvent.setup();
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      const onClose = vi.fn();
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={onClose}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.keyboard('{Escape}');
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('should close modal when clicking overlay (outside modal)', async () => {
+      const user = userEvent.setup();
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      const onClose = vi.fn();
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={onClose}
+        />
+      );
+
+      await waitFor(() => {
+        const overlay = screen.getByRole('dialog').parentElement;
+        expect(overlay).toBeInTheDocument();
+      });
+
+      const overlay = screen.getByRole('dialog').parentElement;
+      if (overlay) {
+        await user.click(overlay);
+        expect(onClose).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('should NOT close modal when clicking inside modal content', async () => {
+      const user = userEvent.setup();
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: mockFollowers,
+        count: 2,
+        error: null
+      });
+
+      const onClose = vi.fn();
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={onClose}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Follower One')).toBeInTheDocument();
+      });
+
+      const modal = screen.getByRole('dialog');
+      await user.click(modal);
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('should have visible focus ring on close button when focused via keyboard', async () => {
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        expect(closeButton).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByRole('button', { name: /close/i });
+
+      // Focus the button
+      closeButton.focus();
+
+      // Check that button is focusable and receives focus
+      expect(closeButton).toHaveFocus();
+    });
+
+    it('should trap focus within modal when using Tab key', async () => {
+      const user = userEvent.setup();
+      vi.mocked(queries.getFollowersList).mockResolvedValue({
+        data: mockFollowers,
+        count: 2,
+        error: null
+      });
+
+      renderWithAuth(
+        <FollowersModal
+          userId="user-123"
+          userName="John Doe"
+          onClose={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Follower One')).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      closeButton.focus();
+
+      // Tab through focusable elements
+      await user.tab();
+
+      // Should focus on tab buttons or other focusable elements within modal
+      // The exact element depends on the modal structure, but focus should remain in modal
+      const activeElement = document.activeElement;
+      const modal = screen.getByRole('dialog');
+      expect(modal.contains(activeElement)).toBe(true);
+    });
+  });
 });

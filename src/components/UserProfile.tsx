@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,6 +39,8 @@ const UserProfile = () => {
   const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const pageSize = 20;
+  const followersButtonRef = useRef<HTMLButtonElement>(null);
+  const followingButtonRef = useRef<HTMLButtonElement>(null);
 
   // Use React Query hooks
   const { data: user, isLoading: isLoadingProfile } = useUserProfile(
@@ -202,15 +204,21 @@ const UserProfile = () => {
           {/* Followers/Following Stats */}
           <div className="cq-user-profile-stats flex justify-center gap-6 mt-3 mb-2">
             <button
+              ref={followersButtonRef}
+              type="button"
               onClick={() => openFollowersModal('followers')}
               className="cq-user-profile-followers-button text-center hover:underline cursor-pointer"
+              aria-label={`View ${followerCount} followers`}
             >
               <div className="cq-user-profile-followers-count font-bold text-lg">{followerCount}</div>
               <div className="cq-user-profile-followers-label text-gray-600 text-sm">Followers</div>
             </button>
             <button
+              ref={followingButtonRef}
+              type="button"
               onClick={() => openFollowersModal('following')}
               className="cq-user-profile-following-button text-center hover:underline cursor-pointer"
+              aria-label={`View ${followingCount} following`}
             >
               <div className="cq-user-profile-following-count font-bold text-lg">{followingCount}</div>
               <div className="cq-user-profile-following-label text-gray-600 text-sm">Following</div>
@@ -382,6 +390,7 @@ const UserProfile = () => {
           userName={displayUser.user_name}
           initialTab={modalTab}
           onClose={() => setShowFollowersModal(false)}
+          triggerRef={modalTab === 'followers' ? followersButtonRef : followingButtonRef}
         />
       )}
     </div>

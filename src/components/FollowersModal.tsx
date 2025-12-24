@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getFollowersList, getFollowingList } from '../lib/queries';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,12 +6,14 @@ import FollowButton from './FollowButton';
 import BlockButton from './BlockButton';
 import { useIsFollowingUser } from '../hooks/useFollowStatus';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 interface FollowersModalProps {
   userId: string;
   userName: string;
   initialTab?: 'followers' | 'following';
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 type TabType = 'followers' | 'following';
@@ -65,7 +67,8 @@ export default function FollowersModal({
   userId,
   userName,
   initialTab = 'followers',
-  onClose
+  onClose,
+  triggerRef
 }: FollowersModalProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
@@ -75,6 +78,11 @@ export default function FollowersModal({
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const isOpen = true; // This modal is always rendered when shown
+
+  // Use shared modal focus management hook
+  useModalFocus(isOpen, closeButtonRef, triggerRef);
 
   useEffect(() => {
     loadData();
@@ -117,6 +125,31 @@ export default function FollowersModal({
     setTotalCount((c) => Math.max(0, c - 1));
   };
 
+  // Handle click outside modal
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Keyboard event handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
   return (
     <div
       className="cq-followers-modal-overlay"
@@ -132,10 +165,13 @@ export default function FollowersModal({
         justifyContent: 'center',
         zIndex: 1000,
       }}
-      onClick={onClose}
+      onClick={handleOverlayClick}
     >
       <div
         className="cq-followers-modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cq-followers-modal-title"
         style={{
           backgroundColor: '#fff',
           borderRadius: '12px',
@@ -159,12 +195,14 @@ export default function FollowersModal({
             alignItems: 'center',
           }}
         >
-          <h2 className="cq-followers-modal-title" style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+          <h2 id="cq-followers-modal-title" className="cq-followers-modal-title" style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
             {userName}
           </h2>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="cq-followers-modal-close-button"
+            aria-label="Close modal"
             style={{
               background: 'none',
               border: 'none',

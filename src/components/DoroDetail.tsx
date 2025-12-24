@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
@@ -14,7 +14,8 @@ import {
 import Spinner from "./Spinner";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { format, isToday, getYear } from "date-fns";
-import { getImageSignedUrl } from "../lib/storage";
+import { getDetailImageUrl } from "../lib/storage";
+import ImageModal from "./ImageModal";
 import { Doro, User } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
@@ -28,6 +29,8 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
   const [commentDeleteHovered, setCommentDeleteHovered] = useState("");
   const [deleteHovered, setDeleteHovered] = useState(false);
   const [imageURL, setImageURL] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
@@ -85,9 +88,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
         }
       }
 
-      // Convert to signed URL (handles both paths and Supabase storage URLs)
+      // Convert to signed URL with detail-optimized size (2x for retina)
       try {
-        const signedUrl = await getImageSignedUrl(doro.image_url);
+        const signedUrl = await getDetailImageUrl(doro.image_url);
         if (signedUrl) {
           setImageURL(signedUrl);
         } else {
@@ -161,11 +164,17 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
           style={{ maxWidth: "1500px" }}
         >
           {doro?.image_url && (
-            <div className="cq-doro-detail-image-container flex justify-center items-center md:items-start flex-initial">
+            <button
+              ref={imageButtonRef}
+              type="button"
+              onClick={() => setShowImageModal(true)}
+              className="cq-doro-detail-image-container flex justify-center items-center md:items-start flex-initial bg-transparent border-none p-0 cursor-pointer"
+              aria-label="View full size image"
+            >
               {imageURL ? (
                 <img
                   style={{ maxHeight: "600px" }}
-                  className="cq-doro-detail-image rounded-lg self-center"
+                  className="cq-doro-detail-image rounded-lg self-center pointer-events-none"
                   src={imageURL}
                   alt="user-post"
                   onError={(e) => {
@@ -178,7 +187,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                   <p className="cq-doro-detail-image-loading-text text-gray-500">Loading image...</p>
                 </div>
               )}
-            </div>
+            </button>
           )}
           <div className="cq-doro-detail-content w-full p-5 flex-1 xl:min-w-620">
             <div className="cq-doro-detail-header flex justify-between align-center mt-2">
@@ -408,6 +417,16 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Modal */}
+      {doro?.image_url && (
+        <ImageModal
+          isOpen={showImageModal}
+          imagePath={doro.image_url}
+          onClose={() => setShowImageModal(false)}
+          triggerRef={imageButtonRef}
+        />
       )}
     </>
   );

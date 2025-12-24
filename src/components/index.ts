@@ -19,3 +19,4 @@ export { default as Pagination } from "./Pagination";
 export { default as FollowersModal } from "./FollowersModal";
 export { default as FollowRequestsBanner } from "./FollowRequestsBanner";
 export { default as PrivacySettings } from "./PrivacySettings";
+export { default as ImageModal } from "./ImageModal";
