@@ -5,12 +5,17 @@ import { getFeed, searchPomodoros, getPomodoroDetail } from "../lib/queries";
  * Hook to fetch the main feed of pomodoros
  * @param limit - Number of pomodoros to fetch
  * @param currentUserId - Optional current user ID for filtering blocked users
+ * @param feedType - 'global' for all public pomodoros, 'following' for followed users only
  */
-export function useFeed(limit: number = 20, currentUserId?: string) {
+export function useFeed(
+  limit: number = 20,
+  currentUserId?: string,
+  feedType: 'global' | 'following' = 'global'
+) {
   return useQuery({
-    queryKey: ["feed", limit, currentUserId],
+    queryKey: ["feed", limit, currentUserId, feedType],
     queryFn: async () => {
-      const { data, error } = await getFeed(limit, currentUserId);
+      const { data, error } = await getFeed(limit, currentUserId, feedType);
       if (error) throw error;
       return data;
     },

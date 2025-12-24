@@ -91,7 +91,7 @@ describe('UserSearch', () => {
     mockQueries.unfollowUser.mockResolvedValue({ error: null });
     mockQueries.createFollowRequest.mockResolvedValue({ data: null, error: null });
     mockQueries.cancelFollowRequest.mockResolvedValue({ error: null });
-    mockQueries.getUserProfile.mockResolvedValue({ data: { require_follow_approval: false }, error: null });
+    mockQueries.getUserProfile.mockResolvedValue({ data: { followers_only: false }, error: null });
     mockQueries.isBlockedByUser.mockResolvedValue(false);
     mockQueries.getBlockStatus.mockResolvedValue({ iBlocked: false, theyBlocked: false } as any);
     mockQueries.getFollowRequestStatus.mockResolvedValue({ data: null, error: null });

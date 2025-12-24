@@ -31,7 +31,7 @@ const mockUser = {
   avatar_url: 'https://example.com/avatar.jpg',
   email: 'test@example.com',
   privacy_setting: 'public',
-  require_follow_approval: false,
+  followers_only: false,
 };
 
 const mockDoroContextValue = {

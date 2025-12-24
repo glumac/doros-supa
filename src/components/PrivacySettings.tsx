@@ -26,7 +26,7 @@ export default function PrivacySettings() {
     try {
       const { data } = await getUserProfile(user.id);
       if (data) {
-        setRequireApproval(data.require_follow_approval || false);
+        setRequireApproval(data.followers_only || false);
       }
     } catch (error) {
       console.error('Error loading privacy settings:', error);
@@ -58,7 +58,7 @@ export default function PrivacySettings() {
       const newValue = !requireApproval;
       const { error } = await supabase
         .from('users')
-        .update({ require_follow_approval: newValue })
+        .update({ followers_only: newValue })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -133,12 +133,12 @@ export default function PrivacySettings() {
         >
           <div className="cq-privacy-settings-approval-info" style={{ flex: 1 }}>
             <h3 className="cq-privacy-settings-approval-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-              Require Follow Approval
+              Followers Only
             </h3>
             <p className="cq-privacy-settings-approval-description" style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
               When enabled, users must send a follow request before they can follow you.</p>
               <p className="cq-privacy-settings-approval-description" style={{ color: '#666', fontSize: '14px', lineHeight: '1.6', margin: 0, marginTop: '8px' }}>
-              You'll be able to approve or decline each request. Your weekly pomodoro totals will still appear on the global leaderboard, and your total pomodoro count will still be visible in search. However, individual pomodoros will only be visible to approved followers. When disabled, anyone can follow you instantly.
+              You'll be able to approve or decline each request. Your weekly pomodoro totals will still appear on the global leaderboard, and your total pomodoro count will still be visible in search. However, individual pomodoros will only be visible to approved followers and will not appear in the global feed. When disabled, your pomodoros appear in the global feed and anyone can follow you instantly.
             </p>
           </div>
 

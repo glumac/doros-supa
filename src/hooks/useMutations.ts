@@ -361,7 +361,7 @@ export function useUpdatePrivacyMutation() {
     }) => {
       const { data, error } = await supabase
         .from("users")
-        .update({ require_follow_approval: isPrivate })
+        .update({ followers_only: isPrivate })
         .eq("id", userId);
 
       if (error) throw error;

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useGlobalLeaderboard, useFriendsLeaderboard } from '../hooks/useLeaderboard';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
@@ -17,7 +16,18 @@ interface CompactLeaderboardProps {
 
 export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardProps) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'friends' | 'global'>('global');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Read feed type from URL param, default to 'global'
+  const feedType = searchParams.get('feed') || 'global';
+  const activeTab = feedType === 'global' ? 'global' : 'friends';
+
+  const handleTabChange = (tab: 'friends' | 'global') => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('feed', tab === 'friends' ? 'following' : 'global');
+    navigate(`?${newParams.toString()}`, { replace: true });
+  };
 
   // Use React Query hooks for real-time updates
   const { data: globalLeaderboard = [], isLoading: globalLoading } = useGlobalLeaderboard(user?.id);
@@ -36,7 +46,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
       {/* Tab Headers */}
       <div className="cq-compact-leaderboard-tabs flex gap-1 px-3 mb-2">
         <button
-          onClick={() => setActiveTab('global')}
+          onClick={() => handleTabChange('global')}
           className={`cq-compact-leaderboard-tab cq-compact-leaderboard-tab-global flex-1 text-xs py-1 px-2 rounded transition-all ${
             activeTab === 'global'
               ? 'bg-green-700 text-white font-semibold'
@@ -46,7 +56,7 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
           Global
         </button>
         <button
-          onClick={() => setActiveTab('friends')}
+          onClick={() => handleTabChange('friends')}
           className={`cq-compact-leaderboard-tab cq-compact-leaderboard-tab-friends flex-1 text-xs py-1 px-2 rounded transition-all ${
             activeTab === 'friends'
               ? 'bg-green-700 text-white font-semibold'

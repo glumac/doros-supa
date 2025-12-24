@@ -5,7 +5,7 @@ export interface User {
   email: string;
   avatar_url: string | null;
   privacy_setting?: string;
-  require_follow_approval?: boolean;
+  followers_only?: boolean;
   created_at?: string;
   updated_at?: string;
 }

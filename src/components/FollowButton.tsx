@@ -36,7 +36,7 @@ export default function FollowButton({
   const cancelRequestMutation = useCancelFollowRequestMutation();
 
   const { data: targetUser } = useUserProfile(userId);
-  const requiresApproval = !!targetUser?.require_follow_approval;
+  const requiresApproval = !!targetUser?.followers_only;
 
   const { data: blockStatus, isLoading: isLoadingBlockStatus } = useBlockStatus(
     user?.id,

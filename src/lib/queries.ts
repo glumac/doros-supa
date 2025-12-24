@@ -6,7 +6,13 @@ type User = Database["public"]["Tables"]["users"]["Row"];
 
 // Feed query - gets completed pomodoros (RLS automatically filters to visible ones)
 // Note: Blocked users are filtered at the application level since RLS doesn't have user context
-export async function getFeed(limit = 20, currentUserId?: string) {
+// feedType: 'global' = shows all public pomodoros (followers_only = false)
+//          'following' = shows only pomodoros from users you follow
+export async function getFeed(
+  limit = 20,
+  currentUserId?: string,
+  feedType: 'global' | 'following' = 'global'
+) {
   let query = supabase
     .from("pomodoros")
     .select(
@@ -23,17 +29,41 @@ export async function getFeed(limit = 20, currentUserId?: string) {
 
   const { data, error } = await query;
 
-  // Filter out pomodoros in BOTH directions if currentUserId is provided
-  // - Users the current user has blocked
-  // - Users who have blocked the current user
+  if (error) {
+    return { data: null, error };
+  }
+
+  // Filter based on feed type and blocking relationships
   if (currentUserId && data) {
-    // Optimized: Single query to get all relevant blocks (both directions)
+    let filteredData = data;
+
+    // For "following" feed, only show pomodoros from users you follow (or your own)
+    if (feedType === 'following') {
+      // Get list of users you're following
+      const { data: following } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", currentUserId);
+
+      const followingIds = new Set(
+        following?.map((f) => f.following_id) || []
+      );
+      // Include your own pomodoros and pomodoros from users you follow
+      followingIds.add(currentUserId);
+
+      filteredData = filteredData.filter(
+        (pomodoro) => followingIds.has(pomodoro.user_id)
+      );
+    }
+
+    // Filter out pomodoros in BOTH directions (blocking)
+    // - Users the current user has blocked
+    // - Users who have blocked the current user
     const { data: blocks } = await supabase
       .from("blocks")
       .select("blocker_id, blocked_id")
       .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
 
-    // Create sets for efficient lookup
     const blockedByMe = new Set(
       blocks?.filter((b) => b.blocker_id === currentUserId).map((b) => b.blocked_id) || []
     );
@@ -42,7 +72,7 @@ export async function getFeed(limit = 20, currentUserId?: string) {
     );
 
     // Filter out pomodoros from users in either set
-    const filteredData = data.filter(
+    filteredData = filteredData.filter(
       (pomodoro) => !blockedByMe.has(pomodoro.user_id) && !blockedMe.has(pomodoro.user_id)
     );
 

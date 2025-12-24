@@ -88,7 +88,7 @@ describe('FollowersModal', () => {
 
     // Set up default mocks for FollowButton component
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
     vi.mocked(queries.isFollowingUser).mockResolvedValue({

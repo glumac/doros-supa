@@ -179,7 +179,7 @@ export type Database = {
           email: string
           id: string
           privacy_setting: string | null
-          require_follow_approval: boolean | null
+          followers_only: boolean | null
           updated_at: string | null
           user_name: string
         }

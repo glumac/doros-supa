@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useFeed, useSearchPomodoros } from "../hooks/useFeed";
 import { useAuth } from "../contexts/AuthContext";
 import Doros from "./Doros";
@@ -8,11 +8,15 @@ import Spinner from "./Spinner";
 const Feed = () => {
   const { user } = useAuth();
   const { categoryId } = useParams<{ categoryId?: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Read feed type from URL param, default to 'global'
+  const feedType = (searchParams.get('feed') || 'global') as 'global' | 'following';
 
   // Use React Query hooks - automatically switches between feed and search
   const { data: doros = [], isLoading: loading } = categoryId
     ? useSearchPomodoros(categoryId)
-    : useFeed(20, user?.id);
+    : useFeed(20, user?.id, feedType);
 
   useEffect(() => {
     const title = document.getElementById("crush-title");

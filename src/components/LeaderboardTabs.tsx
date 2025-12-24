@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import GlobalLeaderboard from './GlobalLeaderboard';
 import FriendsLeaderboard from './FriendsLeaderboard';
 
 export default function LeaderboardTabs() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'global'>('friends');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Read feed type from URL param, default to 'global'
+  const feedType = searchParams.get('feed') || 'global';
+  const activeTab = feedType === 'global' ? 'global' : 'friends';
+
+  const handleTabChange = (tab: 'friends' | 'global') => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('feed', tab === 'friends' ? 'following' : 'global');
+    navigate(`?${newParams.toString()}`, { replace: true });
+  };
 
   return (
     <div className="cq-cq-leaderboard-tabs-container cq-leaderboard-tabs" style={{ width: '100%' }}>
@@ -17,7 +28,7 @@ export default function LeaderboardTabs() {
         }}
       >
         <button
-          onClick={() => setActiveTab('friends')}
+          onClick={() => handleTabChange('friends')}
           className={`cq-leaderboard-tab cq-leaderboard-tab-friends ${activeTab === 'friends' ? 'cq-leaderboard-tab-active' : ''}`}
           style={{
             flex: 1,
@@ -36,7 +47,7 @@ export default function LeaderboardTabs() {
           👥 Friends
         </button>
         <button
-          onClick={() => setActiveTab('global')}
+          onClick={() => handleTabChange('global')}
           className={`cq-leaderboard-tab cq-leaderboard-tab-global ${activeTab === 'global' ? 'cq-leaderboard-tab-active' : ''}`}
           style={{
             flex: 1,

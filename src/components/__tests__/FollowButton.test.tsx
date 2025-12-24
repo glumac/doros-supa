@@ -90,7 +90,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
 
@@ -112,7 +112,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
 
@@ -133,7 +133,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
 
@@ -150,7 +150,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
 
@@ -171,7 +171,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: true },
+      data: { followers_only: true },
       error: null
     });
 
@@ -194,7 +194,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
     vi.mocked(queries.followUser).mockResolvedValue({
@@ -230,7 +230,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: true },
+      data: { followers_only: true },
       error: null
     });
     vi.mocked(queries.createFollowRequest).mockResolvedValue({
@@ -266,7 +266,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: true },
+      data: { followers_only: true },
       error: null
     });
     vi.mocked(queries.cancelFollowRequest).mockResolvedValue({
@@ -297,7 +297,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
     vi.mocked(queries.unfollowUser).mockResolvedValue({
@@ -333,7 +333,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
     vi.mocked(queries.followUser).mockResolvedValue({
@@ -368,7 +368,7 @@ describe('FollowButton', () => {
       error: null
     });
     vi.mocked(queries.getUserProfile).mockResolvedValue({
-      data: { require_follow_approval: false },
+      data: { followers_only: false },
       error: null
     });
     vi.mocked(queries.followUser).mockImplementation(

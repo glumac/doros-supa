@@ -135,7 +135,7 @@ describe('Feed', () => {
 
     // Feed should be loaded on mount
     expect(queries.getFeed).toHaveBeenCalledTimes(1);
-    expect(queries.getFeed).toHaveBeenCalledWith(20, 'current-user');
+    expect(queries.getFeed).toHaveBeenCalledWith(20, 'current-user', 'global');
   });
 
   it('should respect RLS and only show followed users pomodoros', async () => {

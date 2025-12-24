@@ -40,7 +40,7 @@ const mockUserProfile = {
   user_name: 'Test User',
   email: 'test@example.com',
   avatar_url: 'https://example.com/avatar.jpg',
-  require_follow_approval: false,
+  followers_only: false,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
 };
@@ -99,7 +99,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -110,11 +110,11 @@ describe('PrivacySettings', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
-      expect(screen.getByText('Require Follow Approval')).toBeInTheDocument();
+      expect(screen.getByText('Followers Only')).toBeInTheDocument();
     });
   });
 
-  it('should display toggle in off state when require_follow_approval is false', async () => {
+  it('should display toggle in off state when followers_only is false', async () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
@@ -122,7 +122,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -138,7 +138,7 @@ describe('PrivacySettings', () => {
     });
   });
 
-  it('should display toggle in on state when require_follow_approval is true', async () => {
+  it('should display toggle in on state when followers_only is true', async () => {
     vi.mocked(queries.getUserProfile).mockResolvedValue({
       data: {
         id: 'user-123',
@@ -146,7 +146,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: true,
+        followers_only: true,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -172,7 +172,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -197,7 +197,7 @@ describe('PrivacySettings', () => {
     await user.click(toggleButton);
 
     await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalledWith({ require_follow_approval: true });
+      expect(mockUpdate).toHaveBeenCalledWith({ followers_only: true });
     });
   });
 
@@ -211,7 +211,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -251,7 +251,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -292,7 +292,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -328,7 +328,7 @@ describe('PrivacySettings', () => {
         email: 'test@example.com',
         avatar_url: null,
         privacy_setting: null,
-        require_follow_approval: false,
+        followers_only: false,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
       },
@@ -343,7 +343,7 @@ describe('PrivacySettings', () => {
       expect(screen.getByText(/Your weekly pomodoro totals will still appear on the global leaderboard/i)).toBeInTheDocument();
       expect(screen.getByText(/your total pomodoro count will still be visible in search/i)).toBeInTheDocument();
       expect(screen.getByText(/individual pomodoros will only be visible to approved followers/i)).toBeInTheDocument();
-      expect(screen.getByText(/When disabled, anyone can follow you instantly/i)).toBeInTheDocument();
+      expect(screen.getByText(/When disabled, your pomodoros appear in the global feed and anyone can follow you instantly/i)).toBeInTheDocument();
     });
   });
 });
