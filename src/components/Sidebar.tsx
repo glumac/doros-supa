@@ -93,7 +93,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
               }
               onClick={handleCloseSidebar}
             >
-              <RiHomeFill />
+              <RiHomeFill className="w-5 h-5" />
               Home
             </NavLink>
           </div>
@@ -106,7 +106,8 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
               }
               onClick={handleCloseSidebar}
             >
-              🔍 Find Friends
+              <span className="w-5 h-5 flex items-center justify-center">🔍</span>
+              Find Friends
             </NavLink>
           </div>
 
