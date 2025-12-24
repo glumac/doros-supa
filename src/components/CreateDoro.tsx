@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { MdDelete } from "react-icons/md";
 import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
-import { uploadPomodoroImage, deletePomodoroImage } from "../lib/storage";
+import { uploadPomodoroImage, getImageSignedUrl } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
 import { useCreatePomodoroMutation } from "../hooks/useMutations";
 import Spinner from "./Spinner";
@@ -314,7 +314,6 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         console.log("Upload failed:", error);
       } else if (imagePath) {
         // Generate a signed URL for immediate display
-        const { getImageSignedUrl } = await import("../lib/storage");
         const signedUrl = await getImageSignedUrl(imagePath);
         if (signedUrl) {
           setImageAsset({ _id: imagePath, url: signedUrl });
