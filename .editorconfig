@@ -1,0 +1,36 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+
+# Package.json files
+[package.json]
+insert_final_newline = true
+
+# JSON files
+[*.json]
+insert_final_newline = true
+
+# TypeScript/JavaScript files
+[*.{ts,tsx,js,jsx}]
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+
+# SQL files
+[*.sql]
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+
