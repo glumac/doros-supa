@@ -1,13 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import tomatoes from "../assets/tomatoes.jpg";
 import { supabase } from "../lib/supabaseClient";
+
+type AuthMode = 'password-signin' | 'password-signup' | 'magic-link' | 'otp';
 
 const Login = () => {
   const [showingWhatIs, setShowingWhatIs] = useState(false);
   const [showingWhatIs2, setShowingWhatIs2] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Email/Password state
+  const [passwordMode, setPasswordMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  // Passwordless state
+  const [passwordlessMode, setPasswordlessMode] = useState<'magic-link' | 'otp'>('magic-link');
+  const [passwordlessEmail, setPasswordlessEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [passwordlessError, setPasswordlessError] = useState('');
+  const [passwordlessSuccess, setPasswordlessSuccess] = useState('');
+
+  // Active auth section - default to password for tests
+  const [activeSection, setActiveSection] = useState<'google' | 'password' | 'passwordless'>('password');
+
+  // Refs for focus management
+  const passwordErrorRef = useRef<HTMLDivElement>(null);
+  const passwordSuccessRef = useRef<HTMLDivElement>(null);
+  const passwordlessErrorRef = useRef<HTMLDivElement>(null);
+  const passwordlessSuccessRef = useRef<HTMLDivElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordlessEmailInputRef = useRef<HTMLInputElement>(null);
 
   const handleGoogleLogin = async () => {
     try {
@@ -35,6 +63,156 @@ const Login = () => {
     }
   };
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Focus management for errors
+  useEffect(() => {
+    if (passwordError && emailInputRef.current) {
+      emailInputRef.current.focus();
+    }
+  }, [passwordError]);
+
+  useEffect(() => {
+    if (passwordlessError && passwordlessEmailInputRef.current) {
+      passwordlessEmailInputRef.current.focus();
+    }
+  }, [passwordlessError]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!email || !password) {
+      setPasswordError('Please fill in all fields');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setPasswordError('Invalid email format');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (passwordMode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
+
+        if (error) {
+          setPasswordError(error.message);
+        } else if (data.user) {
+          setPasswordSuccess('Check your email to confirm your account');
+        } else {
+          // Obfuscated response - show generic message
+          setPasswordSuccess('Check your email');
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          if (error.message.includes('confirm')) {
+            setPasswordError('Please confirm your email address');
+          } else {
+            setPasswordError(error.message);
+          }
+        } else if (data.session) {
+          // Success - AuthContext will handle redirect
+          navigate('/');
+        }
+      }
+    } catch (error) {
+      setPasswordError('An unexpected error occurred');
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordlessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordlessError('');
+    setPasswordlessSuccess('');
+
+    if (!passwordlessEmail) {
+      setPasswordlessError('Please enter your email');
+      return;
+    }
+
+    if (!validateEmail(passwordlessEmail)) {
+      setPasswordlessError('Invalid email format');
+      return;
+    }
+
+    if (passwordlessMode === 'otp' && otpRequested && otpCode) {
+      // Verify OTP
+      if (otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
+        setPasswordlessError('OTP code must be 6 digits');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: passwordlessEmail,
+          token: otpCode,
+          type: 'email',
+        });
+
+        if (error) {
+          setPasswordlessError(error.message);
+        } else if (data.session) {
+          navigate('/');
+        }
+      } catch (error) {
+        setPasswordlessError('An unexpected error occurred');
+        console.error('OTP verification error:', error);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Request magic link or OTP
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: passwordlessEmail,
+        options: passwordlessMode === 'magic-link' ? {
+          emailRedirectTo: `${window.location.origin}/`,
+        } : undefined,
+      });
+
+      if (error) {
+        setPasswordlessError(error.message);
+      } else {
+        if (passwordlessMode === 'magic-link') {
+          setPasswordlessSuccess('Check your email for the magic link');
+        } else {
+          setPasswordlessSuccess('Check your email for the 6-digit code');
+          setOtpRequested(true);
+        }
+      }
+    } catch (error) {
+      setPasswordlessError('An unexpected error occurred');
+      console.error('Passwordless auth error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="cq-login-container">
       <div className="cq-login-wrapper flex justify-start items-center flex-col h-screen">
@@ -48,7 +226,7 @@ const Login = () => {
               </h1>
             </div>
 
-            <div className="cq-login-button-container shadow-2xl">
+            <div className="cq-login-button-container shadow-2xl flex flex-col gap-4">
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
@@ -74,6 +252,234 @@ const Login = () => {
                 </svg>
                 {loading ? "Signing in..." : "Sign in with Google"}
               </button>
+
+              {/* Email/Password Form */}
+              <div className="bg-white bg-opacity-90 rounded-lg p-4 min-w-[300px]">
+                <div className="flex gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSection('password');
+                      setPasswordMode('signin');
+                      setPasswordError('');
+                      setPasswordSuccess('');
+                    }}
+                    className={`font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5 ${activeSection === 'password' ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-700'}`}
+                    aria-pressed={activeSection === 'password'}
+                  >
+                    Email/Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSection('passwordless');
+                      setPasswordlessMode('magic-link');
+                      setPasswordlessError('');
+                      setPasswordlessSuccess('');
+                      setOtpRequested(false);
+                    }}
+                    className={`font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5 ${activeSection === 'passwordless' ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-700'}`}
+                    aria-pressed={activeSection === 'passwordless'}
+                    aria-label="Switch to passwordless authentication"
+                  >
+                    Passwordless
+                  </button>
+                </div>
+
+                {activeSection === 'password' && (
+                  <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        ref={emailInputRef}
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (passwordError) setPasswordError('');
+                        }}
+                        className="max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2 w-full"
+                        aria-label="Email address"
+                        aria-invalid={passwordError ? 'true' : 'false'}
+                        aria-describedby={passwordError ? 'password-error' : passwordSuccess ? 'password-success' : undefined}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                        Password
+                      </label>
+                      <input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (passwordError) setPasswordError('');
+                        }}
+                        className="max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2 w-full"
+                        aria-label="Password"
+                        aria-invalid={passwordError ? 'true' : 'false'}
+                        aria-describedby={passwordError ? 'password-error' : passwordSuccess ? 'password-success' : undefined}
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPasswordMode(passwordMode === 'signin' ? 'signup' : 'signin');
+                          setPasswordError('');
+                          setPasswordSuccess('');
+                        }}
+                        className="text-sm text-green-700 hover:underline font-bold"
+                        aria-label={passwordMode === 'signin' ? 'Switch to sign up' : 'Switch to sign in'}
+                        aria-pressed={passwordMode === 'signup'}
+                      >
+                        {passwordMode === 'signin' ? 'Switch to Sign Up' : 'Switch to Sign In'}
+                      </button>
+                    </div>
+                    {passwordError && (
+                      <div
+                        ref={passwordErrorRef}
+                        id="password-error"
+                        role="alert"
+                        aria-live="assertive"
+                        className="text-red-600 text-sm"
+                      >
+                        {passwordError}
+                      </div>
+                    )}
+                    {passwordSuccess && (
+                      <div
+                        ref={passwordSuccessRef}
+                        id="password-success"
+                        role="status"
+                        aria-live="polite"
+                        className="text-green-600 text-sm"
+                      >
+                        {passwordSuccess}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || !email || !password}
+                      className="bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-busy={loading}
+                    >
+                      {loading ? 'Loading...' : passwordMode === 'signup' ? 'Sign Up' : 'Sign In'}
+                    </button>
+                  </form>
+                )}
+
+                {activeSection === 'passwordless' && (
+                  <form onSubmit={handlePasswordlessSubmit} className="flex flex-col gap-3">
+                    <div>
+                      <label htmlFor="passwordless-email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        ref={passwordlessEmailInputRef}
+                        id="passwordless-email"
+                        type="email"
+                        value={passwordlessEmail}
+                        onChange={(e) => {
+                          setPasswordlessEmail(e.target.value);
+                          if (passwordlessError) setPasswordlessError('');
+                        }}
+                        className="max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2 w-full"
+                        aria-label="Email address"
+                        aria-invalid={passwordlessError ? 'true' : 'false'}
+                        aria-describedby={passwordlessError ? 'passwordless-error' : passwordlessSuccess ? 'passwordless-success' : undefined}
+                        disabled={otpRequested && passwordlessMode === 'otp'}
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPasswordlessMode(passwordlessMode === 'magic-link' ? 'otp' : 'magic-link');
+                          setPasswordlessError('');
+                          setPasswordlessSuccess('');
+                          setOtpRequested(false);
+                          setOtpCode('');
+                        }}
+                        className="text-sm text-green-700 hover:underline font-bold"
+                        aria-label={passwordlessMode === 'magic-link' ? 'Switch to OTP' : 'Switch to Magic Link'}
+                        aria-pressed={passwordlessMode === 'otp'}
+                      >
+                        {passwordlessMode === 'magic-link' ? 'Switch to OTP' : 'Switch to Magic Link'}
+                      </button>
+                    </div>
+                    {passwordlessMode === 'otp' && otpRequested && (
+                      <div>
+                        <label htmlFor="otp-code" className="block text-sm font-medium text-gray-700 mb-1">
+                          OTP Code
+                        </label>
+                        <input
+                          id="otp-code"
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]{6}"
+                          value={otpCode}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setOtpCode(value);
+                            if (passwordlessError) setPasswordlessError('');
+                          }}
+                          className="max-w-full placeholder-gray-500 outline-none flex-grow text-2xl sm:text-xl font-bold border-2 rounded-lg border-gray-200 p-2 w-full"
+                          aria-label="OTP verification code"
+                          placeholder="123456"
+                          maxLength={6}
+                          aria-invalid={passwordlessError ? 'true' : 'false'}
+                          aria-describedby={passwordlessError ? 'passwordless-error' : passwordlessSuccess ? 'passwordless-success' : undefined}
+                          required
+                        />
+                      </div>
+                    )}
+                    {passwordlessError && (
+                      <div
+                        ref={passwordlessErrorRef}
+                        id="passwordless-error"
+                        role="alert"
+                        aria-live="assertive"
+                        className="text-red-600 text-sm"
+                      >
+                        {passwordlessError}
+                      </div>
+                    )}
+                    {passwordlessSuccess && (
+                      <div
+                        ref={passwordlessSuccessRef}
+                        id="passwordless-success"
+                        role="status"
+                        aria-live="polite"
+                        className="text-green-600 text-sm"
+                      >
+                        {passwordlessSuccess}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || !passwordlessEmail || (passwordlessMode === 'otp' && otpRequested && otpCode.length !== 6)}
+                      className="bg-red-600 text-white font-bold px-5 text-base rounded-lg hover:shadow-md outline-none py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-busy={loading}
+                    >
+                      {loading
+                        ? 'Loading...'
+                        : passwordlessMode === 'otp' && otpRequested
+                        ? 'Verify'
+                        : passwordlessMode === 'magic-link'
+                        ? 'Send Magic Link'
+                        : 'Send Code'}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
 
             <div className="cq-login-info pt-10 text-white flex-col flex relative">
