@@ -112,6 +112,9 @@ export default function FriendsLeaderboard() {
                   marginRight: '15px',
                   objectFit: 'cover'
                 }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getAvatarPlaceholder(50);
+                }}
               />
 
               {/* User Info */}

@@ -190,6 +190,9 @@ const UserProfile = () => {
               className="cq-user-profile-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
               src={displayUser?.avatar_url || getAvatarPlaceholder(80)}
               alt="user-pic"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getAvatarPlaceholder(80);
+              }}
             />
           </div>
           <h1 className="cq-user-profile-name text-green-700 font-medium text-5xl text-center mt-3">
@@ -271,6 +274,9 @@ const UserProfile = () => {
                             src={request.users?.avatar_url || getAvatarPlaceholder(40)}
                             alt={request.users?.user_name}
                             className="cq-user-profile-follow-request-avatar w-10 h-10 rounded-full"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
+                            }}
                           />
                           <span className="cq-user-profile-follow-request-name font-medium">
                             {request.users?.user_name}

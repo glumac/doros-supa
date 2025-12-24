@@ -158,6 +158,9 @@ const Home = () => {
                     src={userProfile?.avatar_url || getAvatarPlaceholder(36)}
                     alt="user-pic"
                     className="w-9 h-9 rounded-full "
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getAvatarPlaceholder(36);
+                    }}
                   />
                 </Link>
               </div>

@@ -101,6 +101,9 @@ export default function CompactLeaderboard({ closeToggle }: CompactLeaderboardPr
                 src={leader.avatar_url || getAvatarPlaceholder(32)}
                 className="cq-compact-leaderboard-item-avatar w-8 h-8 rounded-full basis-3"
                 alt="user-profile"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getAvatarPlaceholder(32);
+                }}
               />
               <div className="cq-compact-leaderboard-item-info flex justify-between basis-full">
                 <p className="cq-compact-leaderboard-item-name text-sm">{leader.user_name}</p>

@@ -97,6 +97,9 @@ export default function GlobalLeaderboard() {
                 marginRight: '15px',
                 objectFit: 'cover'
               }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getAvatarPlaceholder(50);
+              }}
             />
 
             {/* User Info */}

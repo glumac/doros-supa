@@ -110,6 +110,9 @@ export default function UserSearch() {
                 src={result.avatar_url || getAvatarPlaceholder(50)}
                 alt={result.user_name}
                 className="cq-user-search-result-avatar w-12 h-12 rounded-full mr-4 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getAvatarPlaceholder(50);
+                }}
               />
 
               {/* User Info */}
@@ -156,6 +159,9 @@ export default function UserSearch() {
                       src={result.avatar_url || getAvatarPlaceholder(50)}
                       alt={result.user_name}
                       className="cq-user-search-suggestion-avatar w-12 h-12 rounded-full mr-4 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getAvatarPlaceholder(50);
+                      }}
                     />
 
                     {/* User Info */}

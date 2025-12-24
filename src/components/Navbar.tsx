@@ -33,6 +33,9 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
               src={user.avatar_url || getAvatarPlaceholder(48)}
               alt="user-pic"
               className="cq-navbar-user-avatar w-12 h-12 rounded-lg object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getAvatarPlaceholder(48);
+              }}
             />
           </Link>
         </div>

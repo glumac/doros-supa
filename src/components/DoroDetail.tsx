@@ -189,6 +189,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                   src={doro?.users?.avatar_url || getAvatarPlaceholder(40)}
                   className="cq-doro-detail-user-avatar w-10 h-10 rounded-full"
                   alt="user-profile"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
+                  }}
                 />
                 <p className="cq-doro-detail-user-name font-bold">{doro?.users?.user_name}</p>
               </Link>
@@ -274,6 +277,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                                   className="cq-doro-detail-like-avatar w-5 h-5 mr-0.5 rounded-full object-cover block"
                                   src={like.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getAvatarPlaceholder(20);
+                                }}
                               />
                             </div>
                           ))}
@@ -340,6 +346,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                                 className="cq-doro-detail-comment-avatar w-5 h-5 rounded-full object-cover block relative top-1"
                                 src={comment.users?.avatar_url || getAvatarPlaceholder(20)}
                                 alt="user-profile"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getAvatarPlaceholder(20);
+                                }}
                               />
                             </Link>
                           </div>

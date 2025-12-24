@@ -587,6 +587,9 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                         src={user?.avatar_url || getAvatarPlaceholder(40)}
                         className="cq-create-doro-completed-user-avatar w-10 h-10 rounded-full"
                         alt="user-profile"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
+                        }}
                       />
                       <p className="cq-create-doro-completed-user-name font-bold">{user?.user_name}</p>
                     </div>

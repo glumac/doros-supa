@@ -244,6 +244,9 @@ export default function PrivacySettings() {
                       borderRadius: '50%',
                       objectFit: 'cover',
                     }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
+                    }}
                   />
                   <div className="cq-privacy-settings-blocked-item-details">
                     <div className="cq-privacy-settings-blocked-item-name" style={{ fontWeight: '600', fontSize: '15px' }}>

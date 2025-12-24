@@ -283,6 +283,9 @@ export default function FollowersModal({
                       borderRadius: '50%',
                       objectFit: 'cover',
                     }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getAvatarPlaceholder(44);
+                    }}
                   />
                   <div className="cq-followers-modal-item-info" style={{ flex: 1 }}>
                     <div className="cq-followers-modal-item-name" style={{ fontWeight: '600', fontSize: '15px' }}>
