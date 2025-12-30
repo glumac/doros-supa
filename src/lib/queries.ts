@@ -24,7 +24,7 @@ export async function getFeed(
     `
     )
     .eq("completed", true)
-    .order("created_at", { ascending: false })
+    .order("launch_at", { ascending: false })
     .limit(limit);
 
   const { data, error } = await query;
