@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { AiOutlineCloudUpload } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import { MdDelete } from "react-icons/md";
@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabaseClient";
 import { uploadPomodoroImage, getImageSignedUrl } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
 import { useCreatePomodoroMutation } from "../hooks/useMutations";
+import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { validateImageFile } from "../lib/imageValidation";
 import Spinner from "./Spinner";
 import whoosh from "../assets/whoosh.mp3";
 import DoroContext from "../utils/DoroContext";
@@ -40,6 +42,141 @@ interface CreateDoroProps {
   user?: User;
 }
 
+interface ImageUploadAreaProps {
+  loading: boolean;
+  imageAsset: SanityAsset | null;
+  uploadError: string | null;
+  onFileSelect: (file: File) => void;
+  onError: (error: string) => void;
+  onDelete: () => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  disabled: boolean;
+  onFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const ImageUploadArea = ({
+  loading,
+  imageAsset,
+  uploadError,
+  onFileSelect,
+  onError,
+  onDelete,
+  fileInputRef,
+  disabled,
+  onFileInputChange,
+}: ImageUploadAreaProps) => {
+  const {
+    isDragging,
+    onDragEnter,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+    onKeyDown,
+    ariaProps,
+  } = useDragAndDrop({
+    onFileSelect,
+    onError,
+    fileInputRef,
+    disabled,
+  });
+
+  const dropZoneClasses = `cq-create-doro-image-upload-area flex justify-center items-center flex-col border-2 border-dotted p-3 w-full h-420 transition-all duration-200 ${
+    isDragging
+      ? 'border-red-600 bg-red-50'
+      : 'border-gray-300'
+  } ${disabled ? 'pointer-events-none opacity-50' : ''} focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2`;
+
+  return (
+    <div
+      className={dropZoneClasses}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onKeyDown={onKeyDown}
+      {...ariaProps}
+      aria-describedby="upload-hint"
+      aria-errormessage={uploadError ? 'upload-error' : undefined}
+    >
+      {loading && (
+        <div className="cq-create-doro-image-loading mt-8" aria-live="polite" aria-busy="true">
+          <Spinner />
+        </div>
+      )}
+      {uploadError && (
+        <p
+          id="upload-error"
+          className="cq-create-doro-image-error text-red-600 mb-2 text-sm"
+          role="alert"
+        >
+          {uploadError}
+        </p>
+      )}
+      {!imageAsset && !loading && (
+        <>
+          <label
+            className="cq-create-doro-image-upload-label cursor-pointer"
+            htmlFor="upload-image-input"
+          >
+            <div className="cq-create-doro-image-upload-prompt flex flex-col items-center justify-center h-full">
+              <div className="cq-create-doro-image-upload-icon-container flex max-w-full flex-col justify-center items-center">
+                <p className="cq-create-doro-image-upload-icon font-bold text-2xl">
+                  <AiOutlineCloudUpload />
+                </p>
+                <p className="cq-create-doro-image-upload-text text-center text-lg">
+                  {isDragging ? 'Drop image here' : 'Drag and drop or click to upload'}
+                </p>
+              </div>
+
+              <p
+                id="upload-hint"
+                className="cq-create-doro-image-upload-hint max-w-fit mt-32 text-center text-gray-400"
+              >
+                PNG, JPEG, GIF, WebP, or HEIC <br /> less than 5MB
+              </p>
+            </div>
+          </label>
+          <input
+            id="upload-image-input"
+            ref={fileInputRef}
+            type="file"
+            name="upload-image"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/heic"
+            onChange={onFileInputChange}
+            className="cq-create-doro-image-input w-0 h-0 opacity-0 absolute"
+            aria-label="File input"
+          />
+        </>
+      )}
+      {imageAsset && !loading && (
+        <div className="cq-create-doro-image-preview-container relative h-full flex justify-center align-center">
+          <div className="cq-create-doro-image-preview flex align-center">
+            <img
+              src={imageAsset?.url}
+              alt="uploaded-pic"
+              className="cq-create-doro-image-preview-img w-full self-center"
+            />
+          </div>
+          <button
+            type="button"
+            className="cq-create-doro-image-delete-button absolute bottom-3 right-3 p-3 rounded-full bg-white text-xl cursor-pointer outline-none hover:shadow-md transition-all duration-500 ease-in-out"
+            onClick={onDelete}
+            aria-label="Delete image"
+            disabled={disabled}
+          >
+            <MdDelete />
+          </button>
+        </div>
+      )}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {loading && 'Uploading image...'}
+        {uploadError && `Upload failed: ${uploadError}`}
+        {imageAsset && !loading && 'Image uploaded successfully'}
+      </div>
+    </div>
+  );
+};
+
 // Dev flag: Set to true to make pomodoros last 5 seconds instead of 25 minutes
 const DEV_MODE_SHORT_TIMER = import.meta.env.DEV && import.meta.env.VITE_DEV_SHORT_TIMER === 'true';
 
@@ -60,8 +197,9 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   const [notes, setNotes] = useState("");
   const [fields, setFields] = useState(false);
   const [imageAsset, setImageAsset] = useState<SanityAsset | null>(null);
-  const [wrongImageType, setWrongImageType] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
   const createPomodoroMutation = useCreatePomodoroMutation();
@@ -270,46 +408,40 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     setNotes("");
     setCompleted(false);
     setImageAsset(null);
-    setWrongImageType(false);
+    setUploadError(null);
     setIsActive(false);
     setIsPaused(false);
     setTimeLeft(null);
     doroContext.setInProgress(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFileUpload = async (file: File) => {
+    setUploadError(null);
 
-    if (!selectedFile) return;
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error || 'Invalid file');
+      return;
+    }
 
-    console.log("FILE TYPE", selectedFile.type);
+    if (!user?.id) {
+      setUploadError("You must be logged in to upload images");
+      return;
+    }
 
-    // uploading asset to Supabase Storage
-    if (
-      selectedFile.type === "image/png" ||
-      selectedFile.type === "image/svg" ||
-      selectedFile.type === "image/jpeg" ||
-      selectedFile.type === "image/jpg" ||
-      selectedFile.type === "image/gif" ||
-      selectedFile.type === "image/tiff" ||
-      selectedFile.type === "image/webp" ||
-      selectedFile.type === "image/heic"
-    ) {
-      setWrongImageType(false);
-      setLoading(true);
+    setLoading(true);
 
-      if (!user?.id) {
-        setLoading(false);
-        alert("You must be logged in to upload images");
-        return;
-      }
-
-      const { imagePath, error } = await uploadPomodoroImage(selectedFile, user.id);
+    try {
+      const { imagePath, error } = await uploadPomodoroImage(file, user.id);
 
       if (error) {
         setLoading(false);
-        alert(
-          "Sorry, that image did not work. (Note: HEIC - some iPhone- images are not supported yet if you upload from a computer and not iPhone :/)"
+        setUploadError(
+          "Sorry, that image did not work. (Note: HEIC - some iPhone images are not supported yet if you upload from a computer and not iPhone :/)"
         );
         console.log("Upload failed:", error);
       } else if (imagePath) {
@@ -322,11 +454,22 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
           setImageAsset({ _id: imagePath, url: imagePath });
         }
         setLoading(false);
+        // Reset file input to allow re-uploading same file
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-    } else {
+    } catch (error) {
       setLoading(false);
-      setWrongImageType(true);
+      setUploadError("Network error. Please check your connection and try again.");
+      console.error("Upload error:", error);
     }
+  };
+
+  const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    await handleFileUpload(selectedFile);
   };
 
   const finishDoro = () => {
@@ -488,54 +631,20 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
           )}
           <div className="cq-create-doro-completed-content flex lg:flex-row flex-col justify-between items-center bg-white lg:p-2 p-1 w-full">
             <div className="cq-create-doro-image-upload-container bg-secondaryColor rounded-lg p-3 flex flex-0.7 w-full">
-              <div className="cq-create-doro-image-upload-area flex justify-center items-center flex-col border-2 border-dotted border-gray-300 p-3 w-full h-420">
-                {loading && (
-                  <div className="cq-create-doro-image-loading mt-8">
-                    <Spinner />
-                  </div>
-                )}
-                {wrongImageType && <p className="cq-create-doro-image-error">It&apos;s wrong file type.</p>}
-                {!imageAsset ? (
-                  // eslint-disable-next-line jsx-a11y/label-has-associated-control
-                  <label className="cq-create-doro-image-upload-label">
-                    <div className="cq-create-doro-image-upload-prompt flex cursor-pointer flex-col items-center justify-center h-full">
-                      <div className="cq-create-doro-image-upload-icon-container flex max-w-full flex-col justify-center items-center">
-                        <p className="cq-create-doro-image-upload-icon font-bold text-2xl">
-                          <AiOutlineCloudUpload />
-                        </p>
-                        <p className="cq-create-doro-image-upload-text text-lg">Click to upload</p>
-                      </div>
-
-                      <p className="cq-create-doro-image-upload-hint max-w-fit mt-32 text-center text-gray-400">
-                        JPG, JPEG, SVG, PNG, GIF <br /> or TIFF less than 20MB
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      name="upload-image"
-                      onChange={uploadImage}
-                      className="cq-create-doro-image-input w-0 h-0 opacity-0"
-                    />
-                  </label>
-                ) : (
-                  <div className="cq-create-doro-image-preview-container relative h-full flex justify-center align-center">
-                    <div className="cq-create-doro-image-preview flex align-center">
-                      <img
-                        src={imageAsset?.url}
-                        alt="uploaded-pic"
-                        className="cq-create-doro-image-preview-img w-full self-center"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="cq-create-doro-image-delete-button absolute bottom-3 right-3 p-3 rounded-full bg-white text-xl cursor-pointer outline-none hover:shadow-md transition-all duration-500 ease-in-out"
-                      onClick={() => setImageAsset(null)}
-                    >
-                      <MdDelete />
-                    </button>
-                  </div>
-                )}
-              </div>
+              <ImageUploadArea
+                loading={loading}
+                imageAsset={imageAsset}
+                uploadError={uploadError}
+                onFileSelect={handleFileUpload}
+                onError={setUploadError}
+                onDelete={() => {
+                  setImageAsset(null);
+                  setUploadError(null);
+                }}
+                fileInputRef={fileInputRef}
+                disabled={loading}
+                onFileInputChange={uploadImage}
+              />
             </div>
 
             <div className="cq-create-doro-completed-form flex flex-1 flex-col gap-6 lg:pl-5 mt-5 h-full w-full">
