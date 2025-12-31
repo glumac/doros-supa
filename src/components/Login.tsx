@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import tomatoes from "../assets/tomatoes.jpg";
 import { supabase } from "../lib/supabaseClient";
 
 const Login = () => {
-  const [showingWhatIs, setShowingWhatIs] = useState(false);
   const [showingWhatIs2, setShowingWhatIs2] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -77,17 +76,7 @@ const Login = () => {
             </div>
 
             <div className="cq-login-info pt-10 text-white flex-col flex relative">
-              <button
-                type="button"
-                onClick={() => setShowingWhatIs(!showingWhatIs)}
-                className="cq-login-info-toggle-1 text-white font-serif text-xl underline-offset-4 underline py-0.5 mb-2 rounded-lg outline-none hover:text-slate-100"
-              >
-                ???
-              </button>
-              <div
-                className="cq-login-info-content-1 max-w-xs text-center transition-all"
-                style={{ opacity: showingWhatIs ? 1 : 0 }}
-              >
+              <div className="cq-login-info-content-1 max-w-xs text-center transition-all">
                 <p className="cq-login-info-text-1 font-semibold">
                   Crush Quest is a social Pomodoro app (think... Strava for productivity). Here, FOM (Friends of Mike) support
                   each other as we make our 2026 dreams come true.
@@ -103,13 +92,22 @@ const Login = () => {
               </div>
               <div
                 className="cq-login-info-content-2 max-w-xs text-center transition-all"
-                style={{ opacity: showingWhatIs && showingWhatIs2 ? 1 : 0 }}
+                style={{ opacity: showingWhatIs2 ? 1 : 0 }}
               >
                 <p className="cq-login-info-text-2 font-semibold">
                   How do we do this? With the power of the tomato. The Pomodoro
                   Technique commits us to 25 minute blocks of radical focus. We give encouragement to our pom pals as we sieze the year.
                 </p>
               </div>
+            </div>
+
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4">
+              <Link
+                to="/toc-privacy"
+                className="cq-login-privacy-policy-link text-xs text-white/90 underline underline-offset-4 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70 rounded"
+              >
+                Privacy Policy
+              </Link>
             </div>
           </div>
         </div>

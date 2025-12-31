@@ -18,7 +18,7 @@ export default function TocPrivacy() {
             </p>
 
             <p className="mb-4">
-              This application is provided free of charge. We are committed to protecting your privacy and personal information.
+              Mike is providing this social productivity app free of charge. He iscommitted to protecting your privacy and personal information.
             </p>
 
             <h3 className="text-lg font-semibold mt-6 mb-3">

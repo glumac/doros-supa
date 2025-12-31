@@ -104,21 +104,28 @@ describe('Login CSS behavior', () => {
   });
 
   describe('conditional visibility for info sections', () => {
-    it('hides info text by default', () => {
+    it('shows the first info section by default and hides the second', () => {
       const { container } = renderLogin();
 
-      const infoText = container.querySelector('.cq-login-info-content-1');
-      expect(infoText).toBeInTheDocument();
+      expect(
+        screen.getByText(/Crush Quest is a social Pomodoro app/i)
+      ).toBeVisible();
+
+      const secondInfo = container.querySelector('.cq-login-info-content-2');
+      expect(secondInfo).toBeInTheDocument();
+      expect(
+        screen.getByText(/How do we do this\?/i)
+      ).not.toBeVisible();
     });
 
-    it('shows first info section when ??? button clicked', async () => {
+    it('shows second info section when ??? button clicked', async () => {
       renderLogin();
       const user = userEvent.setup();
 
-      const buttons = screen.getAllByRole('button', { name: '???' });
-      await user.click(buttons[0]);
+      const button = screen.getByRole('button', { name: '???' });
+      await user.click(button);
 
-      expect(screen.getByText(/Crush Quest is a social Pomodoro app/i)).toBeInTheDocument();
+      expect(screen.getByText(/How do we do this\?/i)).toBeVisible();
     });
 
     it('toggles info visibility with transition classes', async () => {
@@ -126,16 +133,16 @@ describe('Login CSS behavior', () => {
       const user = userEvent.setup();
 
       // Find elements with transition-all class using semantic classname
-      const infoContent = container.querySelector('.cq-login-info-content-1');
+      const infoContent = container.querySelector('.cq-login-info-content-2');
       expect(infoContent).toBeInTheDocument();
       expect(infoContent).toHaveClass('transition-all');
 
-      const buttons = screen.getAllByRole('button', { name: '???' });
-      await user.click(buttons[0]);
+      const button = screen.getByRole('button', { name: '???' });
+      await user.click(button);
 
       // Info should be visible now
       await waitFor(() => {
-        expect(screen.getByText(/Crush Quest is a social Pomodoro app/i)).toBeVisible();
+        expect(screen.getByText(/How do we do this\?/i)).toBeVisible();
       });
     });
   });

@@ -81,7 +81,12 @@ describe('TocPrivacy - Public Access', () => {
       expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
       const lastUpdatedTexts = screen.getAllByText(/Last Updated:/i);
       expect(lastUpdatedTexts.length).toBeGreaterThan(0);
-      expect(screen.getByText(/This application is provided free of charge. We are committed to protecting your privacy/i)).toBeInTheDocument();
+      // Copy was updated; keep matcher resilient to minor whitespace changes.
+      expect(
+        screen.getByText(
+          /Mike is providing this social productivity app free of charge\..*He is\s*committed to protecting your privacy and personal information\./i,
+        ),
+      ).toBeInTheDocument();
     });
 
     it('displays Terms of Service section', () => {
