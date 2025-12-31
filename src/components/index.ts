@@ -19,4 +19,5 @@ export { default as Pagination } from "./Pagination";
 export { default as FollowersModal } from "./FollowersModal";
 export { default as FollowRequestsBanner } from "./FollowRequestsBanner";
 export { default as PrivacySettings } from "./PrivacySettings";
+export { default as TocPrivacy } from "./TocPrivacy";
 export { default as ImageModal } from "./ImageModal";

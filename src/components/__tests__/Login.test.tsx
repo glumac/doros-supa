@@ -118,7 +118,7 @@ describe('Login CSS behavior', () => {
       const buttons = screen.getAllByRole('button', { name: '???' });
       await user.click(buttons[0]);
 
-      expect(screen.getByText(/Crush Quest is a place where FOM/i)).toBeInTheDocument();
+      expect(screen.getByText(/Crush Quest is a social Pomodoro app/i)).toBeInTheDocument();
     });
 
     it('toggles info visibility with transition classes', async () => {
@@ -135,7 +135,7 @@ describe('Login CSS behavior', () => {
 
       // Info should be visible now
       await waitFor(() => {
-        expect(screen.getByText(/Crush Quest is a place where FOM/i)).toBeVisible();
+        expect(screen.getByText(/Crush Quest is a social Pomodoro app/i)).toBeVisible();
       });
     });
   });

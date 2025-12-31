@@ -284,7 +284,7 @@ describe('CreateDoro CSS behavior', () => {
       fireEvent.dragLeave(dropZone);
 
       // Should show original text
-      expect(screen.getByText(/click to upload or drag and drop/i)).toBeInTheDocument();
+      expect(screen.getByText(/drag and drop or click to upload/i)).toBeInTheDocument();
     });
 
     it('handles drop event with valid file', async () => {

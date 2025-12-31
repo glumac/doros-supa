@@ -7,7 +7,7 @@ import DoroDetail from '../DoroDetail';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { getPomodoroDetail } from '../../lib/queries';
-import { getDetailImageUrl } from '../../lib/storage';
+import { getDetailImageUrl, getFullSizeImageUrl } from '../../lib/storage';
 
 vi.mock('../../lib/supabaseClient', () => ({
   supabase: {
@@ -23,18 +23,6 @@ vi.mock('../../lib/storage', () => ({
   getImageSignedUrl: vi.fn().mockResolvedValue('https://example.com/image.jpg'),
   getDetailImageUrl: vi.fn().mockResolvedValue('https://example.com/image-detail.jpg'),
   getFullSizeImageUrl: vi.fn().mockResolvedValue('https://example.com/image-full.jpg')
-}));
-
-vi.mock('../ImageModal', () => ({
-  default: ({ isOpen, imagePath, onClose }: { isOpen: boolean; imagePath: string; onClose: () => void }) => {
-    if (!isOpen) return null;
-    return (
-      <div data-testid="image-modal" role="dialog">
-        <button onClick={onClose}>Close Modal</button>
-        <span>Image: {imagePath}</span>
-      </div>
-    );
-  }
 }));
 
 const createTestQueryClient = () => new QueryClient({
@@ -401,7 +389,7 @@ describe('DoroDetail', () => {
       await user.click(image);
 
       await waitFor(() => {
-        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
     });
 
@@ -428,7 +416,7 @@ describe('DoroDetail', () => {
       await user.click(image);
 
       await waitFor(() => {
-        expect(screen.getByText('Image: user-123/1234567890.jpg')).toBeInTheDocument();
+        expect(getFullSizeImageUrl).toHaveBeenCalledWith('user-123/1234567890.jpg');
       });
     });
 
@@ -455,14 +443,14 @@ describe('DoroDetail', () => {
       await user.click(image);
 
       await waitFor(() => {
-        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByText('Close Modal');
+      const closeButton = screen.getByRole('button', { name: /close modal/i });
       await user.click(closeButton);
 
       await waitFor(() => {
-        expect(screen.queryByTestId('image-modal')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
     });
 
@@ -534,20 +522,20 @@ describe('DoroDetail', () => {
       await user.click(imageButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByText('Close Modal');
+      const closeButton = screen.getByRole('button', { name: /close modal/i });
       await user.click(closeButton);
 
       await waitFor(() => {
-        expect(screen.queryByTestId('image-modal')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
 
       // Focus should return to the image button
       await waitFor(() => {
         expect(imageButton).toHaveFocus();
-      }, { timeout: 100 });
+      }, { timeout: 1000 });
     });
   });
 });
