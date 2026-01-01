@@ -49,7 +49,7 @@ src/
 - **Query invalidation** - Mutations invalidate related queries (e.g., liking invalidates feed, pomodoro detail)
 - **Optimistic updates** - Not currently implemented but structure supports it
 - **Protected routes** - Auth check in `AppRoutes` with loading state
-- **Prop drilling avoided** - Use contexts for deeply nested data (auth)
+- **Prop drilling avoided** - Use contexts for deeply nested data (auth)- **Accessibility hooks** - `useModal` (focus management, escape key, body scroll lock), `useModalFocus` (focus trap), `useDragAndDrop` (keyboard-accessible file upload)
 
 ---
 
@@ -57,7 +57,7 @@ src/
 
 ### Core Tables
 
-- **users** - User profiles (linked to Supabase Auth via FK)
+- **users** - User profiles (linked to Supabase Auth via FK, includes `deleted_at` for soft deletes)
 - **pomodoros** - Task sessions (launch_at, task, notes, completed, image_url)
 - **likes** - Pomodoro likes (many-to-many with unique constraint)
 - **comments** - Pomodoro comments
@@ -156,6 +156,7 @@ __tests__/
 - Supabase Auth session management
 - User profile synced to `users` table
 - AuthContext manages session state
+- Soft delete support (deleted users redirected to `/restore-account`)
 
 ### Privacy System
 
@@ -164,6 +165,10 @@ __tests__/
   - `followers_only = true`: Requires follow approval, pomodoros only visible to approved followers
 - **Follow requests:** Stored in `follow_requests` table (for users with `followers_only = true`)
 - **Blocks:** Hard filter (blocker can't see blocked user's content, bidirectional)
+- **Soft Delete:** Users can delete/restore accounts (sets `deleted_at` timestamp)
+  - Deleted users excluded via RLS and `public_user_profiles` view
+  - RPC functions: `soft_delete_user()`, `restore_user()`
+  - `/restore-account` route for restoration
 
 ### Feed
 
@@ -182,30 +187,20 @@ __tests__/
 
 - Global (top performers by pomodoro count)
 - Friends (users you follow)
+
 - Compact version for dashboard
 - Week/month/all-time filtering
 
 ### Storage
 
-- **Supabase Storage** for pomodoro images
-- **Bucket:** `pomodoro-images` (private bucket, requires signed URLs)
-- **File Structure:** Images stored as `userId/timestamp.ext` (e.g., `user-123/1234567890.jpg`)
-- **Database:** Path stored in `pomodoros.image_url` column (not full URL)
-- **RLS Policies:** Storage bucket policies match pomodoros table policies:
-  - Users can read their own images
-  - Users can read images from users they follow (if not blocked)
-  - Users can read images from users with `followers_only = false` (if not blocked)
-- **Signed URLs:** Generated on-demand via `getImageSignedUrl()` (expires in 1 hour by default)
-- **Helpers:** `lib/storage.ts` provides:
-  - `uploadPomodoroImage()` - Uploads file, returns path (not URL)
-  - `getImageSignedUrl()` - Generates signed URL from stored path
-  - `deletePomodoroImage()` - Deletes image from storage
-- **Display Flow:**
-  1. Component receives `image_url` path from database
-  2. `useEffect` calls `getImageSignedUrl()` to generate signed URL
-  3. Signed URL used in `<img src>` tag
-  4. URLs expire after 1 hour, component regenerates on mount
-- **Note:** Images are currently rendered at full size (no resizing/thumbnails)
+- **Supabase Storage** for pomodoro images in `pomodoro-images` bucket (private, requires signed URLs)
+- **Critical Pattern:** Store file _paths_ in `pomodoros.image_url`, not URLs
+  - Generate signed URLs on-demand via `getImageSignedUrl()` (1hr expiry)
+  - Components must regenerate signed URLs on mount
+- **File Structure:** `userId/timestamp.ext`
+- **RLS:** Storage policies match pomodoros table (own images + followed users + public users)
+- **Validation:** Max 5MB, JPG/PNG/GIF/WebP only (`lib/imageValidation.ts`)
+- **Helpers:** `lib/storage.ts` - upload, generate signed URLs, delete
 
 ---
 
