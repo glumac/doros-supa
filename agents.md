@@ -61,6 +61,7 @@ useEffect(() => {
 - Keep components focused on rendering
 - Use TypeScript interfaces for props
 - Export components via `components/index.ts` when needed
+- Use "cq-" namespacing to give semantic classnames to elements that can be used testing and AI agent queries
 
 ### 4. Testing Conventions
 

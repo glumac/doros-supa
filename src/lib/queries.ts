@@ -690,3 +690,25 @@ export async function getBlockedUsers(blockerId: string) {
 
   return { data, error };
 }
+
+// ============================================
+// Account Deletion Functions
+// ============================================
+
+// Soft delete an account
+export async function softDeleteAccount(userId: string) {
+  const { data, error } = await supabase.rpc("soft_delete_account", {
+    p_user_id: userId,
+  });
+
+  return { data, error };
+}
+
+// Restore a soft-deleted account
+export async function restoreAccount(userId: string) {
+  const { data, error } = await supabase.rpc("restore_account", {
+    p_user_id: userId,
+  });
+
+  return { data, error };
+}

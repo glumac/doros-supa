@@ -1,85 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile, getBlockedUsers, unblockUser } from '../lib/queries';
-import { supabase } from '../lib/supabaseClient';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { useBlockedUsers } from '../hooks/useBlockedUsers';
+import { useUpdatePrivacyMutation, useUnblockUserMutation } from '../hooks/useMutations';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
+import DeleteAccountModal from './DeleteAccountModal';
 
 export default function PrivacySettings() {
   const { user } = useAuth();
-  const [requireApproval, setRequireApproval] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
-  const [loadingBlocks, setLoadingBlocks] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadSettings();
-      loadBlockedUsers();
-    }
-  }, [user?.id]);
+  // Use React Query hooks
+  const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile(user?.id);
+  const { data: blockedUsers = [], isLoading: loadingBlocks } = useBlockedUsers(user?.id);
+  const updatePrivacyMutation = useUpdatePrivacyMutation();
+  const unblockMutation = useUnblockUserMutation();
 
-  async function loadSettings() {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const { data } = await getUserProfile(user.id);
-      if (data) {
-        setRequireApproval(data.followers_only || false);
-      }
-    } catch (error) {
-      console.error('Error loading privacy settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadBlockedUsers() {
-    if (!user) return;
-    setLoadingBlocks(true);
-    try {
-      const { data, error } = await getBlockedUsers(user.id);
-      if (error) throw error;
-      setBlockedUsers(data || []);
-    } catch (error) {
-      console.error('Error loading blocked users:', error);
-    } finally {
-      setLoadingBlocks(false);
-    }
-  }
+  const requireApproval = userProfile?.followers_only || false;
 
   async function handleToggle() {
     if (!user) return;
-    setSaving(true);
-    setMessage('');
 
     try {
-      const newValue = !requireApproval;
-      const { error } = await supabase
-        .from('users')
-        .update({ followers_only: newValue })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setRequireApproval(newValue);
+      await updatePrivacyMutation.mutateAsync({
+        userId: user.id,
+        isPrivate: !requireApproval,
+      });
       setMessage('Settings updated successfully');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error updating privacy settings:', error);
       setMessage('Failed to update settings');
-    } finally {
-      setSaving(false);
     }
   }
 
   async function handleUnblock(blockedId: string) {
     if (!user) return;
     try {
-      const { error } = await unblockUser(user.id, blockedId);
-      if (error) throw error;
-      await loadBlockedUsers();
+      await unblockMutation.mutateAsync({
+        blockerId: user.id,
+        blockedId,
+      });
       setMessage('User unblocked successfully');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
@@ -96,13 +59,15 @@ export default function PrivacySettings() {
     );
   }
 
-  if (loading) {
+  if (isLoadingProfile) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
         Loading...
       </div>
     );
   }
+
+  const saving = updatePrivacyMutation.isPending;
 
   return (
     <div className="cq-privacy-settings-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
@@ -220,7 +185,7 @@ export default function PrivacySettings() {
           </div>
         ) : (
           <div className="cq-privacy-settings-blocked-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {blockedUsers.map((block) => (
+            {blockedUsers.map((block: any) => (
               <div
                 key={block.id}
                 className="cq-privacy-settings-blocked-item"
@@ -287,6 +252,60 @@ export default function PrivacySettings() {
           </div>
         )}
       </div>
+
+      {/* Delete Account Section */}
+      <div
+        className="cq-privacy-settings-delete-section"
+        style={{
+          marginTop: '24px',
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #f8d7da',
+        }}
+      >
+        <h3 className="cq-privacy-settings-delete-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#dc3545' }}>
+          Delete My Account
+        </h3>
+        <p className="cq-privacy-settings-delete-description" style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+          Delete your account. This will remove your content from Crush Quest, including your profile, posts, comments, and likes. You can restore your account later, but you will need to reconnect with friends.
+        </p>
+        <button
+          ref={deleteButtonRef}
+          onClick={() => setShowDeleteModal(true)}
+          className="cq-privacy-settings-delete-button"
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#dc3545',
+            border: 'none',
+            borderRadius: '8px',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#c82333';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#dc3545';
+          }}
+        >
+          Delete My Account
+        </button>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <DeleteAccountModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          userId={user.id}
+          triggerRef={deleteButtonRef}
+        />
+      )}
     </div>
   );
 }

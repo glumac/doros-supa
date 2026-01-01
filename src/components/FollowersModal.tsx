@@ -6,7 +6,7 @@ import FollowButton from './FollowButton';
 import BlockButton from './BlockButton';
 import { useIsFollowingUser } from '../hooks/useFollowStatus';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
-import { useModalFocus } from '../hooks/useModalFocus';
+import { useModal } from '../hooks/useModal';
 
 interface FollowersModalProps {
   userId: string;
@@ -81,8 +81,8 @@ export default function FollowersModal({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const isOpen = true; // This modal is always rendered when shown
 
-  // Use shared modal focus management hook
-  useModalFocus(isOpen, closeButtonRef, triggerRef);
+  // Use shared modal hook for focus, escape, scroll lock, and overlay click
+  const { handleOverlayClick } = useModal(isOpen, onClose, closeButtonRef, triggerRef);
 
   useEffect(() => {
     loadData();
@@ -124,31 +124,6 @@ export default function FollowersModal({
     }
     setTotalCount((c) => Math.max(0, c - 1));
   };
-
-  // Handle click outside modal
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  // Keyboard event handler
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [onClose]);
 
   return (
     <div

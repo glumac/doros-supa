@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { MdDelete } from "react-icons/md";
 import { format, previousMonday, nextSunday, isMonday } from "date-fns";
 import { supabase } from "../lib/supabaseClient";
-import { uploadPomodoroImage, getImageSignedUrl } from "../lib/storage";
+import { uploadPomodoroImage } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
 import { useCreatePomodoroMutation } from "../hooks/useMutations";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -263,6 +263,15 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     }
   }, [completed, isActive, doroContext.inProgress]);
 
+  // Clean up object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imageAsset?.url && imageAsset.url.startsWith('blob:')) {
+        URL.revokeObjectURL(imageAsset.url);
+      }
+    };
+  }, [imageAsset?.url]);
+
   useEffect(() => {
     if (!isActive || !title) return;
     const time = formatTime(timeLeft);
@@ -407,6 +416,10 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     setLoading(false);
     setNotes("");
     setCompleted(false);
+    // Clean up object URL if it exists
+    if (imageAsset?.url && imageAsset.url.startsWith('blob:')) {
+      URL.revokeObjectURL(imageAsset.url);
+    }
     setImageAsset(null);
     setUploadError(null);
     setIsActive(false);
@@ -445,14 +458,11 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         );
         console.log("Upload failed:", error);
       } else if (imagePath) {
-        // Generate a signed URL for immediate display
-        const signedUrl = await getImageSignedUrl(imagePath);
-        if (signedUrl) {
-          setImageAsset({ _id: imagePath, url: signedUrl });
-        } else {
-          // Fallback: store path, will generate signed URL when saving
-          setImageAsset({ _id: imagePath, url: imagePath });
-        }
+        // Use local object URL for immediate preview (avoids RLS issues with signed URLs)
+        // The path will be stored in the database, and signed URLs will be generated
+        // when displaying the pomodoro (handled in Doro.tsx and DoroDetail.tsx)
+        const localUrl = URL.createObjectURL(file);
+        setImageAsset({ _id: imagePath, url: localUrl });
         setLoading(false);
         // Reset file input to allow re-uploading same file
         if (fileInputRef.current) {
@@ -638,6 +648,10 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                 onFileSelect={handleFileUpload}
                 onError={setUploadError}
                 onDelete={() => {
+                  // Clean up object URL if it exists
+                  if (imageAsset?.url && imageAsset.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(imageAsset.url);
+                  }
                   setImageAsset(null);
                   setUploadError(null);
                 }}

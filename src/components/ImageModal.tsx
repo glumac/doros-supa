@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFullSizeImageUrl } from '../lib/storage';
-import { useModalFocus } from '../hooks/useModalFocus';
+import { useModal } from '../hooks/useModal';
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -16,8 +16,8 @@ const ImageModal = ({ isOpen, imagePath, onClose, triggerRef }: ImageModalProps)
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Use shared modal focus management hook
-  useModalFocus(isOpen, closeButtonRef, triggerRef);
+  // Use shared modal hook for focus, escape, scroll lock, and overlay click
+  const { handleOverlayClick } = useModal(isOpen, onClose, closeButtonRef, triggerRef);
 
   // Fetch full-size image URL
   useEffect(() => {
@@ -52,38 +52,10 @@ const ImageModal = ({ isOpen, imagePath, onClose, triggerRef }: ImageModalProps)
     fetchImageUrl();
   }, [isOpen, imagePath]);
 
-
-  // Keyboard event handler
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, onClose]);
-
-  // Handle click outside modal
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   // Handle close button click
   const handleClose = () => {
     onClose();
-    // Focus will be returned by useModalFocus hook
+    // Focus will be returned by useModal hook
   };
 
   if (!isOpen) {

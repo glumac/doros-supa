@@ -8,6 +8,7 @@ export interface User {
   followers_only?: boolean;
   created_at?: string;
   updated_at?: string;
+  deleted_at?: string | null;
 }
 
 // Supabase Like type (from likes table with joined user)

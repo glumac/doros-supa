@@ -335,12 +335,15 @@ export function useUnblockUserMutation() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
+      // Invalidate blocked users list
+      queryClient.invalidateQueries({ queryKey: ["blocks", variables.blockerId] });
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["blocks"] });
       queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "public-profile", variables.blockedId] });
       queryClient.invalidateQueries({ queryKey: ["user", "pomodoros", variables.blockedId] });
+      // Invalidate feed and leaderboard as unblocking affects visibility
       queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }

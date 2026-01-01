@@ -5,6 +5,7 @@ import {
   useState,
   ReactNode,
   useMemo,
+  useCallback,
 } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
@@ -15,6 +16,7 @@ interface AuthContextType {
   session: Session | null;
   userProfile: SupabaseUser | null;
   loading: boolean;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   userProfile: null,
   loading: true,
+  refreshUserProfile: async () => {},
 });
 
 export { AuthContext }; // Export for testing
@@ -41,7 +44,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile from users table
-  const fetchUserProfile = async (userId: string) => {
+  // Note: We query the `users` table directly (not `public_user_profiles` view) because:
+  // 1. The view excludes deleted users (deleted_at IS NOT NULL), but we need to read
+  //    deleted_at to detect if the current user's account is soft-deleted
+  // 2. RLS allows users to view their own profile row regardless of deleted_at status
+  // 3. This enables the restore flow to detect and display the RestoreAccount screen
+  const fetchUserProfileById = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -53,7 +61,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       setUserProfile(null);
     }
-  };
+  }, []);
+
+  // Exposed function to refresh the current user's profile
+  const refreshUserProfile = useCallback(async () => {
+    if (user?.id) {
+      await fetchUserProfileById(user.id);
+    }
+  }, [user?.id, fetchUserProfileById]);
 
   useEffect(() => {
     let isInitialLoad = true;
@@ -65,7 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Fetch user profile if user exists
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfileById(session.user.id);
       } else {
         setUserProfile(null);
       }
@@ -98,7 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Fetch user profile if user exists
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfileById(session.user.id);
       } else {
         setUserProfile(null);
       }
@@ -107,11 +122,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUserProfileById]);
 
   const value = useMemo(
-    () => ({ user, session, userProfile, loading }),
-    [user, session, userProfile, loading]
+    () => ({ user, session, userProfile, loading, refreshUserProfile }),
+    [user, session, userProfile, loading, refreshUserProfile]
   );
 
   return (

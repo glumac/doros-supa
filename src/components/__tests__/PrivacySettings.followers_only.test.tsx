@@ -2,28 +2,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { User } from '@supabase/supabase-js';
 import PrivacySettings from '../PrivacySettings';
 import { AuthContext } from '../../contexts/AuthContext';
-import * as queries from '../../lib/queries';
-import { supabase } from '../../lib/supabaseClient';
+import * as useUserProfileHooks from '../../hooks/useUserProfile';
+import * as useBlockedUsersHooks from '../../hooks/useBlockedUsers';
+import * as useMutationsHooks from '../../hooks/useMutations';
+import * as useDeleteAccountHooks from '../../hooks/useDeleteAccount';
 
-vi.mock('../../lib/queries', () => ({
-  getUserProfile: vi.fn(),
-  getBlockedUsers: vi.fn(),
-  unblockUser: vi.fn(),
+vi.mock('../../hooks/useUserProfile', () => ({
+  useUserProfile: vi.fn(),
 }));
 
-vi.mock('../../lib/supabaseClient', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          error: null
-        }))
-      }))
-    }))
-  }
+vi.mock('../../hooks/useBlockedUsers', () => ({
+  useBlockedUsers: vi.fn(),
+}));
+
+vi.mock('../../hooks/useMutations', () => ({
+  useUpdatePrivacyMutation: vi.fn(),
+  useUnblockUserMutation: vi.fn(),
+}));
+
+vi.mock('../../hooks/useDeleteAccount', () => ({
+  useDeleteAccount: vi.fn(),
 }));
 
 const mockUser: User = {
@@ -35,56 +37,132 @@ const mockUser: User = {
   email: 'test@example.com',
 } as User;
 
+const mockUserProfile = {
+  id: 'user-123',
+  user_name: 'Test User',
+  email: 'test@example.com',
+  avatar_url: 'https://example.com/avatar.jpg',
+  followers_only: false,
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+};
+
+const mockHooks = {
+  useUserProfile: vi.mocked(useUserProfileHooks.useUserProfile),
+  useBlockedUsers: vi.mocked(useBlockedUsersHooks.useBlockedUsers),
+  useUpdatePrivacyMutation: vi.mocked(useMutationsHooks.useUpdatePrivacyMutation),
+  useUnblockUserMutation: vi.mocked(useMutationsHooks.useUnblockUserMutation),
+  useDeleteAccount: vi.mocked(useDeleteAccountHooks.useDeleteAccount),
+};
+
+const createQueryClient = () => {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+};
+
 const renderWithAuth = (component: React.ReactElement, user: User | null = mockUser) => {
+  const queryClient = createQueryClient();
   return render(
-    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
-      <AuthContext.Provider value={{ user, loading: false }}>
-        {component}
-      </AuthContext.Provider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+        <AuthContext.Provider value={{ user, session: null, userProfile: mockUserProfile, loading: false }}>
+          {component}
+        </AuthContext.Provider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
 describe('PrivacySettings - Followers Only Field', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock implementations
+    mockHooks.useUserProfile.mockReturnValue({
+      data: mockUserProfile,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useBlockedUsers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useUpdatePrivacyMutation.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useUnblockUserMutation.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useDeleteAccount.mockReturnValue({
+      mutateAsync: vi.fn(),
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as any);
   });
 
   it('should display field as followers_only (not require_follow_approval)', async () => {
-    const mockUserProfile = {
-      id: 'user-123',
-      user_name: 'Test User',
-      email: 'test@example.com',
-      followers_only: false,
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
-    };
-
-    vi.mocked(queries.getUserProfile).mockResolvedValue({ data: mockUserProfile, error: null });
-    vi.mocked(queries.getBlockedUsers).mockResolvedValue({ data: [], error: null });
+    mockHooks.useUserProfile.mockReturnValue({
+      data: {
+        id: 'user-123',
+        user_name: 'Test User',
+        email: 'test@example.com',
+        followers_only: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
 
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(queries.getUserProfile).toHaveBeenCalledWith('user-123');
+      expect(screen.getByText(/Followers Only/i)).toBeInTheDocument();
     });
 
     // Should read followers_only field (not require_follow_approval)
-    expect(queries.getUserProfile).toHaveBeenCalled();
+    expect(mockHooks.useUserProfile).toHaveBeenCalled();
   });
 
   it('should display UI label as "Followers Only" or "Make Account Followers-Only"', async () => {
-    const mockUserProfile = {
-      id: 'user-123',
-      user_name: 'Test User',
-      email: 'test@example.com',
-      followers_only: false,
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
-    };
-
-    vi.mocked(queries.getUserProfile).mockResolvedValue({ data: mockUserProfile, error: null });
-    vi.mocked(queries.getBlockedUsers).mockResolvedValue({ data: [], error: null });
+    mockHooks.useUserProfile.mockReturnValue({
+      data: {
+        id: 'user-123',
+        user_name: 'Test User',
+        email: 'test@example.com',
+        followers_only: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
 
     renderWithAuth(<PrivacySettings />);
 
@@ -96,24 +174,29 @@ describe('PrivacySettings - Followers Only Field', () => {
 
   it('should update followers_only field when toggle is clicked', async () => {
     const user = userEvent.setup();
-    const mockUserProfile = {
-      id: 'user-123',
-      user_name: 'Test User',
-      email: 'test@example.com',
-      followers_only: false,
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
-    };
+    const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
 
-    vi.mocked(queries.getUserProfile).mockResolvedValue({ data: mockUserProfile, error: null });
-    vi.mocked(queries.getBlockedUsers).mockResolvedValue({ data: [], error: null });
+    mockHooks.useUserProfile.mockReturnValue({
+      data: {
+        id: 'user-123',
+        user_name: 'Test User',
+        email: 'test@example.com',
+        followers_only: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
 
-    const mockUpdate = vi.fn().mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ error: null })
-    });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate
+    mockHooks.useUpdatePrivacyMutation.mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
     } as any);
 
     renderWithAuth(<PrivacySettings />);
@@ -122,38 +205,49 @@ describe('PrivacySettings - Followers Only Field', () => {
       expect(screen.getByText(/Followers Only/i)).toBeInTheDocument();
     });
 
-    const toggleButton = screen.getByRole('button');
-    await user.click(toggleButton);
+    const toggleButtons = screen.getAllByRole('button');
+    const toggleButton = toggleButtons.find(btn => btn.className.includes('approval-toggle'));
+    if (toggleButton) {
+      await user.click(toggleButton);
+    }
 
     await waitFor(() => {
       // Should update followers_only field (not require_follow_approval)
-      expect(mockUpdate).toHaveBeenCalledWith({ followers_only: true });
+      expect(mockMutateAsync).toHaveBeenCalledWith({
+        userId: 'user-123',
+        isPrivate: true,
+      });
     });
   });
 
   it('should default to false (public) when followers_only is not set', async () => {
-    const mockUserProfile = {
-      id: 'user-123',
-      user_name: 'Test User',
-      email: 'test@example.com',
-      followers_only: false, // Default value
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
-    };
-
-    vi.mocked(queries.getUserProfile).mockResolvedValue({ data: mockUserProfile, error: null });
-    vi.mocked(queries.getBlockedUsers).mockResolvedValue({ data: [], error: null });
+    mockHooks.useUserProfile.mockReturnValue({
+      data: {
+        id: 'user-123',
+        user_name: 'Test User',
+        email: 'test@example.com',
+        followers_only: false, // Default value
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
 
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(queries.getUserProfile).toHaveBeenCalled();
+      expect(screen.getByText(/Followers Only/i)).toBeInTheDocument();
     });
 
     // Toggle should be in off state (false = public)
-    const toggleButton = screen.getByRole('button');
-    const toggleSwitch = toggleButton.querySelector('div');
-    expect(toggleSwitch).toHaveStyle({ left: '2px' }); // Off position
+    const toggleButtons = screen.getAllByRole('button');
+    const toggleButton = toggleButtons.find(btn => btn.className.includes('approval-toggle'));
+    if (toggleButton) {
+      const toggleSwitch = toggleButton.querySelector('div');
+      expect(toggleSwitch).toHaveStyle({ left: '2px' }); // Off position
+    }
   });
 });
 

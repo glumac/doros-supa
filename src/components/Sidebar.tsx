@@ -47,7 +47,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
   };
 
   return (
-    <div className="cq-sidebar-container flex flex-col justify-between bg-white h-full overflow-y-auto w-fit min-w-210">
+    <div className="cq-sidebar-container flex flex-col justify-between bg-white h-full overflow-y-scroll min-w-210 hide-scrollbar">
       <div className="cq-sidebar-content flex items-center flex-col">
         <Link
           to="/"
@@ -93,7 +93,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
               }
               onClick={handleCloseSidebar}
             >
-              <RiHomeFill className="w-5 h-5" />
+              <RiHomeFill />
               Home
             </NavLink>
           </div>
@@ -106,8 +106,7 @@ const Sidebar = ({ closeToggle, user }: SidebarProps) => {
               }
               onClick={handleCloseSidebar}
             >
-              <span className="w-5 h-5 flex items-center justify-center">🔍</span>
-              Find Friends
+              🔍 Find Friends
             </NavLink>
           </div>
 

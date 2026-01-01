@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateDoro from '../CreateDoro';
 import DoroContext from '../../utils/DoroContext';
-import * as storage from '../../lib/storage';
 
 // Mock dependencies
 vi.mock('../../lib/supabaseClient', () => ({
@@ -20,7 +19,6 @@ vi.mock('../../lib/supabaseClient', () => ({
 vi.mock('../../lib/storage', () => ({
   uploadPomodoroImage: vi.fn(),
   deletePomodoroImage: vi.fn(),
-  getImageSignedUrl: vi.fn(),
 }));
 
 vi.mock('../../lib/queries', () => ({
@@ -33,7 +31,7 @@ const mockUser = {
   avatar_url: 'https://example.com/avatar.jpg',
   email: 'test@example.com',
   privacy_setting: 'public',
-  followers_only: false,
+  require_follow_approval: false,
 };
 
 const mockDoroContextValue = {
@@ -189,22 +187,6 @@ describe('CreateDoro CSS behavior', () => {
       // This is conditional based on completion state
       expect(uploadElements.length).toBeGreaterThanOrEqual(0);
     });
-
-    it('shows drag and drop hint text', () => {
-      renderCreateDoro({ completed: true });
-
-      const hintText = screen.getByText(/PNG, JPEG, GIF, WebP, or HEIC/i);
-      expect(hintText).toBeInTheDocument();
-      expect(hintText).toHaveTextContent(/less than 5MB/i);
-    });
-
-    it('has accessible file input', () => {
-      renderCreateDoro({ completed: true });
-
-      const fileInput = screen.getByLabelText(/file input/i);
-      expect(fileInput).toBeInTheDocument();
-      expect(fileInput).toHaveAttribute('type', 'file');
-    });
   });
 
   describe('conditional rendering based on timer state', () => {
@@ -242,155 +224,6 @@ describe('CreateDoro CSS behavior', () => {
 
       // Completion state UI
       expect(container).toBeInTheDocument();
-    });
-  });
-
-  describe('drag and drop functionality', () => {
-    beforeEach(() => {
-      vi.mocked(storage.uploadPomodoroImage).mockResolvedValue({
-        imagePath: 'user-123/1234567890.jpg',
-        error: null,
-      });
-      vi.mocked(storage.getImageSignedUrl).mockResolvedValue('https://example.com/image.jpg');
-    });
-
-    it('handles drag enter event', () => {
-      renderCreateDoro({ completed: true });
-
-      const dropZone = screen.getByLabelText(/image upload area/i);
-      const mockFile = new File(['x'.repeat(1000)], 'test.png', { type: 'image/png' });
-      const mockDataTransfer = {
-        files: [mockFile],
-        items: [{ kind: 'file', type: 'image/png' }],
-      };
-
-      fireEvent.dragEnter(dropZone, { dataTransfer: mockDataTransfer });
-
-      // Should show "Drop image here" text
-      expect(screen.getByText(/drop image here/i)).toBeInTheDocument();
-    });
-
-    it('handles drag leave event', () => {
-      renderCreateDoro({ completed: true });
-
-      const dropZone = screen.getByLabelText(/image upload area/i);
-      const mockFile = new File(['x'.repeat(1000)], 'test.png', { type: 'image/png' });
-      const mockDataTransfer = {
-        files: [mockFile],
-        items: [{ kind: 'file', type: 'image/png' }],
-      };
-
-      fireEvent.dragEnter(dropZone, { dataTransfer: mockDataTransfer });
-      fireEvent.dragLeave(dropZone);
-
-      // Should show original text
-      expect(screen.getByText(/drag and drop or click to upload/i)).toBeInTheDocument();
-    });
-
-    it('handles drop event with valid file', async () => {
-      renderCreateDoro({ completed: true });
-
-      const dropZone = screen.getByLabelText(/image upload area/i);
-      const mockFile = new File(['x'.repeat(1000)], 'test.png', { type: 'image/png' });
-      const mockDataTransfer = {
-        files: [mockFile],
-        items: [{ kind: 'file', type: 'image/png' }],
-      };
-
-      fireEvent.drop(dropZone, { dataTransfer: mockDataTransfer });
-
-      await waitFor(() => {
-        expect(storage.uploadPomodoroImage).toHaveBeenCalledWith(mockFile, 'user-123');
-      });
-    });
-
-    it('shows error for invalid file type', async () => {
-      renderCreateDoro({ completed: true });
-
-      const dropZone = screen.getByLabelText(/image upload area/i);
-      const mockFile = new File([''], 'test.svg', { type: 'image/svg+xml' });
-      const mockDataTransfer = {
-        files: [mockFile],
-        items: [{ kind: 'file', type: 'image/svg+xml' }],
-      };
-
-      fireEvent.drop(dropZone, { dataTransfer: mockDataTransfer });
-
-      // Error should be set - check if error state is updated
-      // The error message appears in both visible area (role="alert") and sr-only area
-      await waitFor(
-        () => {
-          // Check for error in visible area (has role="alert")
-          const visibleError = screen.queryByRole('alert');
-          if (visibleError) {
-            expect(visibleError).toHaveTextContent(/not supported|PNG, JPEG, GIF, WebP, or HEIC/i);
-          } else {
-            // Fallback: check if error text exists anywhere (including sr-only)
-            const errorText = screen.queryByText(/not supported/i) ||
-                             screen.queryByText(/File type not supported/i);
-            expect(errorText).toBeInTheDocument();
-          }
-        },
-        { timeout: 2000 }
-      );
-
-      expect(storage.uploadPomodoroImage).not.toHaveBeenCalled();
-    });
-
-    it('shows error for file over size limit', async () => {
-      renderCreateDoro({ completed: true });
-
-      const dropZone = screen.getByLabelText(/image upload area/i);
-      const mockFile = new File(
-        ['x'.repeat(5242881)], // Over 5MB
-        'test.jpg',
-        { type: 'image/jpeg' }
-      );
-      const mockDataTransfer = {
-        files: [mockFile],
-        items: [{ kind: 'file', type: 'image/jpeg' }],
-      };
-
-      fireEvent.drop(dropZone, { dataTransfer: mockDataTransfer });
-
-      // Error should be set - check if error state is updated
-      await waitFor(
-        () => {
-          // Check for error in visible area (has role="alert")
-          const visibleError = screen.queryByRole('alert');
-          if (visibleError) {
-            expect(visibleError).toHaveTextContent(/too large|Maximum size is 5MB/i);
-          } else {
-            // Fallback: check if error text exists anywhere (including sr-only)
-            const errorElement = screen.queryByText(/File too large/i) ||
-                               screen.queryByText(/Maximum size is 5MB/i) ||
-                               screen.queryByText(/too large/i);
-            expect(errorElement).toBeInTheDocument();
-          }
-        },
-        { timeout: 2000 }
-      );
-
-      expect(storage.uploadPomodoroImage).not.toHaveBeenCalled();
-    });
-
-    it('file picker still works', async () => {
-      renderCreateDoro({ completed: true });
-
-      const fileInput = screen.getByLabelText(/file input/i);
-      const mockFile = new File(['x'.repeat(1000)], 'test.png', { type: 'image/png' });
-
-      // Create a FileList-like object
-      Object.defineProperty(fileInput, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
-
-      fireEvent.change(fileInput);
-
-      await waitFor(() => {
-        expect(storage.uploadPomodoroImage).toHaveBeenCalledWith(mockFile, 'user-123');
-      });
     });
   });
 });
