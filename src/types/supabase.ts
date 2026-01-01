@@ -178,6 +178,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          is_admin: boolean | null
           privacy_setting: string | null
           followers_only: boolean | null
           updated_at: string | null
@@ -188,8 +189,9 @@ export type Database = {
           created_at?: string | null
           email: string
           id: string
+          is_admin?: boolean | null
           privacy_setting?: string | null
-          require_follow_approval?: boolean | null
+          followers_only?: boolean | null
           updated_at?: string | null
           user_name: string
         }
@@ -198,8 +200,9 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          is_admin?: boolean | null
           privacy_setting?: string | null
-          require_follow_approval?: boolean | null
+          followers_only?: boolean | null
           updated_at?: string | null
           user_name?: string
         }
@@ -210,6 +213,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_admin_stats: {
+        Args: { p_start_date?: string; p_end_date?: string }
+        Returns: {
+          total_users: number
+          new_users: number
+          total_pomodoros: number
+          completed_pomodoros: number
+          total_likes: number
+          total_comments: number
+          active_users: number
+        }[]
+      }
+      get_daily_pomodoro_counts: {
+        Args: { p_start_date: string; p_end_date: string }
+        Returns: {
+          date: string
+          count: number
+        }[]
+      }
+      get_daily_user_signups: {
+        Args: { p_start_date: string; p_end_date: string }
+        Returns: {
+          date: string
+          count: number
+        }[]
+      }
       get_friends_leaderboard: {
         Args: { p_user_id: string }
         Returns: {

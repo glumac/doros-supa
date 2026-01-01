@@ -6,6 +6,7 @@ export interface User {
   avatar_url: string | null;
   privacy_setting?: string;
   followers_only?: boolean;
+  is_admin?: boolean;
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;

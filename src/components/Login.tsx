@@ -75,7 +75,7 @@ const Login = () => {
               </button>
             </div>
 
-            <div className="cq-login-info pt-10 text-white flex-col flex relative">
+            <div className=" login-info pt-10 text-white flex-col flex relative">
               <div className="cq-login-info-content-1 max-w-xs text-center transition-all">
                 <p className="cq-login-info-text-1 font-semibold">
                   Crush Quest is a social Pomodoro app (think... Strava for productivity). Here, FOM (Friends of Mike) support

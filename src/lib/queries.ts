@@ -712,3 +712,37 @@ export async function restoreAccount(userId: string) {
 
   return { data, error };
 }
+
+// ============================================
+// Admin Dashboard Functions
+// ============================================
+
+// Get admin stats (aggregate metrics)
+export async function getAdminStats(startDate?: string, endDate?: string) {
+  const { data, error } = await supabase.rpc("get_admin_stats", {
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  });
+
+  return { data: data?.[0] || null, error };
+}
+
+// Get daily pomodoro counts for charts
+export async function getDailyPomodoroCounts(startDate: string, endDate: string) {
+  const { data, error } = await supabase.rpc("get_daily_pomodoro_counts", {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  return { data, error };
+}
+
+// Get daily user signups for charts
+export async function getDailyUserSignups(startDate: string, endDate: string) {
+  const { data, error } = await supabase.rpc("get_daily_user_signups", {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  return { data, error };
+}

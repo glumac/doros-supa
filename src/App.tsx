@@ -9,6 +9,8 @@ import { TocPrivacy } from "./components";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Spinner from "./components/Spinner";
 import { queryClient } from "./lib/queryClient";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminGuard } from "./components/AdminGuard";
 
 // Component that handles routing based on auth state
 // Must be inside AuthProvider to use useAuth()
@@ -56,6 +58,14 @@ function AppRoutes() {
       <Route path="login" element={<Login />} />
       <Route path="toc-privacy" element={<TocPrivacy />} />
       <Route path="restore-account" element={<RestoreAccount />} />
+      <Route
+        path="admin"
+        element={
+          <AdminGuard>
+            <AdminDashboard />
+          </AdminGuard>
+        }
+      />
       <Route path="/*" element={<Home />} />
     </Routes>
   );
