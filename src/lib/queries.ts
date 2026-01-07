@@ -746,3 +746,17 @@ export async function getDailyUserSignups(startDate: string, endDate: string) {
 
   return { data, error };
 }
+
+// Get recently active users for admin dashboard
+export async function getRecentActiveUsers(limit: number = 20) {
+  const { data, error } = await supabase.rpc("get_recent_active_users", {
+    p_limit: limit,
+  });
+
+  return { data, error };
+}
+
+// Update the current user's last_seen_at timestamp
+export async function updateLastSeen() {
+  return supabase.rpc("update_last_seen");
+}

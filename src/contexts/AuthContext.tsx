@@ -10,6 +10,7 @@ import {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { User as SupabaseUser } from "../types/models";
+import { updateLastSeen } from "../lib/queries";
 
 interface AuthContextType {
   user: User | null;
@@ -70,6 +71,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [user?.id, fetchUserProfileById]);
 
+  // Update last_seen_at timestamp (throttled to once per 5 minutes)
+  const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+  const LAST_SEEN_KEY = "lastSeenUpdatedAt";
+
+  const updateLastSeenThrottled = useCallback(async () => {
+    const lastUpdated = localStorage.getItem(LAST_SEEN_KEY);
+    const now = Date.now();
+
+    if (lastUpdated && now - parseInt(lastUpdated, 10) < LAST_SEEN_THROTTLE_MS) {
+      // Skip - updated recently
+      return;
+    }
+
+    try {
+      await updateLastSeen();
+      localStorage.setItem(LAST_SEEN_KEY, now.toString());
+    } catch {
+      // Silently fail - this is non-critical functionality
+    }
+  }, []);
+
   useEffect(() => {
     let isInitialLoad = true;
 
@@ -81,6 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Fetch user profile if user exists
       if (session?.user) {
         fetchUserProfileById(session.user.id);
+        // Update last_seen_at (throttled)
+        updateLastSeenThrottled();
       } else {
         setUserProfile(null);
       }
@@ -114,6 +138,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Fetch user profile if user exists
       if (session?.user) {
         fetchUserProfileById(session.user.id);
+        // Update last_seen_at (throttled)
+        updateLastSeenThrottled();
       } else {
         setUserProfile(null);
       }
@@ -122,7 +148,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserProfileById]);
+  }, [fetchUserProfileById, updateLastSeenThrottled]);
 
   const value = useMemo(
     () => ({ user, session, userProfile, loading, refreshUserProfile }),

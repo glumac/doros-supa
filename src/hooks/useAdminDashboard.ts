@@ -3,8 +3,10 @@ import {
   getAdminStats,
   getDailyPomodoroCounts,
   getDailyUserSignups,
+  getRecentActiveUsers,
 } from "../lib/queries";
 import { useAuth } from "../contexts/AuthContext";
+import { RecentActiveUser } from "../types/models";
 
 /**
  * Hook to check if current user is admin
@@ -81,5 +83,24 @@ export function useDailySignups(startDate: string, endDate: string) {
     },
     enabled: isAdmin && !!startDate && !!endDate,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Hook to fetch recently active users for admin dashboard
+ * @param limit - Maximum number of users to return (default 20)
+ */
+export function useRecentActiveUsers(limit: number = 20) {
+  const { isAdmin } = useIsAdmin();
+
+  return useQuery<RecentActiveUser[]>({
+    queryKey: ["admin", "recentActiveUsers", limit],
+    queryFn: async () => {
+      const { data, error } = await getRecentActiveUsers(limit);
+      if (error) throw error;
+      return (data as RecentActiveUser[]) || [];
+    },
+    enabled: isAdmin,
+    staleTime: 1000 * 60, // 1 minute - more frequent updates for activity
   });
 }

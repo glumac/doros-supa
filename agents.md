@@ -71,6 +71,11 @@ useEffect(() => {
 - React Testing Library for component testing
 - `@testing-library/jest-dom` for matchers
 
+**Running Tests:**
+- Use TDD
+- Run all tests: `npm test`
+- Run tests in watch mode: `npm run test:watch`
+
 **Test Structure:**
 
 ```typescript
@@ -122,6 +127,11 @@ const createWrapper = () => {
 - Define component prop interfaces
 - Type all function parameters and return values
 - Use `Database` type from Supabase for table types
+
+**Type Checking:**
+
+- Run type checks: `npx tsc --noEmit`
+- Fix all type errors before committing code
 
 ### 7. Error Handling
 

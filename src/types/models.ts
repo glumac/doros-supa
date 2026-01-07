@@ -70,3 +70,11 @@ export interface DecodedJWT {
   iat?: number;
   exp?: number;
 }
+
+// Recently active user for admin dashboard
+export interface RecentActiveUser {
+  id: string;
+  user_name: string;
+  avatar_url: string | null;
+  last_seen_at: string;
+}

@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { RiHomeFill } from "react-icons/ri";
 import {
   LineChart,
   Line,
@@ -14,7 +16,9 @@ import {
   useAdminStats,
   useDailyPomodoros,
   useDailySignups,
+  useRecentActiveUsers,
 } from "../hooks/useAdminDashboard";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 type TimeRange = "7d" | "30d" | "all" | "custom";
 
@@ -172,11 +176,37 @@ export function AdminDashboard() {
     }));
   }, [dailySignups]);
 
+  const { data: recentUsers, isLoading: recentUsersLoading } = useRecentActiveUsers(20);
+
+  // Format relative time (e.g., "2 minutes ago")
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  };
+
   return (
     <div className="cq-admin-dashboard min-h-screen bg-gray-50 p-6">
       <div className="cq-admin-dashboard-container max-w-7xl mx-auto">
         <div className="cq-admin-header mb-8">
-          <h1 className="cq-admin-title text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <div className="cq-admin-header-top flex items-center justify-between">
+            <h1 className="cq-admin-title text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <Link
+              to="/"
+              className="cq-admin-home-link flex items-center gap-2 text-slate-500 hover:text-green-800 transition-all duration-200"
+            >
+              <RiHomeFill />
+              <span>Home</span>
+            </Link>
+          </div>
           <p className="cq-admin-subtitle mt-2 text-gray-600">
             Monitor app metrics and user activity
           </p>
@@ -303,6 +333,55 @@ export function AdminDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Recently Active Users */}
+        <div className="cq-admin-recent-users bg-white rounded-lg shadow-md p-6 mt-6">
+          <h2 className="cq-admin-chart-title text-lg font-semibold text-gray-900 mb-4">
+            Recently Active Users
+          </h2>
+          {recentUsersLoading ? (
+            <div className="cq-admin-recent-users-loading space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+                  </div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
+                </div>
+              ))}
+            </div>
+          ) : !recentUsers || recentUsers.length === 0 ? (
+            <div className="cq-admin-recent-users-empty text-center py-8 text-gray-500">
+              No recent activity
+            </div>
+          ) : (
+            <div className="cq-admin-recent-users-list space-y-2">
+              {recentUsers.map((user) => (
+                <Link
+                  key={user.id}
+                  to={`/user/${user.id}`}
+                  className="cq-admin-recent-user-item cq-admin-recent-user-link flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <img
+                    src={user.avatar_url || getAvatarPlaceholder(40)}
+                    alt={user.user_name}
+                    className="cq-admin-recent-user-avatar w-10 h-10 rounded-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getAvatarPlaceholder(40);
+                    }}
+                  />
+                  <span className="cq-admin-recent-user-name flex-1 font-medium text-gray-900">
+                    {user.user_name}
+                  </span>
+                  <span className="cq-admin-recent-user-time text-sm text-gray-500">
+                    {formatRelativeTime(user.last_seen_at)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
