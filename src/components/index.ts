@@ -21,3 +21,4 @@ export { default as FollowRequestsBanner } from "./FollowRequestsBanner";
 export { default as PrivacySettings } from "./PrivacySettings";
 export { default as TocPrivacy } from "./TocPrivacy";
 export { default as ImageModal } from "./ImageModal";
+export { default as NotFound } from "./NotFound";

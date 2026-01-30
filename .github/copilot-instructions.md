@@ -1,1 +1,1 @@
-
+- use supabase MCP instead of CLI when possible

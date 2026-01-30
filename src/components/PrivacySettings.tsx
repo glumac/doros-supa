@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
-import { useUpdatePrivacyMutation, useUnblockUserMutation } from '../hooks/useMutations';
+import { useUpdatePrivacyMutation, useUnblockUserMutation, useUpdateNotificationPreferencesMutation } from '../hooks/useMutations';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 import DeleteAccountModal from './DeleteAccountModal';
 
@@ -17,8 +17,12 @@ export default function PrivacySettings() {
   const { data: blockedUsers = [], isLoading: loadingBlocks } = useBlockedUsers(user?.id);
   const updatePrivacyMutation = useUpdatePrivacyMutation();
   const unblockMutation = useUnblockUserMutation();
+  const updateNotificationsMutation = useUpdateNotificationPreferencesMutation();
 
   const requireApproval = userProfile?.followers_only || false;
+  const emailFollowRequests = userProfile?.notification_preferences?.email_follow_requests || false;
+  const emailLikes = userProfile?.notification_preferences?.email_likes || false;
+  const emailComments = userProfile?.notification_preferences?.email_comments || false;
 
   async function handleToggle() {
     if (!user) return;
@@ -48,6 +52,21 @@ export default function PrivacySettings() {
     } catch (error) {
       console.error('Error unblocking user:', error);
       setMessage('Failed to unblock user');
+    }
+  }
+
+  async function handleNotificationToggle(preference: 'email_follow_requests' | 'email_likes' | 'email_comments', value: boolean) {
+    if (!user) return;
+    try {
+      await updateNotificationsMutation.mutateAsync({
+        userId: user.id,
+        preferences: { [preference]: value },
+      });
+      setMessage('Notification preferences updated');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      setMessage('Failed to update preferences');
     }
   }
 
@@ -155,6 +174,184 @@ export default function PrivacySettings() {
             {message}
           </div>
         )}
+      </div>
+
+      {/* Email Notifications Section */}
+      <div
+        className="cq-privacy-settings-notifications-section"
+        style={{
+          marginTop: '24px',
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <h3 className="cq-privacy-settings-notifications-title" style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+          Email Notifications
+        </h3>
+        <p className="cq-privacy-settings-notifications-description" style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Choose which activities trigger email notifications
+        </p>
+
+        {/* Email Comments Toggle */}
+        <div
+          className="cq-privacy-settings-notification-item"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '20px',
+            paddingBottom: '16px',
+            marginBottom: '16px',
+            borderBottom: '1px solid #e9ecef',
+          }}
+        >
+          <div className="cq-privacy-settings-notification-info" style={{ flex: 1 }}>
+            <h4 className="cq-privacy-settings-notification-label" style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
+              New Comments
+            </h4>
+            <p className="cq-privacy-settings-notification-description" style={{ color: '#666', fontSize: '13px', margin: 0 }}>
+              Receive an email when someone comments on your pomodoro
+            </p>
+          </div>
+          <button
+            onClick={() => handleNotificationToggle('email_comments', !emailComments)}
+            disabled={updateNotificationsMutation.isPending}
+            className={`cq-privacy-settings-notification-toggle ${emailComments ? 'cq-privacy-settings-notification-toggle-enabled' : 'cq-privacy-settings-notification-toggle-disabled'}`}
+            style={{
+              position: 'relative',
+              width: '50px',
+              height: '28px',
+              borderRadius: '14px',
+              border: 'none',
+              cursor: updateNotificationsMutation.isPending ? 'not-allowed' : 'pointer',
+              backgroundColor: emailComments ? '#007bff' : '#ccc',
+              transition: 'background-color 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              className="cq-privacy-settings-notification-toggle-slider"
+              style={{
+                position: 'absolute',
+                top: '2px',
+                left: emailComments ? '24px' : '2px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: '#fff',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Email Likes Toggle - Hidden until feature is implemented */}
+        <div
+          className="cq-privacy-settings-notification-item cq-privacy-settings-email-likes"
+          style={{
+            display: 'none',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '20px',
+            paddingBottom: '16px',
+            marginBottom: '16px',
+            borderBottom: '1px solid #e9ecef',
+          }}
+        >
+          <div className="cq-privacy-settings-notification-info" style={{ flex: 1 }}>
+            <h4 className="cq-privacy-settings-notification-label" style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
+              New Likes
+            </h4>
+            <p className="cq-privacy-settings-notification-description" style={{ color: '#666', fontSize: '13px', margin: 0 }}>
+              Receive an email when someone likes your pomodoro
+            </p>
+          </div>
+          <button
+            onClick={() => handleNotificationToggle('email_likes', !emailLikes)}
+            disabled={updateNotificationsMutation.isPending}
+            className={`cq-privacy-settings-notification-toggle ${emailLikes ? 'cq-privacy-settings-notification-toggle-enabled' : 'cq-privacy-settings-notification-toggle-disabled'}`}
+            style={{
+              position: 'relative',
+              width: '50px',
+              height: '28px',
+              borderRadius: '14px',
+              border: 'none',
+              cursor: updateNotificationsMutation.isPending ? 'not-allowed' : 'pointer',
+              backgroundColor: emailLikes ? '#007bff' : '#ccc',
+              transition: 'background-color 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              className="cq-privacy-settings-notification-toggle-slider"
+              style={{
+                position: 'absolute',
+                top: '2px',
+                left: emailLikes ? '24px' : '2px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: '#fff',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Email Follow Requests Toggle - Hidden until feature is implemented */}
+        <div
+          className="cq-privacy-settings-notification-item cq-privacy-settings-email-follow-requests"
+          style={{
+            display: 'none',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '20px',
+          }}
+        >
+          <div className="cq-privacy-settings-notification-info" style={{ flex: 1 }}>
+            <h4 className="cq-privacy-settings-notification-label" style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
+              New Follow Requests
+            </h4>
+            <p className="cq-privacy-settings-notification-description" style={{ color: '#666', fontSize: '13px', margin: 0 }}>
+              Receive an email when someone requests to follow you
+            </p>
+          </div>
+          <button
+            onClick={() => handleNotificationToggle('email_follow_requests', !emailFollowRequests)}
+            disabled={updateNotificationsMutation.isPending}
+            className={`cq-privacy-settings-notification-toggle ${emailFollowRequests ? 'cq-privacy-settings-notification-toggle-enabled' : 'cq-privacy-settings-notification-toggle-disabled'}`}
+            style={{
+              position: 'relative',
+              width: '50px',
+              height: '28px',
+              borderRadius: '14px',
+              border: 'none',
+              cursor: updateNotificationsMutation.isPending ? 'not-allowed' : 'pointer',
+              backgroundColor: emailFollowRequests ? '#007bff' : '#ccc',
+              transition: 'background-color 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              className="cq-privacy-settings-notification-toggle-slider"
+              style={{
+                position: 'absolute',
+                top: '2px',
+                left: emailFollowRequests ? '24px' : '2px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: '#fff',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+              }}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Blocked Users Section */}

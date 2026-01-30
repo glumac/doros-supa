@@ -377,6 +377,50 @@ export function useUpdatePrivacyMutation() {
   });
 }
 
+export function useUpdateNotificationPreferencesMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      preferences,
+    }: {
+      userId: string;
+      preferences: {
+        email_follow_requests?: boolean;
+        email_likes?: boolean;
+        email_comments?: boolean;
+      };
+    }) => {
+      // Fetch current preferences
+      const { data: currentUser, error: fetchError } = await supabase
+        .from("users")
+        .select("notification_preferences")
+        .eq("id", userId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Merge with new preferences
+      const updatedPreferences = {
+        ...currentUser.notification_preferences,
+        ...preferences,
+      };
+
+      const { data, error } = await supabase
+        .from("users")
+        .update({ notification_preferences: updatedPreferences })
+        .eq("id", userId);
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["user", "profile", variables.userId] });
+    },
+  });
+}
+
 /**
  * Hook to create a new pomodoro
  */

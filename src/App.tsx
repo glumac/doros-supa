@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import Home from "./container/Home";
 import Login from "./components/Login";
 import RestoreAccount from "./container/RestoreAccount";
+import UnsubscribeEmail from "./container/UnsubscribeEmail";
 import { TocPrivacy } from "./components";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Spinner from "./components/Spinner";
@@ -22,7 +23,7 @@ function AppRoutes() {
   useEffect(() => {
     // Wait for auth to finish loading before checking session
     if (!loading) {
-      const publicPaths = ["/login", "/toc-privacy"];
+      const publicPaths = ["/login", "/toc-privacy", "/unsubscribe"];
       const isPublicPath = publicPaths.includes(location.pathname);
       const isRestorePath = location.pathname === "/restore-account";
 
@@ -58,6 +59,7 @@ function AppRoutes() {
       <Route path="login" element={<Login />} />
       <Route path="toc-privacy" element={<TocPrivacy />} />
       <Route path="restore-account" element={<RestoreAccount />} />
+      <Route path="unsubscribe" element={<UnsubscribeEmail />} />
       <Route
         path="admin"
         element={
