@@ -53,6 +53,64 @@ export function getImageSizeError(file: File): string | null {
 }
 
 /**
+ * Check if a file is HEIC format
+ */
+export function isHeicFile(file: File): boolean {
+  return (
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    file.name.toLowerCase().endsWith('.heic') ||
+    file.name.toLowerCase().endsWith('.heif')
+  );
+}
+
+/**
+ * Convert HEIC file to JPEG
+ * Uses dynamic import to load heic2any only when needed (saves ~500KB for non-HEIC uploads)
+ * @throws Error if conversion fails
+ */
+export async function convertHeicToJpeg(file: File): Promise<File> {
+  try {
+    // Dynamic import - only loads heic2any when HEIC file is detected
+    const heic2any = (await import('heic2any')).default;
+
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9,
+    });
+
+    // heic2any can return Blob or Blob[] - handle both cases
+    const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+
+    // Ensure we have a valid blob
+    if (!blob) {
+      throw new Error('Conversion produced an empty result');
+    }
+
+    // Create new File from converted Blob with .jpg extension
+    const newFileName = file.name.replace(/\.heic?$/i, '.jpg');
+    return new File([blob], newFileName, {
+      type: 'image/jpeg',
+      lastModified: file.lastModified,
+    });
+  } catch (error) {
+    console.error('HEIC conversion failed:', error);
+    throw new Error('Failed to convert HEIC image. Please try a different format.');
+  }
+}
+
+/**
+ * Convert HEIC file to JPEG if needed, otherwise return original file
+ */
+export async function convertHeicIfNeeded(file: File): Promise<File> {
+  if (isHeicFile(file)) {
+    return await convertHeicToJpeg(file);
+  }
+  return file;
+}
+
+/**
  * Validate image file (type and size)
  * Returns validation result with error message if invalid
  */

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { validateImageFile } from '../lib/imageValidation';
+import { validateImageFile, convertHeicIfNeeded } from '../lib/imageValidation';
 
 interface UseDragAndDropProps {
   onFileSelect: (file: File) => void;
@@ -81,7 +81,7 @@ export function useDragAndDrop({
   );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -98,6 +98,10 @@ export function useDragAndDrop({
 
       // Use first file only
       const file = files[0];
+      if (!file) {
+        onError('Please drop an image file, not a folder or other content.');
+        return;
+      }
 
       // Check if it's actually a file (not a folder)
       if (file.size === 0 && file.type === '') {
@@ -105,15 +109,23 @@ export function useDragAndDrop({
         return;
       }
 
-      // Validate file
-      const validation = validateImageFile(file);
-      if (!validation.valid) {
-        onError(validation.error || 'Invalid file');
-        return;
-      }
+      try {
+        // Convert HEIC to JPEG if needed (before validation)
+        const processedFile = await convertHeicIfNeeded(file);
 
-      // File is valid, call callback
-      onFileSelect(file);
+        // Validate file after conversion
+        const validation = validateImageFile(processedFile);
+        if (!validation.valid) {
+          onError(validation.error || 'Invalid file');
+          return;
+        }
+
+        // File is valid, call callback
+        onFileSelect(processedFile);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
+        onError(errorMessage);
+      }
     },
     [disabled, onFileSelect, onError]
   );

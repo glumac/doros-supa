@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   SUPPORTED_IMAGE_TYPES,
   MAX_FILE_SIZE,
@@ -7,7 +7,15 @@ import {
   validateImageFile,
   getImageTypeError,
   getImageSizeError,
+  isHeicFile,
+  convertHeicToJpeg,
+  convertHeicIfNeeded,
 } from '../imageValidation';
+
+// Mock heic2any module
+vi.mock('heic2any', () => ({
+  default: vi.fn(),
+}));
 
 describe('imageValidation', () => {
   describe('SUPPORTED_IMAGE_TYPES', () => {
@@ -194,6 +202,161 @@ describe('imageValidation', () => {
       const result = validateImageFile(emptyTypeFile);
       expect(result.valid).toBe(false);
       expect(result.error).toBeTruthy();
+    });
+  });
+
+  describe('isHeicFile', () => {
+    it('detects HEIC files by mime type image/heic', () => {
+      const file = new File([''], 'test.heic', { type: 'image/heic' });
+      expect(isHeicFile(file)).toBe(true);
+    });
+
+    it('detects HEIC files by mime type image/heif', () => {
+      const file = new File([''], 'test.heif', { type: 'image/heif' });
+      expect(isHeicFile(file)).toBe(true);
+    });
+
+    it('detects HEIC files by .heic extension', () => {
+      const file = new File([''], 'test.heic', { type: '' });
+      expect(isHeicFile(file)).toBe(true);
+    });
+
+    it('detects HEIC files by .HEIC extension (uppercase)', () => {
+      const file = new File([''], 'test.HEIC', { type: '' });
+      expect(isHeicFile(file)).toBe(true);
+    });
+
+    it('detects HEIF files by .heif extension', () => {
+      const file = new File([''], 'test.heif', { type: '' });
+      expect(isHeicFile(file)).toBe(true);
+    });
+
+    it('returns false for JPEG files', () => {
+      const file = new File([''], 'test.jpg', { type: 'image/jpeg' });
+      expect(isHeicFile(file)).toBe(false);
+    });
+
+    it('returns false for PNG files', () => {
+      const file = new File([''], 'test.png', { type: 'image/png' });
+      expect(isHeicFile(file)).toBe(false);
+    });
+  });
+
+  describe('convertHeicToJpeg', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('converts HEIC to JPEG successfully', async () => {
+      const heic2any = (await import('heic2any')).default;
+      const mockBlob = new Blob(['converted'], { type: 'image/jpeg' });
+      vi.mocked(heic2any).mockResolvedValue(mockBlob);
+
+      const heicFile = new File(['heic content'], 'photo.heic', {
+        type: 'image/heic',
+        lastModified: 1234567890,
+      });
+
+      const result = await convertHeicToJpeg(heicFile);
+
+      expect(heic2any).toHaveBeenCalledWith({
+        blob: heicFile,
+        toType: 'image/jpeg',
+        quality: 0.9,
+      });
+      expect(result.name).toBe('photo.jpg');
+      expect(result.type).toBe('image/jpeg');
+      expect(result.lastModified).toBe(1234567890);
+    });
+
+    it('handles .HEIC extension (uppercase)', async () => {
+      const heic2any = (await import('heic2any')).default;
+      const mockBlob = new Blob(['converted'], { type: 'image/jpeg' });
+      vi.mocked(heic2any).mockResolvedValue(mockBlob);
+
+      const heicFile = new File(['heic content'], 'PHOTO.HEIC', {
+        type: 'image/heic',
+      });
+
+      const result = await convertHeicToJpeg(heicFile);
+
+      expect(result.name).toBe('PHOTO.jpg');
+    });
+
+    it('handles array response from heic2any', async () => {
+      const heic2any = (await import('heic2any')).default;
+      const mockBlob = new Blob(['converted'], { type: 'image/jpeg' });
+      vi.mocked(heic2any).mockResolvedValue([mockBlob]);
+
+      const heicFile = new File(['heic content'], 'photo.heic', {
+        type: 'image/heic',
+      });
+
+      const result = await convertHeicToJpeg(heicFile);
+
+      expect(result.name).toBe('photo.jpg');
+      expect(result.type).toBe('image/jpeg');
+    });
+
+    it('throws error on conversion failure', async () => {
+      const heic2any = (await import('heic2any')).default;
+      vi.mocked(heic2any).mockRejectedValue(new Error('Conversion failed'));
+
+      const heicFile = new File(['heic content'], 'photo.heic', {
+        type: 'image/heic',
+      });
+
+      await expect(convertHeicToJpeg(heicFile)).rejects.toThrow(
+        'Failed to convert HEIC image'
+      );
+    });
+  });
+
+  describe('convertHeicIfNeeded', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('converts HEIC files', async () => {
+      const heic2any = (await import('heic2any')).default;
+      const mockBlob = new Blob(['converted'], { type: 'image/jpeg' });
+      vi.mocked(heic2any).mockResolvedValue(mockBlob);
+
+      const heicFile = new File(['heic content'], 'photo.heic', {
+        type: 'image/heic',
+      });
+
+      const result = await convertHeicIfNeeded(heicFile);
+
+      expect(heic2any).toHaveBeenCalled();
+      expect(result.type).toBe('image/jpeg');
+      expect(result.name).toBe('photo.jpg');
+    });
+
+    it('returns non-HEIC files unchanged', async () => {
+      const heic2any = (await import('heic2any')).default;
+
+      const jpgFile = new File(['jpg content'], 'photo.jpg', {
+        type: 'image/jpeg',
+      });
+
+      const result = await convertHeicIfNeeded(jpgFile);
+
+      expect(heic2any).not.toHaveBeenCalled();
+      expect(result).toBe(jpgFile); // Same instance
+    });
+
+    it('returns PNG files unchanged', async () => {
+      const heic2any = (await import('heic2any')).default;
+
+      const pngFile = new File(['png content'], 'photo.png', {
+        type: 'image/png',
+      });
+
+      const result = await convertHeicIfNeeded(pngFile);
+
+      expect(heic2any).not.toHaveBeenCalled();
+      expect(result).toBe(pngFile);
     });
   });
 });

@@ -28,38 +28,80 @@ const Home = () => {
     scrollRef.current?.scrollTo(0, 0);
   }, []);
 
+  // Sync timer state from localStorage - used both on init and cross-tab sync
+  const syncTimerState = React.useCallback(() => {
+    const savedStateStr = localStorage.getItem("timerState");
+
+    if (!savedStateStr) {
+      // Timer was deleted in another tab
+      setTimerState(null);
+      setHomeInProgress(false);
+      setIsActive(false);
+      setIsPaused(false);
+      setTimeLeft(null);
+      setTask('');
+      setLaunchAt(null);
+      setCompleted(false);
+      return;
+    }
+
+    const savedState = JSON.parse(savedStateStr);
+    const { endTime, pausedTimeLeft, isPaused: wasPaused, launchAt: savedLaunchAt, task: savedTask } = savedState;
+
+    // Check if timer has expired but wasn't marked as completed
+    if (endTime && endTime < Date.now() && !wasPaused) {
+      setLaunchAt(savedLaunchAt);
+      setTask(savedTask);
+      setCompleted(true);
+      setHomeInProgress(false);
+      setIsActive(false);
+      setIsPaused(false);
+      setTimeLeft(null);
+      setTimerState(savedState);
+      return;
+    }
+
+    setTimerState(savedState);
+    setHomeInProgress(true);
+    setLaunchAt(savedLaunchAt);
+    setTask(savedTask);
+
+    if (wasPaused && pausedTimeLeft) {
+      setTimeLeft(pausedTimeLeft);
+      setIsPaused(true);
+      setIsActive(true);
+      setCompleted(false);
+    } else if (endTime && endTime > Date.now()) {
+      setIsActive(true);
+      setIsPaused(false);
+      setTimeLeft(endTime - Date.now());
+      setCompleted(false);
+    }
+  }, []);
+
   // Initialize timer state from localStorage
   useEffect(() => {
-    const savedStateStr = localStorage.getItem("timerState");
-    if (savedStateStr) {
-      const savedState = JSON.parse(savedStateStr);
-      const { endTime, pausedTimeLeft, isPaused: wasPaused, launchAt: savedLaunchAt, task: savedTask } = savedState;
+    syncTimerState();
+  }, [syncTimerState]);
 
-      // Check if timer has expired but wasn't marked as completed
-      if (endTime && endTime < Date.now() && !wasPaused) {
-        setLaunchAt(savedLaunchAt);
-        setTask(savedTask);
-        setCompleted(true);
-        setHomeInProgress(false);
+  // Listen for storage events from other tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      // Only respond to timerState changes
+      if (event.key !== 'timerState') {
         return;
       }
 
-      setTimerState(savedState);
-      setHomeInProgress(true);
-      setLaunchAt(savedLaunchAt);
-      setTask(savedTask);
+      // Sync state when another tab changes the timer
+      syncTimerState();
+    };
 
-      if (wasPaused && pausedTimeLeft) {
-        setTimeLeft(pausedTimeLeft);
-        setIsPaused(true);
-        setIsActive(true);
-      } else if (endTime && endTime > Date.now()) {
-        setIsActive(true);
-        setIsPaused(false);
-        setTimeLeft(endTime - Date.now());
-      }
-    }
-  }, []);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [syncTimerState]);
 
   // Timer countdown interval - runs globally
   // Only updates state when absolutely necessary to minimize re-renders

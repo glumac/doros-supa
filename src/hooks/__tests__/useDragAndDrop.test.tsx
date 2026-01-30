@@ -208,7 +208,7 @@ describe('useDragAndDrop', () => {
   });
 
   describe('drop', () => {
-    it('calls onFileSelect with valid file', () => {
+    it('calls onFileSelect with valid file', async () => {
       const { result } = renderHook(() =>
         useDragAndDrop({
           onFileSelect: mockOnFileSelect,
@@ -224,8 +224,8 @@ describe('useDragAndDrop', () => {
         items: [{ kind: 'file', type: 'image/png' }],
       };
 
-      act(() => {
-        result.current.onDrop({
+      await act(async () => {
+        await result.current.onDrop({
           preventDefault: vi.fn(),
           stopPropagation: vi.fn(),
           dataTransfer: mockDataTransfer as any,
@@ -236,7 +236,7 @@ describe('useDragAndDrop', () => {
       expect(mockOnError).not.toHaveBeenCalled();
     });
 
-    it('uses first file when multiple files are dropped', () => {
+    it('uses first file when multiple files are dropped', async () => {
       const { result } = renderHook(() =>
         useDragAndDrop({
           onFileSelect: mockOnFileSelect,
@@ -258,8 +258,8 @@ describe('useDragAndDrop', () => {
         ],
       };
 
-      act(() => {
-        result.current.onDrop({
+      await act(async () => {
+        await result.current.onDrop({
           preventDefault: vi.fn(),
           stopPropagation: vi.fn(),
           dataTransfer: mockDataTransfer as any,
@@ -270,7 +270,7 @@ describe('useDragAndDrop', () => {
       expect(mockOnFileSelect).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onError for invalid file type', () => {
+    it('calls onError for invalid file type', async () => {
       const { result } = renderHook(() =>
         useDragAndDrop({
           onFileSelect: mockOnFileSelect,
@@ -284,8 +284,8 @@ describe('useDragAndDrop', () => {
         items: [{ kind: 'file', type: 'image/svg+xml' }],
       };
 
-      act(() => {
-        result.current.onDrop({
+      await act(async () => {
+        await result.current.onDrop({
           preventDefault: vi.fn(),
           stopPropagation: vi.fn(),
           dataTransfer: mockDataTransfer as any,
@@ -294,10 +294,10 @@ describe('useDragAndDrop', () => {
 
       expect(mockOnFileSelect).not.toHaveBeenCalled();
       expect(mockOnError).toHaveBeenCalled();
-      expect(mockOnError.mock.calls[0][0]).toContain('not supported');
+      expect(mockOnError.mock.calls[0]?.[0]).toContain('not supported');
     });
 
-    it('calls onError for file over size limit', () => {
+    it('calls onError for file over size limit', async () => {
       const { result } = renderHook(() =>
         useDragAndDrop({
           onFileSelect: mockOnFileSelect,
@@ -315,8 +315,8 @@ describe('useDragAndDrop', () => {
         items: [{ kind: 'file', type: 'image/jpeg' }],
       };
 
-      act(() => {
-        result.current.onDrop({
+      await act(async () => {
+        await result.current.onDrop({
           preventDefault: vi.fn(),
           stopPropagation: vi.fn(),
           dataTransfer: mockDataTransfer as any,
@@ -325,7 +325,7 @@ describe('useDragAndDrop', () => {
 
       expect(mockOnFileSelect).not.toHaveBeenCalled();
       expect(mockOnError).toHaveBeenCalled();
-      expect(mockOnError.mock.calls[0][0]).toContain('too large');
+      expect(mockOnError.mock.calls[0]?.[0]).toContain('too large');
     });
 
     it('rejects non-file content (folders, text)', () => {

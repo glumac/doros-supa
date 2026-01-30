@@ -8,7 +8,7 @@ import { uploadPomodoroImage } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
 import { useCreatePomodoroMutation } from "../hooks/useMutations";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { validateImageFile } from "../lib/imageValidation";
+import { validateImageFile, convertHeicIfNeeded, isHeicFile } from "../lib/imageValidation";
 import Spinner from "./Spinner";
 import whoosh from "../assets/whoosh.mp3";
 import DoroContext from "../utils/DoroContext";
@@ -44,6 +44,7 @@ interface CreateDoroProps {
 
 interface ImageUploadAreaProps {
   loading: boolean;
+  convertingHeic?: boolean;
   imageAsset: SanityAsset | null;
   uploadError: string | null;
   onFileSelect: (file: File) => void;
@@ -56,6 +57,7 @@ interface ImageUploadAreaProps {
 
 const ImageUploadArea = ({
   loading,
+  convertingHeic = false,
   imageAsset,
   uploadError,
   onFileSelect,
@@ -103,6 +105,12 @@ const ImageUploadArea = ({
           <Spinner />
         </div>
       )}
+      {convertingHeic && (
+        <div className="cq-create-doro-image-converting mt-8" aria-live="polite" aria-busy="true">
+          <Spinner />
+          <p className="text-gray-600 mt-2 text-sm">Converting HEIC image...</p>
+        </div>
+      )}
       {uploadError && (
         <p
           id="upload-error"
@@ -112,7 +120,7 @@ const ImageUploadArea = ({
           {uploadError}
         </p>
       )}
-      {!imageAsset && !loading && (
+      {!imageAsset && !loading && !convertingHeic && (
         <>
           <label
             className="cq-create-doro-image-upload-label cursor-pointer"
@@ -199,6 +207,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   const [imageAsset, setImageAsset] = useState<SanityAsset | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [convertingHeic, setConvertingHeic] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
@@ -434,34 +443,43 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   const handleFileUpload = async (file: File) => {
     setUploadError(null);
 
-    // Validate file
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
-      setUploadError(validation.error || 'Invalid file');
-      return;
-    }
-
     if (!user?.id) {
       setUploadError("You must be logged in to upload images");
       return;
     }
 
-    setLoading(true);
+    let processedFile = file;
 
     try {
-      const { imagePath, error } = await uploadPomodoroImage(file, user.id);
+      // Convert HEIC to JPEG if needed
+      if (isHeicFile(file)) {
+        setConvertingHeic(true);
+        processedFile = await convertHeicIfNeeded(file);
+        setConvertingHeic(false);
+      }
+
+      // Validate file after conversion (to check final size)
+      const validation = validateImageFile(processedFile);
+      if (!validation.valid) {
+        setUploadError(validation.error || 'Invalid file');
+        return;
+      }
+
+      setLoading(true);
+
+      const { imagePath, error } = await uploadPomodoroImage(processedFile, user.id);
 
       if (error) {
         setLoading(false);
         setUploadError(
-          "Sorry, that image did not work. (Note: HEIC - some iPhone images are not supported yet if you upload from a computer and not iPhone :/)"
+          "Sorry, that image did not work. Please try a different image."
         );
         console.log("Upload failed:", error);
       } else if (imagePath) {
         // Use local object URL for immediate preview (avoids RLS issues with signed URLs)
         // The path will be stored in the database, and signed URLs will be generated
         // when displaying the pomodoro (handled in Doro.tsx and DoroDetail.tsx)
-        const localUrl = URL.createObjectURL(file);
+        const localUrl = URL.createObjectURL(processedFile);
         setImageAsset({ _id: imagePath, url: localUrl });
         setLoading(false);
         // Reset file input to allow re-uploading same file
@@ -470,8 +488,10 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
         }
       }
     } catch (error) {
+      setConvertingHeic(false);
       setLoading(false);
-      setUploadError("Network error. Please check your connection and try again.");
+      const errorMessage = error instanceof Error ? error.message : "Network error. Please check your connection and try again.";
+      setUploadError(errorMessage);
       console.error("Upload error:", error);
     }
   };
@@ -643,6 +663,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             <div className="cq-create-doro-image-upload-container bg-secondaryColor rounded-lg p-3 flex flex-0.7 w-full">
               <ImageUploadArea
                 loading={loading}
+                convertingHeic={convertingHeic}
                 imageAsset={imageAsset}
                 uploadError={uploadError}
                 onFileSelect={handleFileUpload}
@@ -656,7 +677,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                   setUploadError(null);
                 }}
                 fileInputRef={fileInputRef}
-                disabled={loading}
+                disabled={loading || convertingHeic}
                 onFileInputChange={uploadImage}
               />
             </div>
