@@ -239,6 +239,56 @@ describe('Doro', () => {
     );
   });
 
+  it('should submit comment when pressing Enter key', async () => {
+    const user = userEvent.setup();
+
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      insert: mockInsert,
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: [mockDoro], error: null })
+      })
+    } as any);
+
+    renderWithAuth();
+
+    const addCommentButton = screen.getByRole('button', { name: 'Comment' });
+    await user.click(addCommentButton);
+
+    const commentInput = screen.getByPlaceholderText(/add a comment/i);
+    await user.type(commentInput, 'Great work!{enter}');
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pomodoro_id: 'doro-123',
+        user_id: 'user-123',
+        comment_text: 'Great work!'
+      })
+    );
+  });
+
+  it('should not submit comment when pressing Shift+Enter', async () => {
+    const user = userEvent.setup();
+
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      insert: mockInsert,
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: [mockDoro], error: null })
+      })
+    } as any);
+
+    renderWithAuth();
+
+    const addCommentButton = screen.getByRole('button', { name: 'Comment' });
+    await user.click(addCommentButton);
+
+    const commentInput = screen.getByPlaceholderText(/add a comment/i);
+    await user.type(commentInput, 'Multi-line{shift>}{enter}{/shift}comment');
+
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
   it('should show delete comment button only for own comments', () => {
     const doroWithUserComment = {
       ...mockDoro,

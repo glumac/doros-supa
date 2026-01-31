@@ -394,25 +394,35 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                 )}
               </div>
               <div id={`${doro.id}-commenting`} className="cq-doro-detail-comment-form-container">
-                <div className="cq-doro-detail-comment-form flex items-end">
+                <form
+                  className="cq-doro-detail-comment-form flex items-end"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addComment();
+                  }}
+                >
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (comment?.trim().length > 0 && !isAddingComment) {
+                          addComment();
+                        }
+                      }
+                    }}
                     placeholder="Add a comment"
                     className="cq-doro-detail-comment-input block leading-tight outline-none text-base border-2 mr-3 border-gray-200 flex-grow p-2"
                   ></textarea>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addComment();
-                    }}
                     disabled={comment?.length === 0 || isAddingComment}
-                    type="button"
+                    type="submit"
                     className="cq-doro-detail-comment-submit-button bg-red-600 text-white font-bold px-5 py-1 text-base rounded-lg hover:shadow-md outline-none"
                   >
                     {isAddingComment ? "Submitting" : "Submit"}
                   </button>
-                </div>
+                </form>
               </div>
             </div>
           </div>

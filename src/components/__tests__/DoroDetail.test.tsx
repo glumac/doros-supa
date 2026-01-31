@@ -323,6 +323,54 @@ describe('DoroDetail', () => {
     );
   });
 
+  it('should submit comment when pressing Enter key', async () => {
+    const user = userEvent.setup();
+
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      insert: mockInsert
+    } as any);
+
+    window.history.pushState({}, '', '/doro-detail/doro-123');
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/add a comment/i)).toBeInTheDocument();
+    });
+
+    const commentInput = screen.getByPlaceholderText(/add a comment/i);
+    await user.type(commentInput, 'Great work!{enter}');
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pomodoro_id: 'doro-123',
+        user_id: 'user-123',
+        comment_text: 'Great work!'
+      })
+    );
+  });
+
+  it('should not submit comment when pressing Shift+Enter', async () => {
+    const user = userEvent.setup();
+
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      insert: mockInsert
+    } as any);
+
+    window.history.pushState({}, '', '/doro-detail/doro-123');
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/add a comment/i)).toBeInTheDocument();
+    });
+
+    const commentInput = screen.getByPlaceholderText(/add a comment/i);
+    await user.type(commentInput, 'Multi-line{shift>}{enter}{/shift}comment');
+
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
   describe('Image handling', () => {
     it('should call getDetailImageUrl for detail images', async () => {
       const doroWithImagePath = {
