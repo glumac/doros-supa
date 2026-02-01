@@ -6,7 +6,28 @@ import Doro from '../Doro';
 import { AuthContext } from '../../contexts/AuthContext';
 
 // Mock hooks
-vi.mock('../../hooks/useMutations');
+vi.mock('../../hooks/useMutations', () => ({
+  useLikeMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useUnlikeMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useCommentMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useDeleteCommentMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useDeletePomodoroMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}));
 
 describe('Doro - Scroll and Highlight', () => {
   let queryClient: QueryClient;
@@ -220,5 +241,29 @@ describe('Doro - Scroll and Highlight', () => {
       // Tailwind bg-yellow-100 should result in a yellow-ish background
       expect(computedStyle).toBeDefined();
     }, { timeout: 500 });
+  });
+
+  it('should respond to hashchange events', async () => {
+    // Start with no hash
+    window.location.hash = '';
+
+    renderDoro();
+
+    // Change the hash to match this pomodoro
+    window.location.hash = `#pomodoro-${mockDoro.id}`;
+
+    // Trigger hashchange event
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    // Should now scroll
+    await waitFor(() => {
+      expect(scrollIntoViewMock).toHaveBeenCalled();
+    }, { timeout: 500 });
+
+    // Verify scrollIntoView was called with correct options
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'center',
+    });
   });
 });

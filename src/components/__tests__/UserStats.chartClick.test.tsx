@@ -116,7 +116,7 @@ describe('UserStats - Chart Click Navigation', () => {
     );
   };
 
-  it('should navigate immediately when clicking a chart bar', async () => {
+  it('should navigate when clicking a chart bar', async () => {
     const user = userEvent.setup();
 
     (findFirstPomodoroInRange as any).mockResolvedValue({
@@ -141,9 +141,9 @@ describe('UserStats - Chart Click Navigation', () => {
     // Click the first bar
     await user.click(bars[0] as Element);
 
-    // Should navigate to page 1 immediately
+    // Should navigate to the correct page with hash after query completes
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/user/user-123?page=1');
+      expect(mockNavigate).toHaveBeenCalledWith('/user/user-123?page=2#pomodoro-pomodoro-123', expect.objectContaining({ replace: false }));
     });
   });
 
@@ -167,7 +167,7 @@ describe('UserStats - Chart Click Navigation', () => {
 
     // Should eventually navigate with page and hash
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/user/user-123?page=3#pomodoro-pomodoro-456');
+      expect(mockNavigate).toHaveBeenCalledWith('/user/user-123?page=3#pomodoro-pomodoro-456', expect.objectContaining({ replace: false }));
     });
   });
 

@@ -43,22 +43,34 @@ const Doro = ({ doro }: DoroProps) => {
 
   // Handle scroll-to-pomodoro from URL hash
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash === `#pomodoro-${id}`) {
-      // Small delay to ensure rendering is complete
-      setTimeout(() => {
-        const element = document.getElementById(`pomodoro-${id}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setIsHighlighted(true);
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === `#pomodoro-${id}`) {
+        // Small delay to ensure rendering is complete
+        setTimeout(() => {
+          const element = document.getElementById(`pomodoro-${id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setIsHighlighted(true);
 
-          // Remove highlight after 3 seconds
-          setTimeout(() => {
-            setIsHighlighted(false);
-          }, 3000);
-        }
-      }, 100);
-    }
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              setIsHighlighted(false);
+            }, 3000);
+          }
+        }, 100);
+      }
+    };
+
+    // Check hash on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, [id]);
 
   // Convert image path to signed URL if needed

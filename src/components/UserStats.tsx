@@ -500,9 +500,6 @@ export function UserStats() {
     const { startDate: rangeStart, endDate: rangeEnd } = data;
     if (!rangeStart || !rangeEnd) return;
 
-    // Navigate immediately to page 1 for instant feedback
-    navigate(`/user/${userProfile.id}?page=1`);
-
     // Find the first pomodoro in the background
     try {
       const result = await findFirstPomodoroInRange(
@@ -514,11 +511,18 @@ export function UserStats() {
 
       if (result) {
         // Navigate to the correct page with the pomodoro hash
-        navigate(`/user/${userProfile.id}?page=${result.pageNumber}#pomodoro-${result.pomodoroId}`);
+        // Use replace: true to avoid the double navigation issue when on the same page
+        navigate(`/user/${userProfile.id}?page=${result.pageNumber}#pomodoro-${result.pomodoroId}`, {
+          replace: window.location.pathname === `/user/${userProfile.id}`
+        });
+      } else {
+        // If no result found, just navigate to page 1
+        navigate(`/user/${userProfile.id}?page=1`);
       }
     } catch (error) {
       console.error("Error finding pomodoro:", error);
-      // Stay on page 1 if there's an error
+      // Navigate to page 1 if there's an error
+      navigate(`/user/${userProfile.id}?page=1`);
     }
   };
 
