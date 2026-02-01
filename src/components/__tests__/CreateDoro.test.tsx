@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -224,6 +225,106 @@ describe('CreateDoro CSS behavior', () => {
 
       // Completion state UI
       expect(container).toBeInTheDocument();
+    });
+  });
+
+  describe('image upload blocking behavior', () => {
+    it('disables Share button when image is uploading', async () => {
+      const { uploadPomodoroImage } = await import('../../lib/storage');
+      const mockUpload = uploadPomodoroImage as ReturnType<typeof vi.fn>;
+
+      // Make upload hang indefinitely
+      mockUpload.mockImplementation(() => new Promise(() => {}));
+
+      renderCreateDoro({ completed: true });
+
+      const shareButton = screen.getByRole('button', { name: /share/i });
+      expect(shareButton).not.toBeDisabled();
+
+      // Upload a file
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = screen.getByLabelText(/file input/i);
+      await userEvent.upload(input, file);
+
+      // Share button should be disabled during upload
+      await waitFor(() => {
+        expect(shareButton).toBeDisabled();
+      });
+    });
+
+    it('shows "Uploading image..." status text during upload', async () => {
+      const { uploadPomodoroImage } = await import('../../lib/storage');
+      const mockUpload = uploadPomodoroImage as ReturnType<typeof vi.fn>;
+
+      // Make upload hang
+      mockUpload.mockImplementation(() => new Promise(() => {}));
+
+      renderCreateDoro({ completed: true });
+
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = screen.getByLabelText(/file input/i);
+      await userEvent.upload(input, file);
+
+      // Should display "Uploading image..." text (not in sr-only)
+      await waitFor(() => {
+        const statusTexts = screen.getAllByText(/uploading image\.\.\./i);
+        const visibleStatus = statusTexts.find(el => !el.classList.contains('sr-only'));
+        expect(visibleStatus).toBeInTheDocument();
+      });
+    });
+
+    it('re-enables Share button when upload completes successfully', async () => {
+      const { uploadPomodoroImage } = await import('../../lib/storage');
+      const mockUpload = uploadPomodoroImage as ReturnType<typeof vi.fn>;
+
+      // Mock successful upload
+      mockUpload.mockResolvedValue({
+        imagePath: 'user-123/test.png',
+        error: null,
+      });
+
+      renderCreateDoro({ completed: true });
+
+      const shareButton = screen.getByRole('button', { name: /share/i });
+
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = screen.getByLabelText(/file input/i);
+      await userEvent.upload(input, file);
+
+      // Wait for upload to complete
+      await waitFor(() => {
+        expect(shareButton).not.toBeDisabled();
+      });
+
+      // Status text should be gone
+      expect(screen.queryByText(/uploading image\.\.\./i)).not.toBeInTheDocument();
+    });
+
+    it('re-enables Share button when upload fails with error', async () => {
+      const { uploadPomodoroImage } = await import('../../lib/storage');
+      const mockUpload = uploadPomodoroImage as ReturnType<typeof vi.fn>;
+
+      // Mock failed upload
+      mockUpload.mockResolvedValue({
+        imagePath: null,
+        error: 'Upload failed',
+      });
+
+      renderCreateDoro({ completed: true });
+
+      const shareButton = screen.getByRole('button', { name: /share/i });
+
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = screen.getByLabelText(/file input/i);
+      await userEvent.upload(input, file);
+
+      // Wait for error handling
+      await waitFor(() => {
+        expect(shareButton).not.toBeDisabled();
+      });
+
+      // Error message should be displayed (use role="alert" to get visible one)
+      expect(screen.getByRole('alert')).toHaveTextContent(/sorry, that image did not work/i);
     });
   });
 });
