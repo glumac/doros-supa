@@ -78,3 +78,37 @@ export interface RecentActiveUser {
   avatar_url: string | null;
   last_seen_at: string;
 }
+
+// Follow request with joined user data
+export interface FollowRequest {
+  id: string;
+  requester_id: string;
+  target_id: string;
+  created_at: string;
+  users?: User;
+}
+
+// Blocked user relationship with joined user data
+export interface BlockedUser {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+  users?: User;
+}
+
+// Follower/following relationship with joined user data
+export interface FollowerRelation {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+  users?: User;
+}
+
+// Chart data point for user statistics
+export interface ChartDataPoint {
+  startDate?: string;
+  endDate?: string;
+  count: number;
+}

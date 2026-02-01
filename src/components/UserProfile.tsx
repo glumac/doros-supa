@@ -27,7 +27,7 @@ import Pagination from "./Pagination";
 import FollowersModal from "./FollowersModal";
 import { ProfileTabs } from "./ProfileTabs";
 import { addStyle, removeStyle } from "../utils/styleDefs";
-import { User, Doro, DecodedJWT } from "../types/models";
+import { User, Doro, DecodedJWT, FollowRequest } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
@@ -275,7 +275,7 @@ const UserProfile = () => {
                   <div className="cq-user-profile-follow-requests-loading text-gray-600 text-center py-2">Loading...</div>
                 ) : (
                   <div className="cq-user-profile-follow-requests-list space-y-3">
-                    {followRequests.map((request: any) => (
+                    {followRequests.map((request: FollowRequest) => (
                       <div
                         key={request.id}
                         className="cq-user-profile-follow-request-item flex items-center justify-between gap-3 p-2 border-b last:border-b-0"

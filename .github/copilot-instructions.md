@@ -1,3 +1,4 @@
 - use supabase MCP instead of CLI when possible
 - write tests for functionality (not code) when you make a change or build a feature.
 - don't delete or comment failing tests unless they are truly not relevant. fix the underlying code or fix the test. if a test is irrelevant explain why it is before deleting.
+- LLM should run tests with `--run` flag (not watch mode). use the `runTests` tool or `npm test -- <files> --run`.

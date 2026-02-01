@@ -10,6 +10,7 @@ import { useUpdatePrivacyMutation, useUnblockUserMutation, useUpdateNotification
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 import { removeStyle } from '../utils/styleDefs';
 import DeleteAccountModal from './DeleteAccountModal';
+import type { User, BlockedUser } from '../types/models';
 
 export default function PrivacySettings() {
   const { user } = useAuth();
@@ -434,7 +435,7 @@ export default function PrivacySettings() {
           </div>
         ) : (
           <div className="cq-privacy-settings-blocked-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {blockedUsers.map((block: any) => (
+            {blockedUsers.map((block: BlockedUser) => (
               <div
                 key={block.id}
                 className="cq-privacy-settings-blocked-item"

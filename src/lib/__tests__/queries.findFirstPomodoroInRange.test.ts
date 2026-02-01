@@ -107,6 +107,8 @@ describe('findFirstPomodoroInRange', () => {
       gt: vi.fn().mockResolvedValue({
         count: 0, // No newer pomodoros, this is #1
         error: null,
+      }),
+    };
     countChain.eq.mockReturnValue(countChain);
 
     const totalCountChain = {
@@ -116,9 +118,7 @@ describe('findFirstPomodoroInRange', () => {
         error: null,
       }),
     };
-    totalCountChain.eq.mockReturnValue(totalCountChain)   error: null,
-      }),
-    };
+    totalCountChain.eq.mockReturnValue(totalCountChain);
 
     (supabase.from as any)
       .mockReturnValueOnce(firstPomodoroChain)
@@ -216,6 +216,8 @@ describe('findFirstPomodoroInRange', () => {
       gt: vi.fn().mockResolvedValue({
         count: 99, // 99 newer = position 100, last on page 5
         error: null,
+      }),
+    };
     countChain.eq.mockReturnValue(countChain);
 
     const totalCountChain = {
@@ -225,9 +227,7 @@ describe('findFirstPomodoroInRange', () => {
         error: null,
       }),
     };
-    totalCountChain.eq.mockReturnValue(totalCountChain)   error: null,
-      }),
-    };
+    totalCountChain.eq.mockReturnValue(totalCountChain);
 
     (supabase.from as any)
       .mockReturnValueOnce(firstPomodoroChain)

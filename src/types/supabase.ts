@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           comment_text: string
@@ -51,6 +115,90 @@ export type Database = {
             foreignKeyName: "comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          requester_id: string
+          status: string | null
+          target_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          requester_id: string
+          status?: string | null
+          target_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          requester_id?: string
+          status?: string | null
+          target_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -80,7 +228,35 @@ export type Database = {
             foreignKeyName: "follows_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -117,6 +293,20 @@ export type Database = {
             columns: ["pomodoro_id"]
             isOneToOne: false
             referencedRelation: "pomodoros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -167,6 +357,20 @@ export type Database = {
             foreignKeyName: "pomodoros_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "active_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pomodoros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pomodoros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -176,33 +380,42 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          deleted_at: string | null
           email: string
+          followers_only: boolean | null
           id: string
           is_admin: boolean | null
+          last_seen_at: string | null
+          notification_preferences: Json | null
           privacy_setting: string | null
-          followers_only: boolean | null
           updated_at: string | null
           user_name: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email: string
+          followers_only?: boolean | null
           id: string
           is_admin?: boolean | null
+          last_seen_at?: string | null
+          notification_preferences?: Json | null
           privacy_setting?: string | null
-          followers_only?: boolean | null
           updated_at?: string | null
           user_name: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string
+          followers_only?: boolean | null
           id?: string
           is_admin?: boolean | null
+          last_seen_at?: string | null
+          notification_preferences?: Json | null
           privacy_setting?: string | null
-          followers_only?: boolean | null
           updated_at?: string | null
           user_name?: string
         }
@@ -210,33 +423,124 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          followers_only: boolean | null
+          id: string | null
+          notification_preferences: Json | null
+          privacy_setting: string | null
+          updated_at: string | null
+          user_name: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          followers_only?: boolean | null
+          id?: string | null
+          notification_preferences?: Json | null
+          privacy_setting?: string | null
+          updated_at?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          followers_only?: boolean | null
+          id?: string | null
+          notification_preferences?: Json | null
+          privacy_setting?: string | null
+          updated_at?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      public_user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          followers_only: boolean | null
+          id: string | null
+          notification_preferences: Json | null
+          privacy_setting: string | null
+          updated_at: string | null
+          user_name: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          followers_only?: boolean | null
+          id?: string | null
+          notification_preferences?: Json | null
+          privacy_setting?: string | null
+          updated_at?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          followers_only?: boolean | null
+          id?: string | null
+          notification_preferences?: Json | null
+          privacy_setting?: string | null
+          updated_at?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      approve_follow_request: {
+        Args: { p_approver_id: string; p_request_id: string }
+        Returns: Json
+      }
       get_admin_stats: {
-        Args: { p_start_date?: string; p_end_date?: string }
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
-          total_users: number
-          new_users: number
-          total_pomodoros: number
-          completed_pomodoros: number
-          total_likes: number
-          total_comments: number
           active_users: number
+          completed_pomodoros: number
+          new_users: number
+          total_comments: number
+          total_likes: number
+          total_pomodoros: number
+          total_users: number
+        }[]
+      }
+      get_comment_for_notification: {
+        Args: { p_comment_id: string }
+        Returns: {
+          comment_id: string
+          comment_text: string
+          commenter_avatar: string
+          commenter_id: string
+          commenter_name: string
+          notification_preferences: Json
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          pomodoro_id: string
+          task: string
         }[]
       }
       get_daily_pomodoro_counts: {
-        Args: { p_start_date: string; p_end_date: string }
+        Args: { p_end_date: string; p_start_date: string }
         Returns: {
-          date: string
           count: number
+          date: string
         }[]
       }
       get_daily_user_signups: {
-        Args: { p_start_date: string; p_end_date: string }
+        Args: { p_end_date: string; p_start_date: string }
         Returns: {
-          date: string
           count: number
+          date: string
         }[]
       }
       get_friends_leaderboard: {
@@ -250,13 +554,17 @@ export type Database = {
         }[]
       }
       get_global_leaderboard: {
-        Args: never
+        Args: { p_current_user_id?: string }
         Returns: {
           avatar_url: string
           completion_count: number
           user_id: string
           user_name: string
         }[]
+      }
+      get_pending_follow_requests_count: {
+        Args: { user_id: string }
+        Returns: number
       }
       get_public_user_profile: {
         Args: { current_user_id: string; profile_user_id: string }
@@ -273,6 +581,15 @@ export type Database = {
           week_completions: number
         }[]
       }
+      get_recent_active_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          id: string
+          last_seen_at: string
+          user_name: string
+        }[]
+      }
       get_suggested_users: {
         Args: { current_user_id: string; result_limit?: number }
         Returns: {
@@ -285,6 +602,42 @@ export type Database = {
           user_name: string
         }[]
       }
+      get_user_daily_completions: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          count: number
+          date: string
+        }[]
+      }
+      get_user_monthly_completions: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          count: number
+          month_start: string
+        }[]
+      }
+      get_user_stats: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          active_days: number
+          completed_pomodoros: number
+          total_days: number
+          total_pomodoros: number
+        }[]
+      }
+      get_user_weekly_completions: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          count: number
+          week_start: string
+        }[]
+      }
+      initialize_name: { Args: { full_name: string }; Returns: string }
+      is_user_blocked: {
+        Args: { blocked_user_id: string; blocker_user_id: string }
+        Returns: boolean
+      }
+      restore_account: { Args: { p_user_id: string }; Returns: undefined }
       search_users: {
         Args: { current_user_id: string; search_term: string }
         Returns: {
@@ -296,6 +649,8 @@ export type Database = {
           user_name: string
         }[]
       }
+      soft_delete_account: { Args: { p_user_id: string }; Returns: undefined }
+      update_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

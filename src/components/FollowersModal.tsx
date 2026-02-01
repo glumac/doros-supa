@@ -7,6 +7,7 @@ import BlockButton from './BlockButton';
 import { useIsFollowingUser } from '../hooks/useFollowStatus';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
 import { useModal } from '../hooks/useModal';
+import type { User, FollowerRelation } from '../types/models';
 
 interface FollowersModalProps {
   userId: string;
@@ -94,14 +95,14 @@ export default function FollowersModal({
       if (activeTab === 'followers') {
         const { data, count } = await getFollowersList(userId, page, pageSize);
         if (data) {
-          const users = data.map((item: any) => item.users).filter(Boolean);
+          const users = data.map((item: FollowerRelation) => item.users).filter((user): user is User => user !== undefined);
           setFollowers(users);
           setTotalCount(count || 0);
         }
       } else {
         const { data, count } = await getFollowingList(userId, page, pageSize);
         if (data) {
-          const users = data.map((item: any) => item.users).filter(Boolean);
+          const users = data.map((item: FollowerRelation) => item.users).filter((user): user is User => user !== undefined);
           setFollowing(users);
           setTotalCount(count || 0);
         }

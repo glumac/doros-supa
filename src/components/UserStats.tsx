@@ -22,6 +22,7 @@ import { useFollowers, useFollowing } from "../hooks/useUserProfile";
 import { ProfileTabs } from "./ProfileTabs";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 import { removeStyle } from "../utils/styleDefs";
+import type { ChartDataPoint } from "../types/models";
 import {
   getThisWeekStartEST,
   getThisWeekEndEST,
@@ -393,7 +394,7 @@ export function UserStats() {
   }, [chartView, dailyData, weeklyData, monthlyData, startDate, endDate]);
 
   // Handle chart bar click
-  const handleBarClick = async (data: any) => {
+  const handleBarClick = async (data: ChartDataPoint | undefined) => {
     if (!userProfile?.id || !data || data.count === 0) return;
 
     const { startDate: rangeStart, endDate: rangeEnd } = data;
