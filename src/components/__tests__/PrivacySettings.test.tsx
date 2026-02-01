@@ -13,6 +13,8 @@ import * as useDeleteAccountHooks from '../../hooks/useDeleteAccount';
 
 vi.mock('../../hooks/useUserProfile', () => ({
   useUserProfile: vi.fn(),
+  useFollowers: vi.fn(),
+  useFollowing: vi.fn(),
 }));
 
 vi.mock('../../hooks/useBlockedUsers', () => ({
@@ -22,6 +24,7 @@ vi.mock('../../hooks/useBlockedUsers', () => ({
 vi.mock('../../hooks/useMutations', () => ({
   useUpdatePrivacyMutation: vi.fn(),
   useUnblockUserMutation: vi.fn(),
+  useUpdateNotificationPreferencesMutation: vi.fn(),
 }));
 
 vi.mock('../../hooks/useDeleteAccount', () => ({
@@ -49,9 +52,12 @@ const mockUserProfile = {
 
 const mockHooks = {
   useUserProfile: vi.mocked(useUserProfileHooks.useUserProfile),
+  useFollowers: vi.mocked(useUserProfileHooks.useFollowers),
+  useFollowing: vi.mocked(useUserProfileHooks.useFollowing),
   useBlockedUsers: vi.mocked(useBlockedUsersHooks.useBlockedUsers),
   useUpdatePrivacyMutation: vi.mocked(useMutationsHooks.useUpdatePrivacyMutation),
   useUnblockUserMutation: vi.mocked(useMutationsHooks.useUnblockUserMutation),
+  useUpdateNotificationPreferencesMutation: vi.mocked(useMutationsHooks.useUpdateNotificationPreferencesMutation),
   useDeleteAccount: vi.mocked(useDeleteAccountHooks.useDeleteAccount),
 };
 
@@ -96,6 +102,20 @@ describe('PrivacySettings', () => {
       error: null,
     } as any);
 
+    mockHooks.useFollowers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useFollowing.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
     mockHooks.useUpdatePrivacyMutation.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       mutate: vi.fn(),
@@ -106,6 +126,15 @@ describe('PrivacySettings', () => {
     } as any);
 
     mockHooks.useUnblockUserMutation.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockHooks.useUpdateNotificationPreferencesMutation.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       mutate: vi.fn(),
       isPending: false,
@@ -169,7 +198,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
       expect(screen.getByText('Followers Only')).toBeInTheDocument();
     });
   });
@@ -264,7 +293,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     const toggleButtons = screen.getAllByRole('button');
@@ -313,7 +342,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     const toggleButtons = screen.getAllByRole('button');
@@ -360,7 +389,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     const toggleButtons = screen.getAllByRole('button');
@@ -408,7 +437,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     const toggleButtons = screen.getAllByRole('button');
@@ -468,7 +497,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     // Check for the heading specifically
@@ -508,7 +537,7 @@ describe('PrivacySettings', () => {
     renderWithAuth(<PrivacySettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('Privacy Settings')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     // Get the button specifically (not the heading)

@@ -311,7 +311,7 @@ describe('UserStats Component', () => {
 
     it('supports year view toggle for all-time', async () => {
       const user = userEvent.setup();
-      
+
       // Mock monthly completions spanning multiple years
       const mockMonthlyData = [
         { month_start: '2024-01-01', count: 20 },
@@ -604,16 +604,17 @@ describe('UserStats Component', () => {
         // Should call with the custom date range
         const calls = mockGetUserStats.mock.calls;
         const lastCall = calls[calls.length - 1];
-        
-        expect(lastCall[0]).toBe('user-123'); // userId
-        expect(lastCall[1]).toBeTruthy(); // startDate should be defined
-        expect(lastCall[2]).toBeTruthy(); // endDate should be defined
+
+        expect(lastCall).toBeDefined();
+        expect(lastCall![0]).toBe('user-123'); // userId
+        expect(lastCall![1]).toBeTruthy(); // startDate should be defined
+        expect(lastCall![2]).toBeTruthy(); // endDate should be defined
       });
     });
 
     it('preserves custom range when switching chart views', async () => {
       const user = userEvent.setup();
-      
+
       // Set custom range that shows view toggles (>30 days)
       renderUserStats('/stats?timeframe=2025-12-01,2026-01-31');
 
@@ -831,7 +832,8 @@ describe('UserStats Component', () => {
       expect(mockGetUserStats).toHaveBeenCalled();
 
       const call = mockGetUserStats.mock.calls[0];
-      const [, startDate, endDate] = call;
+      expect(call).toBeDefined();
+      const [, startDate, endDate] = call!;
 
       // Start should be Jan 1, 2026 00:00:00 UTC
       expect(startDate).toBe('2026-01-01T00:00:00.000Z');

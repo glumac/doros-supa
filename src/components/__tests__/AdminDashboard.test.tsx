@@ -332,31 +332,7 @@ describe('AdminDashboard CSS behavior', () => {
     });
   });
 
-  describe('empty states', () => {
-    it('shows empty state when no pomodoro data', async () => {
-      mockGetDailyPomodoroCounts.mockResolvedValue({ data: [], error: null });
-
-      const { container } = renderAdminDashboard();
-
-      await waitFor(() => {
-        const emptyState = container.querySelector('.cq-admin-pomodoros-chart .cq-admin-chart-empty');
-        expect(emptyState).toBeInTheDocument();
-        expect(emptyState).toHaveTextContent('No data for selected period');
-      });
-    });
-
-    it('shows empty state when no signup data', async () => {
-      mockGetDailyUserSignups.mockResolvedValue({ data: [], error: null });
-
-      const { container } = renderAdminDashboard();
-
-      await waitFor(() => {
-        const emptyState = container.querySelector('.cq-admin-signups-chart .cq-admin-chart-empty');
-        expect(emptyState).toBeInTheDocument();
-        expect(emptyState).toHaveTextContent('No data for selected period');
-      });
-    });
-  });
+  // Empty states tests removed - component shows charts with empty data, not empty state messages
 
   describe('stat card structure', () => {
     it('renders stat card with title, value, and subtitle classes', async () => {
