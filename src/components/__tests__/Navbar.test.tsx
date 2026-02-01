@@ -62,7 +62,7 @@ describe('Navbar CSS behavior', () => {
 
       const mainContainer = container.querySelector('.cq-navbar-container');
       expect(mainContainer).toBeInTheDocument();
-      expect(mainContainer).toHaveClass('flex', 'gap-2', 'justify-end', 'md:gap-5', 'w-full', 'mt-5', 'pb-7');
+      expect(mainContainer).toHaveClass('flex', 'flex-col', 'md:flex-row', 'gap-2', 'justify-between', 'md:gap-5', 'w-full', 'mt-5', 'pb-7');
     });
 
     it('applies red background with hover effect to launch button', () => {
@@ -112,6 +112,13 @@ describe('Navbar CSS behavior', () => {
   });
 
   describe('responsive layout', () => {
+    it('stacks items vertically on mobile with flex-col', () => {
+      const { container } = renderNavbar();
+
+      const mainContainer = container.querySelector('.cq-navbar-container');
+      expect(mainContainer).toHaveClass('flex-col', 'md:flex-row');
+    });
+
     it('applies responsive gap classes', () => {
       const { container } = renderNavbar();
 
