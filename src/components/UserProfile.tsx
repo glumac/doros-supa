@@ -367,14 +367,14 @@ const UserProfile = () => {
                 </>
               ) : (
                 <div className="cq-user-profile-pomodoros-empty flex flex-col justify-center items-center w-full text-1xl mt-2">
-                  {userId !== authUser?.id && !isFollowing ? (
+                  {userId !== authUser?.id && !isFollowing && displayUser?.privacy_setting === 'private' ? (
                     <>
                       <p className="cq-user-profile-pomodoros-empty-message font-medium text-gray-600 mb-3">
                         Follow {displayUser?.user_name} to see their pomodoros
                       </p>
                     </>
                   ) : (
-                    <p className="cq-user-profile-pomodoros-empty-message font-bold">No Pomodoros Found!</p>
+                    <p className="cq-user-profile-pomodoros-empty-message font-bold">No pomodoros yet!</p>
                   )}
                 </div>
               )}

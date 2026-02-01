@@ -8,6 +8,7 @@ import { AuthContext } from '../../contexts/AuthContext';
 import * as queries from '../../lib/queries';
 import { supabase } from '../../lib/supabaseClient';
 import * as useUserProfileHooks from '../../hooks/useUserProfile';
+import * as useFollowStatusHooks from '../../hooks/useFollowStatus';
 
 vi.mock('../../lib/queries');
 vi.mock('../../lib/supabaseClient', () => ({
@@ -24,8 +25,15 @@ vi.mock('../../hooks/useUserProfile', () => ({
   useFollowing: vi.fn(),
   usePendingFollowRequests: vi.fn(),
 }));
+vi.mock('../../hooks/useFollowStatus', () => ({
+  useIsFollowingUser: vi.fn(),
+  useHasPendingFollowRequest: vi.fn(),
+  useIsBlockedByUser: vi.fn(),
+  useBlockStatus: vi.fn(),
+}));
 
 const mockHooks = vi.mocked(useUserProfileHooks);
+const mockFollowStatusHooks = vi.mocked(useFollowStatusHooks);
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -129,6 +137,50 @@ describe('UserProfile', () => {
     } as any);
     mockHooks.usePendingFollowRequests.mockReturnValue({
       data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    // Mock useIsFollowingUser hook - default to not following
+    mockFollowStatusHooks.useIsFollowingUser.mockReturnValue({
+      data: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    // Mock useBlockStatus hook
+    mockFollowStatusHooks.useBlockStatus.mockReturnValue({
+      data: { iBlocked: false, theyBlocked: false },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    // Mock useHasPendingFollowRequest hook - default to no pending request
+    mockFollowStatusHooks.useHasPendingFollowRequest.mockReturnValue({
+      data: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    // Mock useIsBlockedByUser hook - default to not blocked
+    mockFollowStatusHooks.useIsBlockedByUser.mockReturnValue({
+      data: false,
       isLoading: false,
       isError: false,
       error: null,
@@ -278,10 +330,16 @@ describe('UserProfile', () => {
       refetch: vi.fn(),
     } as any);
 
-    vi.mocked(queries.isFollowingUser).mockResolvedValue({
-      isFollowing: true,
-      error: null
-    });
+    // Mock that current user IS following this user
+    mockFollowStatusHooks.useIsFollowingUser.mockReturnValue({
+      data: true,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     window.history.pushState({}, '', '/user/other-user');
     renderWithRouter('other-user', mockUser);
@@ -310,7 +368,16 @@ describe('UserProfile', () => {
       refetch: vi.fn(),
     } as any);
 
-    vi.mocked((queries as any).getBlockStatus).mockResolvedValue({ iBlocked: true, theyBlocked: false });
+    // Mock that current user has blocked this user
+    mockFollowStatusHooks.useBlockStatus.mockReturnValue({
+      data: { iBlocked: true, theyBlocked: false },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
 
     window.history.pushState({}, '', '/user/other-user');
     renderWithRouter('other-user', mockUser);
@@ -353,7 +420,139 @@ describe('UserProfile', () => {
     renderWithRouter('user-123');
 
     await waitFor(() => {
-      expect(screen.getByText(/no pomodoros found/i)).toBeInTheDocument();
+      expect(screen.getByText(/no pomodoros yet/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show "No pomodoros yet" for public user with zero pomodoros when not following', async () => {
+    const publicUser = {
+      ...mockUser,
+      id: 'other-user-123',
+      user_name: 'Naomi W',
+      privacy_setting: 'public',
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: publicUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: [], count: 0 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+
+    renderWithRouter('other-user-123', mockUser);
+
+    await waitFor(() => {
+      // Should show "No pomodoros yet!" for public users, NOT "Follow to see"
+      expect(screen.getByText(/no pomodoros yet/i)).toBeInTheDocument();
+      expect(screen.queryByText(/follow.*to see their pomodoros/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('should show "Follow to see" for private user with zero pomodoros when not following', async () => {
+    const privateUser = {
+      ...mockUser,
+      id: 'private-user-123',
+      user_name: 'Private User',
+      privacy_setting: 'private',
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: privateUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: [], count: 0 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(queries.isFollowingUser).mockResolvedValue({
+      isFollowing: false,
+      error: null
+    });
+
+    renderWithRouter('private-user-123', mockUser);
+
+    await waitFor(() => {
+      // Should show "Follow to see" for private users when not following
+      expect(screen.getByText(/follow private user to see their pomodoros/i)).toBeInTheDocument();
+      expect(screen.queryByText(/no pomodoros found/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('should show "No Pomodoros Found" for private user when following them', async () => {
+    const privateUser = {
+      ...mockUser,
+      id: 'private-user-123',
+      user_name: 'Private User',
+      privacy_setting: 'private',
+    };
+
+    mockHooks.useUserProfile.mockReturnValue({
+      data: privateUser,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    mockHooks.useUserPomodoros.mockReturnValue({
+      data: { data: [], count: 0 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    // Mock that current user IS following the private user
+    mockFollowStatusHooks.useIsFollowingUser.mockReturnValue({
+      data: true,
+      isLoading: false,
+      isError: false,
+      error: null,
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithRouter('private-user-123', mockUser);
+
+    await waitFor(() => {
+      // Should show "No pomodoros yet!" when following a private user
+      expect(screen.getByText(/no pomodoros yet/i)).toBeInTheDocument();
+      expect(screen.queryByText(/follow.*to see their pomodoros/i)).not.toBeInTheDocument();
     });
   });
 
