@@ -260,7 +260,29 @@ export function UserStats() {
 
   // Format chart data
   const chartData = useMemo(() => {
-    if (!startDate || !endDate) return [];
+    // Handle all-time view (no date range)
+    if (!startDate || !endDate) {
+      if (chartView === "month") {
+        return (monthlyData || []).map((d) => ({
+          date: new Date(d.month_start + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          count: Number(d.count),
+        }));
+      } else if (chartView === "year") {
+        // Group monthly data by year for yearly view
+        const yearlyMap = new Map<number, number>();
+        (monthlyData || []).forEach((d) => {
+          const year = new Date(d.month_start + "T12:00:00").getFullYear();
+          yearlyMap.set(year, (yearlyMap.get(year) || 0) + Number(d.count));
+        });
+        return Array.from(yearlyMap.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([year, count]) => ({
+            date: year.toString(),
+            count,
+          }));
+      }
+      return [];
+    }
 
     // Convert ISO strings to local dates, handling timezone properly
     const startUTC = new Date(startDate);
