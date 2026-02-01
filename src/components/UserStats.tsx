@@ -175,11 +175,20 @@ export function UserStats() {
 
   // Determine appropriate chart view based on timeframe and user preference
   const { chartView, availableViews } = useMemo(() => {
+    // Helper to validate and get chart view from available views
+    const getValidView = (requestedView: string | null, available: ChartView[], defaultView: ChartView): ChartView => {
+      if (requestedView && available.includes(requestedView as ChartView)) {
+        return requestedView as ChartView;
+      }
+      return defaultView;
+    };
+
     if (!startDate || !endDate) {
       // All time - show month/year toggle (if >2 years of data)
+      const available: ChartView[] = ["month", "year"];
       return {
-        chartView: (viewParam || "month") as ChartView,
-        availableViews: ["month", "year"] as ChartView[],
+        chartView: getValidView(viewParam, available, "month"),
+        availableViews: available,
       };
     }
 
@@ -193,33 +202,38 @@ export function UserStats() {
       return { chartView: "day" as ChartView, availableViews: ["day"] as ChartView[] };
     } else if (timeframe === "this-month") {
       // This Month: day/week toggle
+      const available: ChartView[] = ["day", "week"];
       return {
-        chartView: (viewParam || "day") as ChartView,
-        availableViews: ["day", "week"] as ChartView[],
+        chartView: getValidView(viewParam, available, "day"),
+        availableViews: available,
       };
     } else if (timeframe === "this-year" || timeframe === "last-year") {
       // Year presets: day/week/month toggle
+      const available: ChartView[] = ["day", "week", "month"];
       return {
-        chartView: (viewParam || "day") as ChartView,
-        availableViews: ["day", "week", "month"] as ChartView[],
+        chartView: getValidView(viewParam, available, "day"),
+        availableViews: available,
       };
     } else if (dayCount <= 30) {
       // Custom ≤30 days: day/week toggle
+      const available: ChartView[] = ["day", "week"];
       return {
-        chartView: (viewParam || "day") as ChartView,
-        availableViews: ["day", "week"] as ChartView[],
+        chartView: getValidView(viewParam, available, "day"),
+        availableViews: available,
       };
     } else if (dayCount <= 365) {
       // Custom 31-365 days: day/week/month toggle
+      const available: ChartView[] = ["day", "week", "month"];
       return {
-        chartView: (viewParam || "day") as ChartView,
-        availableViews: ["day", "week", "month"] as ChartView[],
+        chartView: getValidView(viewParam, available, "day"),
+        availableViews: available,
       };
     } else {
       // >365 days: month/year toggle
+      const available: ChartView[] = ["month", "year"];
       return {
-        chartView: (viewParam || "month") as ChartView,
-        availableViews: ["month", "year"] as ChartView[],
+        chartView: getValidView(viewParam, available, "month"),
+        availableViews: available,
       };
     }
   }, [startDate, endDate, timeframe, viewParam]);
