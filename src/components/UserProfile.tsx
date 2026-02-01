@@ -31,14 +31,22 @@ import { User, Doro, DecodedJWT } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 
 const UserProfile = () => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [showFollowersModal, setShowFollowersModal] = useState(false);
-  const [modalTab, setModalTab] = useState<'followers' | 'following'>('followers');
   const queryClient = useQueryClient();
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const pageSize = 20;
+
+  // Read page from URL or default to 1
+  const pageParam = searchParams.get('page');
+  const urlPage = pageParam ? parseInt(pageParam, 10) : null;
+  const [statePage, setStatePage] = useState<number>(1);
+
+  // Use URL page if available, otherwise use state
+  const currentPage = urlPage || statePage;
+
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [modalTab, setModalTab] = useState<'followers' | 'following'>('followers');
   const followersButtonRef = useRef<HTMLButtonElement>(null);
   const followingButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -55,8 +63,8 @@ const UserProfile = () => {
 
   const doros = pomodorosData?.data || [];
   const totalPomodoros = pomodorosData?.count || 0;
-  const followerCount = followers.length;
-  const followingCount = following.length;
+  const followerCount = followers?.length ?? 0;
+  const followingCount = following?.length ?? 0;
 
   // Use mutation hooks
   const approveMutation = useApproveFollowRequestMutation();
@@ -154,7 +162,7 @@ const UserProfile = () => {
   };
 
   useEffect(() => {
-    setCurrentPage(1);
+    setStatePage(1);
   }, [userId, isFollowing]);
 
   const handleFollowChange = (newFollowStatus: boolean) => {
@@ -165,7 +173,11 @@ const UserProfile = () => {
   };
 
   const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
+    // Update URL with new page parameter
+    const params = new URLSearchParams(searchParams);
+    params.set('page', newPage.toString());
+    setSearchParams(params);
+    setStatePage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

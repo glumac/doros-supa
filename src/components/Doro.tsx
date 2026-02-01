@@ -27,6 +27,7 @@ const Doro = ({ doro }: DoroProps) => {
   const [showAddComment, setShowAddComment] = useState(false);
   const [comment, setComment] = useState("");
   const [imageURL, setImageURL] = useState<string | null>(null);
+  const [isHighlighted, setIsHighlighted] = useState(false);
 
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +40,26 @@ const Doro = ({ doro }: DoroProps) => {
   const deletePomodoroMutation = useDeletePomodoroMutation();
 
   const { users, id, task, notes, launch_at, image_url } = doro;
+
+  // Handle scroll-to-pomodoro from URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === `#pomodoro-${id}`) {
+      // Small delay to ensure rendering is complete
+      setTimeout(() => {
+        const element = document.getElementById(`pomodoro-${id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setIsHighlighted(true);
+
+          // Remove highlight after 3 seconds
+          setTimeout(() => {
+            setIsHighlighted(false);
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [id]);
 
   // Convert image path to signed URL if needed
   useEffect(() => {
@@ -136,7 +157,12 @@ const Doro = ({ doro }: DoroProps) => {
   const isAddingComment = commentMutation.isPending || deleteCommentMutation.isPending;
 
   return (
-    <div className="cq-doro-card my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative">
+    <div
+      id={`pomodoro-${id}`}
+      className={`cq-doro-card my-4 bg-white border-solid border-2 border-red-600 rounded-3xl p-5 relative transition-colors duration-1000 ${
+        isHighlighted ? 'cq-highlighted bg-yellow-100' : ''
+      }`}
+    >
       <div className="cq-doro-header flex justify-between items-center relative">
         <Link
           to={`/user/${users?.id}`}

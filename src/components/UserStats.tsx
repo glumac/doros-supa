@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import LogoutButton from './LogoutButton';
 import {
   BarChart,
@@ -43,6 +43,7 @@ import {
   fillWeeklyData,
   fillMonthlyData,
 } from "../utils/chartDataUtils";
+import { findFirstPomodoroInRange } from "../lib/queries";
 
 type TimeframePreset =
   | "this-week"
@@ -82,6 +83,7 @@ function StatCard({ title, value, subtitle, loading, className = "" }: StatCardP
 export function UserStats() {
   const { userProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const { data: followers } = useFollowers(userProfile?.id);
   const { data: following } = useFollowing(userProfile?.id);
@@ -246,8 +248,8 @@ export function UserStats() {
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 30);
-        const startStr = toISOString(start).split('T')[0];
-        const endStr = toISOString(end).split('T')[0];
+        const startStr = toISOString(start).split('T')[0] || '';
+        const endStr = toISOString(end).split('T')[0] || '';
         setCustomStart(startStr);
         setCustomEnd(endStr);
         const params = new URLSearchParams();
@@ -285,28 +287,51 @@ export function UserStats() {
     setSearchParams(params);
   };
 
-  // Format chart data
+  // Format chart data with date range metadata for navigation
   const chartData = useMemo(() => {
     // Handle all-time view (no date range)
     if (!startDate || !endDate) {
       if (chartView === "month") {
-        return (monthlyData || []).map((d) => ({
-          date: new Date(d.month_start + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-          count: Number(d.count),
-        }));
+        return (monthlyData || []).map((d) => {
+          const monthStart = d.month_start;
+          const monthEnd = new Date(monthStart + "T12:00:00");
+          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          monthEnd.setDate(0); // Last day of the month
+          monthEnd.setHours(23, 59, 59, 999);
+
+          return {
+            date: new Date(monthStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+            count: Number(d.count),
+            startDate: monthStart,
+            endDate: monthEnd.toISOString().split('T')[0],
+          };
+        });
       } else if (chartView === "year") {
         // Group monthly data by year for yearly view
-        const yearlyMap = new Map<number, number>();
+        const yearlyMap = new Map<number, { count: number; firstMonth: string; lastMonth: string }>();
         (monthlyData || []).forEach((d) => {
           const year = new Date(d.month_start + "T12:00:00").getFullYear();
-          yearlyMap.set(year, (yearlyMap.get(year) || 0) + Number(d.count));
+          const existing = yearlyMap.get(year);
+          if (!existing) {
+            yearlyMap.set(year, { count: Number(d.count), firstMonth: d.month_start, lastMonth: d.month_start });
+          } else {
+            existing.count += Number(d.count);
+            if (d.month_start < existing.firstMonth) existing.firstMonth = d.month_start;
+            if (d.month_start > existing.lastMonth) existing.lastMonth = d.month_start;
+          }
         });
         return Array.from(yearlyMap.entries())
           .sort(([a], [b]) => a - b)
-          .map(([year, count]) => ({
-            date: year.toString(),
-            count,
-          }));
+          .map(([year, { count, firstMonth, lastMonth }]) => {
+            const yearStart = `${year}-01-01`;
+            const yearEnd = `${year}-12-31`;
+            return {
+              date: year.toString(),
+              count,
+              startDate: yearStart,
+              endDate: yearEnd,
+            };
+          });
       }
       return [];
     }
@@ -329,23 +354,72 @@ export function UserStats() {
         // Parse as local date to avoid timezone shift (YYYY-MM-DD + T12:00 prevents UTC interpretation)
         date: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         count: Number(d.count),
+        startDate: d.date,
+        endDate: d.date,
       }));
     } else if (chartView === "week") {
       const filledData = fillWeeklyData(weeklyData || [], start, end);
-      return filledData.map((d, index) => ({
-        date: `Week ${index + 1}`,
-        count: Number(d.count),
-      }));
+      return filledData.map((d, index) => {
+        const weekStart = d.week_start;
+        const weekEnd = new Date(weekStart + "T12:00:00");
+        weekEnd.setDate(weekEnd.getDate() + 6);
+
+        return {
+          date: `Week ${index + 1}`,
+          count: Number(d.count),
+          startDate: weekStart,
+          endDate: weekEnd.toISOString().split('T')[0],
+        };
+      });
     } else if (chartView === "month") {
       const filledData = fillMonthlyData(monthlyData || [], start, end);
-      return filledData.map((d) => ({
-        // Parse as local date to avoid timezone shift
-        date: new Date(d.month_start + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-        count: Number(d.count),
-      }));
+      return filledData.map((d) => {
+        const monthStart = d.month_start;
+        const monthEnd = new Date(monthStart + "T12:00:00");
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        monthEnd.setDate(0); // Last day of the month
+        monthEnd.setHours(23, 59, 59, 999);
+
+        return {
+          // Parse as local date to avoid timezone shift
+          date: new Date(monthStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          count: Number(d.count),
+          startDate: monthStart,
+          endDate: monthEnd.toISOString().split('T')[0],
+        };
+      });
     }
     return [];
   }, [chartView, dailyData, weeklyData, monthlyData, startDate, endDate]);
+
+  // Handle chart bar click
+  const handleBarClick = async (data: any) => {
+    if (!userProfile?.id || !data || data.count === 0) return;
+
+    const { startDate: rangeStart, endDate: rangeEnd } = data;
+    if (!rangeStart || !rangeEnd) return;
+
+    // Navigate immediately to page 1 for instant feedback
+    navigate(`/user/${userProfile.id}?page=1`);
+
+    // Find the first pomodoro in the background
+    try {
+      const result = await findFirstPomodoroInRange(
+        userProfile.id,
+        rangeStart + "T00:00:00",
+        rangeEnd + "T23:59:59",
+        20 // pageSize
+      );
+
+      if (result) {
+        // Navigate to the correct page with the pomodoro hash
+        navigate(`/user/${userProfile.id}?page=${result.pageNumber}#pomodoro-${result.pomodoroId}`);
+      }
+    } catch (error) {
+      console.error("Error finding pomodoro:", error);
+      // Stay on page 1 if there's an error
+    }
+  };
 
   // Timeframe preset buttons
   const presets: { label: string; value: TimeframePreset }[] = [
@@ -563,6 +637,8 @@ export function UserStats() {
                     <Bar
                       dataKey="count"
                       fill="#ef4444"
+                      onClick={handleBarClick}
+                      cursor="pointer"
                     />
                   </BarChart>
                 </ResponsiveContainer>

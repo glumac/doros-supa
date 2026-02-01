@@ -77,6 +77,8 @@ describe('chartDataUtils', () => {
       expect(result).toEqual([
         '2026-01-26', // Monday of week containing Jan 26
         '2026-02-02'  // Next Monday (Feb 8 is Sunday, so only 2 Mondays in range)
+      ]);
+    });
 
     it('handles start date being a Monday', () => {
       const start = new Date(2026, 0, 26); // Jan 26, 2026 (Monday)
@@ -88,6 +90,7 @@ describe('chartDataUtils', () => {
         '2026-01-26',
         '2026-02-02',
         '2026-02-09'
+      ]);
     });
 
     it('handles single week range', () => {
@@ -221,6 +224,9 @@ describe('chartDataUtils', () => {
         { week_start: '2026-01-26', count: 12 },
         { week_start: '2026-02-02', count: 0 }, // Missing week filled
         { week_start: '2026-02-09', count: 8 }
+      ]);
+    });
+
     it('handles empty input data', () => {
       const start = new Date(2026, 0, 26); // Jan 26, 2026 (Monday)
       const end = new Date(2026, 1, 9); // Feb 9, 2026 (Monday)
@@ -231,6 +237,7 @@ describe('chartDataUtils', () => {
         { week_start: '2026-01-26', count: 0 },
         { week_start: '2026-02-02', count: 0 },
         { week_start: '2026-02-09', count: 0 }
+      ]);
     });
 
     it('handles data with ISO datetime strings', () => {

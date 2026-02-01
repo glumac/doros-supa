@@ -817,3 +817,60 @@ export async function getUserMonthlyCompletions(
 
   return { data, error };
 }
+
+/**
+ * Find the first (oldest) completed pomodoro within a date range and its position in the full list.
+ * Returns the pomodoro ID and the page number it would appear on (when sorted newest first).
+ */
+export async function findFirstPomodoroInRange(
+  userId: string,
+  startDate: string,
+  endDate: string,
+  pageSize: number = 20
+): Promise<{ pomodoroId: string; pageNumber: number; totalCount: number } | null> {
+  // Find the oldest pomodoro in the date range
+  const { data: firstPomodoro, error: firstError } = await supabase
+    .from("pomodoros")
+    .select("id, created_at")
+    .eq("user_id", userId)
+    .eq("completed", true)
+    .gte("created_at", startDate)
+    .lte("created_at", endDate)
+    .order("created_at", { ascending: true }) // Oldest first
+    .limit(1)
+    .maybeSingle();
+
+  if (firstError || !firstPomodoro) {
+    return null;
+  }
+
+  // Count how many pomodoros come AFTER this one (newer than it)
+  // Since the list is sorted newest first, we need to count newer pomodoros
+  const { count, error: countError } = await supabase
+    .from("pomodoros")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("completed", true)
+    .gt("created_at", firstPomodoro.created_at);
+
+  if (countError) {
+    return null;
+  }
+
+  // Position in descending list = count of newer pomodoros + 1
+  const position = (count || 0) + 1;
+  const pageNumber = Math.ceil(position / pageSize);
+
+  // Get total count for reference
+  const { count: totalCount } = await supabase
+    .from("pomodoros")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("completed", true);
+
+  return {
+    pomodoroId: firstPomodoro.id,
+    pageNumber,
+    totalCount: totalCount || 0,
+  };
+}
