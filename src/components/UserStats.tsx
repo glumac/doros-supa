@@ -96,6 +96,7 @@ export function UserStats() {
   const isCustomRange = timeframeParam.includes(",");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
+  const [showCustomInputs, setShowCustomInputs] = useState(false);
 
   // Calculate date range based on timeframe
   const { startDate, endDate, timeframe } = useMemo(() => {
@@ -112,6 +113,7 @@ export function UserStats() {
         preset = "custom";
         setCustomStart(startStr);
         setCustomEnd(endStr);
+        setShowCustomInputs(true);
       } else {
         // Invalid custom range, fall back to this-week
         start = getThisWeekStartEST();
@@ -237,14 +239,39 @@ export function UserStats() {
 
   // Handle timeframe selection
   const handleTimeframeChange = (preset: TimeframePreset) => {
-    const params = new URLSearchParams();
-    params.set("timeframe", preset);
-    setSearchParams(params);
+    if (preset === "custom") {
+      setShowCustomInputs(true);
+      // Set default date range if not already set (last 30 days)
+      if (!customStart || !customEnd) {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+        const startStr = toISOString(start).split('T')[0];
+        const endStr = toISOString(end).split('T')[0];
+        setCustomStart(startStr);
+        setCustomEnd(endStr);
+        const params = new URLSearchParams();
+        params.set("timeframe", `${startStr},${endStr}`);
+        setSearchParams(params);
+      }
+    } else {
+      setShowCustomInputs(false);
+      const params = new URLSearchParams();
+      params.set("timeframe", preset);
+      setSearchParams(params);
+    }
   };
 
   // Handle custom date range
   const handleCustomDateChange = (start: string, end: string) => {
     if (start && end) {
+      // Validate that end is not before start
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      if (endDate < startDate) {
+        // Don't update if invalid range
+        return;
+      }
       const params = new URLSearchParams();
       params.set("timeframe", `${start},${end}`);
       setSearchParams(params);
@@ -418,13 +445,14 @@ export function UserStats() {
               ))}
             </div>
 
-            {timeframe === "custom" && (
-              <div className="cq-user-stats-custom-date-range flex items-center gap-2">
+            {showCustomInputs && (
+              <div className="cq-user-stats-custom-date-range flex items-center gap-2" data-testid="custom-date-range">
                 <label htmlFor="start-date" className="sr-only">Start Date</label>
                 <input
                   id="start-date"
                   type="date"
                   value={customStart}
+                  max={customEnd || undefined}
                   onChange={(e) => {
                     setCustomStart(e.target.value);
                     if (customEnd) handleCustomDateChange(e.target.value, customEnd);
@@ -438,6 +466,7 @@ export function UserStats() {
                   id="end-date"
                   type="date"
                   value={customEnd}
+                  min={customStart || undefined}
                   onChange={(e) => {
                     setCustomEnd(e.target.value);
                     if (customStart) handleCustomDateChange(customStart, e.target.value);

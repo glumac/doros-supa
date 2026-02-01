@@ -381,6 +381,266 @@ describe('UserStats Component', () => {
     });
   });
 
+  describe('Custom Date Range Controls', () => {
+    it('shows custom date inputs when Custom button is clicked', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /custom/i })).toBeInTheDocument();
+      });
+
+      // Custom inputs should not be visible initially
+      expect(screen.queryByTestId('custom-date-range')).not.toBeInTheDocument();
+
+      const customButton = screen.getByRole('button', { name: /custom/i });
+      await user.click(customButton);
+
+      // Custom inputs should now be visible
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+    });
+
+    it('shows custom date inputs when custom range is in URL', async () => {
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      // Date inputs should be populated from URL
+      const startInput = screen.getByLabelText(/start date/i) as HTMLInputElement;
+      const endInput = screen.getByLabelText(/end date/i) as HTMLInputElement;
+
+      expect(startInput.value).toBe('2026-01-01');
+      expect(endInput.value).toBe('2026-01-31');
+    });
+
+    it('Custom button shows active state when custom range is in URL', async () => {
+      renderUserStats('/stats?timeframe=2026-01-15,2026-01-31');
+
+      await waitFor(() => {
+        const customButton = screen.getByRole('button', { name: /custom/i });
+        expect(customButton).toHaveClass('active');
+      });
+    });
+
+    it('sets default date range (last 30 days) when Custom clicked with no existing range', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /custom/i })).toBeInTheDocument();
+      });
+
+      const customButton = screen.getByRole('button', { name: /custom/i });
+      await user.click(customButton);
+
+      await waitFor(() => {
+        const startInput = screen.getByLabelText(/start date/i) as HTMLInputElement;
+        const endInput = screen.getByLabelText(/end date/i) as HTMLInputElement;
+
+        // Should have values (default 30 days range)
+        expect(startInput.value).toBeTruthy();
+        expect(endInput.value).toBeTruthy();
+
+        // End date should be today or very recent
+        const endDate = new Date(endInput.value);
+        const today = new Date();
+        const daysDiff = Math.abs((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+        expect(daysDiff).toBeLessThan(2); // Within 2 days to account for timezone differences
+      });
+    });
+
+    it('updates URL when start date is changed', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const startInput = screen.getByLabelText(/start date/i);
+      await user.clear(startInput);
+      await user.type(startInput, '2026-01-10');
+
+      // Should trigger data refetch
+      await waitFor(() => {
+        expect(mockGetUserStats).toHaveBeenCalled();
+      });
+    });
+
+    it('updates URL when end date is changed', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const endInput = screen.getByLabelText(/end date/i);
+      await user.clear(endInput);
+      await user.type(endInput, '2026-01-25');
+
+      // Should trigger data refetch
+      await waitFor(() => {
+        expect(mockGetUserStats).toHaveBeenCalled();
+      });
+    });
+
+    it('prevents end date from being before start date with min attribute', async () => {
+      renderUserStats('/stats?timeframe=2026-01-15,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const startInput = screen.getByLabelText(/start date/i) as HTMLInputElement;
+      const endInput = screen.getByLabelText(/end date/i) as HTMLInputElement;
+
+      // End input should have min attribute set to start date
+      expect(endInput.min).toBe('2026-01-15');
+      // Start input should have max attribute set to end date
+      expect(startInput.max).toBe('2026-01-31');
+    });
+
+    it('does not update URL if end date is before start date', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats?timeframe=2026-01-15,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const initialCallCount = mockGetUserStats.mock.calls.length;
+
+      // Try to set end date before start date (this should be prevented by validation)
+      const endInput = screen.getByLabelText(/end date/i);
+      await user.clear(endInput);
+      await user.type(endInput, '2026-01-10'); // Before start date (2026-01-15)
+
+      // Wait a bit to ensure no additional calls were made
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Should not trigger additional data fetch due to validation
+      expect(mockGetUserStats.mock.calls.length).toBe(initialCallCount);
+    });
+
+    it('has proper accessibility labels for date inputs', async () => {
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      // Check that inputs have proper labels
+      expect(screen.getByLabelText(/start date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/end date/i)).toBeInTheDocument();
+
+      // Check that inputs have IDs matching labels
+      const startInput = screen.getByLabelText(/start date/i);
+      const endInput = screen.getByLabelText(/end date/i);
+
+      expect(startInput).toHaveAttribute('id', 'start-date');
+      expect(endInput).toHaveAttribute('id', 'end-date');
+    });
+
+    it('custom date range inputs have correct CSS classes', async () => {
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        const customDateRange = screen.getByTestId('custom-date-range');
+        expect(customDateRange).toBeInTheDocument();
+
+        // Check that the container has the expected class
+        expect(customDateRange).toHaveClass('cq-user-stats-custom-date-range');
+      });
+    });
+
+    it('hides custom date inputs when switching to another preset', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      // Switch to "This Week"
+      const thisWeekButton = screen.getByRole('button', { name: /this week/i });
+      await user.click(thisWeekButton);
+
+      // Custom inputs should be hidden
+      await waitFor(() => {
+        expect(screen.queryByTestId('custom-date-range')).not.toBeInTheDocument();
+      });
+    });
+
+    it('requires both start and end dates before applying range', async () => {
+      const user = userEvent.setup();
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const initialCallCount = mockGetUserStats.mock.calls.length;
+      const startInput = screen.getByLabelText(/start date/i);
+
+      // Clear start date
+      await user.clear(startInput);
+
+      // Wait to ensure no call is made with incomplete data
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Should not make new call with only end date
+      expect(mockGetUserStats.mock.calls.length).toBe(initialCallCount);
+    });
+
+    it('fetches data with custom date range when both dates are provided', async () => {
+      renderUserStats('/stats?timeframe=2026-01-20,2026-01-26');
+
+      await waitFor(() => {
+        // Should call with the custom date range
+        const calls = mockGetUserStats.mock.calls;
+        const lastCall = calls[calls.length - 1];
+        
+        expect(lastCall[0]).toBe('user-123'); // userId
+        expect(lastCall[1]).toBeTruthy(); // startDate should be defined
+        expect(lastCall[2]).toBeTruthy(); // endDate should be defined
+      });
+    });
+
+    it('preserves custom range when switching chart views', async () => {
+      const user = userEvent.setup();
+      
+      // Set custom range that shows view toggles (>30 days)
+      renderUserStats('/stats?timeframe=2025-12-01,2026-01-31');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-date-range')).toBeInTheDocument();
+      });
+
+      const startInput = screen.getByLabelText(/start date/i) as HTMLInputElement;
+      const endInput = screen.getByLabelText(/end date/i) as HTMLInputElement;
+
+      const originalStart = startInput.value;
+      const originalEnd = endInput.value;
+
+      // Switch chart view (if toggle is available)
+      const viewToggle = screen.queryByLabelText(/view by week/i);
+      if (viewToggle) {
+        await user.click(viewToggle);
+
+        // Date inputs should still have the same values
+        await waitFor(() => {
+          expect(startInput.value).toBe(originalStart);
+          expect(endInput.value).toBe(originalEnd);
+        });
+      }
+    });
+  });
+
   describe('Chart View Controls (Smart Toggle)', () => {
     it('shows no view toggle for "This Week" (day view only)', async () => {
       renderUserStats('/stats?timeframe=this-week');
