@@ -1,180 +1,199 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  getCurrentDateEST,
-  getThisWeekStartEST,
-  getThisWeekEndEST,
-  getLastWeekStartEST,
-  getLastWeekEndEST,
-  getThisMonthStartEST,
-  getThisMonthEndEST,
-  getThisYearStartEST,
-  getThisYearEndEST,
-  getLastYearStartEST,
-  getLastYearEndEST,
+  getThisWeekStart,
+  getThisWeekEnd,
+  getThisMonthStart,
+  getThisMonthEnd,
+  getThisYearStart,
+  getThisYearEnd,
   getDaysBetween,
   toISOString,
   parseDate,
 } from "../dateUtils";
 
-describe("dateUtils", () => {
+describe("Local Timezone Date Utilities", () => {
   beforeEach(() => {
-    // Mock current date to January 31, 2026 at 10:00 AM EST
+    // Mock current date to Feb 1, 2026 (Saturday)
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-31T15:00:00.000Z")); // 10:00 AM EST = 15:00 UTC
+    vi.setSystemTime(new Date('2026-02-01T12:00:00.000Z'));
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  describe("getCurrentDateEST", () => {
-    it("should return current date in EST", () => {
-      const date = getCurrentDateEST();
-      expect(date.getFullYear()).toBe(2026);
-      expect(date.getMonth()).toBe(0); // January
-      expect(date.getDate()).toBe(31);
+  describe('getThisWeekStart', () => {
+    it('returns Monday of current week at midnight UTC', () => {
+      const weekStart = getThisWeekStart();
+
+      // Feb 1, 2026 is Sunday, so Monday is Jan 26 in UTC
+      expect(weekStart.getUTCFullYear()).toBe(2026);
+      expect(weekStart.getUTCMonth()).toBe(0); // January (0-indexed)
+      expect(weekStart.getUTCDate()).toBe(26);
+      expect(weekStart.getUTCHours()).toBe(0);
+      expect(weekStart.getUTCMinutes()).toBe(0);
+      expect(weekStart.getUTCSeconds()).toBe(0);
+    });
+
+    it('handles Sunday correctly (goes back to Monday of same week)', () => {
+      vi.setSystemTime(new Date('2026-02-08T12:00:00.000Z')); // Sunday
+      const weekStart = getThisWeekStart();
+
+      // Feb 8 is Sunday, so Monday is Feb 2
+      expect(weekStart.getUTCDate()).toBe(2);
+    });
+
+    it('handles Monday correctly (same day)', () => {
+      vi.setSystemTime(new Date('2026-02-02T12:00:00.000Z')); // Monday
+      const weekStart = getThisWeekStart();
+
+      expect(weekStart.getUTCDate()).toBe(2);
+      expect(weekStart.getUTCHours()).toBe(0);
     });
   });
 
-  describe("getThisYearStartEST", () => {
-    it("should return January 1st at midnight UTC", () => {
-      const start = getThisYearStartEST();
-      const iso = start.toISOString();
-      expect(iso).toBe("2026-01-01T00:00:00.000Z");
+  describe('getThisWeekEnd', () => {
+    it('returns Sunday of current week at end of day UTC', () => {
+      const weekEnd = getThisWeekEnd();
+
+      // Feb 1, 2026 is Sunday, so Sunday is Feb 1 (same day)
+      expect(weekEnd.getUTCFullYear()).toBe(2026);
+      expect(weekEnd.getUTCMonth()).toBe(1); // February
+      expect(weekEnd.getUTCDate()).toBe(1);
+      expect(weekEnd.getUTCHours()).toBe(23);
+      expect(weekEnd.getUTCMinutes()).toBe(59);
+      expect(weekEnd.getUTCSeconds()).toBe(59);
+      expect(weekEnd.getUTCMilliseconds()).toBe(999);
     });
   });
 
-  describe("getThisYearEndEST", () => {
-    it("should return December 31st at 23:59:59.999 UTC", () => {
-      const end = getThisYearEndEST();
-      const iso = end.toISOString();
-      expect(iso).toBe("2026-12-31T23:59:59.999Z");
+  describe('getThisMonthStart', () => {
+    it('returns first day of current month at midnight UTC', () => {
+      const monthStart = getThisMonthStart();
+
+      expect(monthStart.getUTCFullYear()).toBe(2026);
+      expect(monthStart.getUTCMonth()).toBe(1); // February
+      expect(monthStart.getUTCDate()).toBe(1);
+      expect(monthStart.getUTCHours()).toBe(0);
+      expect(monthStart.getUTCMinutes()).toBe(0);
+      expect(monthStart.getUTCSeconds()).toBe(0);
+    });
+
+    it('handles DST transition month (March)', () => {
+      vi.setSystemTime(new Date('2026-03-15T12:00:00.000Z'));
+      const monthStart = getThisMonthStart();
+
+      expect(monthStart.getUTCMonth()).toBe(2); // March
+      expect(monthStart.getUTCDate()).toBe(1);
+      expect(monthStart.getUTCHours()).toBe(0);
+    });
+
+    it('handles DST transition month (November)', () => {
+      vi.setSystemTime(new Date('2026-11-15T12:00:00.000Z'));
+      const monthStart = getThisMonthStart();
+
+      expect(monthStart.getUTCMonth()).toBe(10); // November
+      expect(monthStart.getUTCDate()).toBe(1);
+      expect(monthStart.getUTCHours()).toBe(0);
     });
   });
 
-  describe("toISOString", () => {
-    it("should convert UTC date to ISO string", () => {
-      const utcDate = new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 0));
-      const isoString = toISOString(utcDate);
+  describe('getThisMonthEnd', () => {
+    it('returns last day of current month at end of day UTC', () => {
+      const monthEnd = getThisMonthEnd();
 
-      expect(isoString).toBe("2026-01-01T00:00:00.000Z");
+      expect(monthEnd.getUTCFullYear()).toBe(2026);
+      expect(monthEnd.getUTCMonth()).toBe(1); // February
+      expect(monthEnd.getUTCDate()).toBe(28); // 2026 is not a leap year
+      expect(monthEnd.getUTCHours()).toBe(23);
+      expect(monthEnd.getUTCMinutes()).toBe(59);
+      expect(monthEnd.getUTCSeconds()).toBe(59);
     });
 
-    it("should handle year end correctly", () => {
-      const utcDate = new Date(Date.UTC(2026, 11, 31, 23, 59, 59, 999));
-      const isoString = toISOString(utcDate);
+    it('handles leap year February', () => {
+      vi.setSystemTime(new Date('2024-02-15T12:00:00.000Z'));
+      const monthEnd = getThisMonthEnd();
 
-      expect(isoString).toBe("2026-12-31T23:59:59.999Z");
+      expect(monthEnd.getUTCDate()).toBe(29); // 2024 is a leap year
     });
 
-    it("should handle year start correctly", () => {
-      const utcDate = new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 0));
-      const isoString = toISOString(utcDate);
+    it('handles months with 31 days', () => {
+      vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
+      const monthEnd = getThisMonthEnd();
 
-      expect(isoString.startsWith("2026-01-01")).toBe(true);
-    });
-  });
-
-  describe("this year range", () => {
-    it("should create a valid range that stays within 2026", () => {
-      const start = getThisYearStartEST();
-      const end = getThisYearEndEST();
-
-      const startISO = toISOString(start);
-      const endISO = toISOString(end);
-
-      // Both should be in 2026
-      expect(startISO.startsWith("2026-01-01")).toBe(true);
-      expect(endISO.startsWith("2026-12-31")).toBe(true);
-
-      // Should not leak into 2025 or 2027
-      expect(startISO).not.toContain("2025");
-      expect(endISO).not.toContain("2027");
+      expect(monthEnd.getUTCDate()).toBe(31);
     });
   });
 
-  describe("last year range", () => {
-    it("should create a valid range that stays within 2025", () => {
-      const start = getLastYearStartEST();
-      const end = getLastYearEndEST();
+  describe('getThisYearStart', () => {
+    it('returns Jan 1 at midnight UTC', () => {
+      const yearStart = getThisYearStart();
 
-      const startISO = toISOString(start);
-      const endISO = toISOString(end);
-
-      // Both should be in 2025
-      expect(startISO.startsWith("2025-01-01")).toBe(true);
-      expect(endISO.startsWith("2025-12-31")).toBe(true);
-
-      // Should not leak into 2024 or 2026
-      expect(startISO).not.toContain("2024");
-      expect(endISO).not.toContain("2026");
+      expect(yearStart.getUTCFullYear()).toBe(2026);
+      expect(yearStart.getUTCMonth()).toBe(0); // January
+      expect(yearStart.getUTCDate()).toBe(1);
+      expect(yearStart.getUTCHours()).toBe(0);
+      expect(yearStart.getUTCMinutes()).toBe(0);
+      expect(yearStart.getUTCSeconds()).toBe(0);
     });
   });
 
-  describe("getThisWeekStartEST", () => {
-    it("should return Monday of current week", () => {
-      // Jan 31, 2026 is a Saturday
-      const monday = getThisWeekStartEST();
+  describe('getThisYearEnd', () => {
+    it('returns Dec 31 at end of day UTC', () => {
+      const yearEnd = getThisYearEnd();
 
-      expect(monday.getDay()).toBe(1); // Monday
-      expect(monday.getDate()).toBe(26); // Jan 26, 2026
-      expect(monday.getHours()).toBe(0);
-      expect(monday.getMinutes()).toBe(0);
+      expect(yearEnd.getUTCFullYear()).toBe(2026);
+      expect(yearEnd.getUTCMonth()).toBe(11); // December
+      expect(yearEnd.getUTCDate()).toBe(31);
+      expect(yearEnd.getUTCHours()).toBe(23);
+      expect(yearEnd.getUTCMinutes()).toBe(59);
+      expect(yearEnd.getUTCSeconds()).toBe(59);
     });
   });
 
-  describe("getThisWeekEndEST", () => {
-    it("should return Sunday of current week", () => {
-      // Jan 31, 2026 is a Saturday
-      const sunday = getThisWeekEndEST();
+  describe('parseDate', () => {
+    it('parses YYYY-MM-DD as UTC to prevent timezone shifts', () => {
+      const date = parseDate('2026-03-15');
 
-      expect(sunday.getDay()).toBe(0); // Sunday
-      expect(sunday.getDate()).toBe(1); // Feb 1, 2026
-      expect(sunday.getHours()).toBe(23);
-      expect(sunday.getMinutes()).toBe(59);
+      // Should be interpreted as UTC midnight
+      expect(date.toISOString()).toBe('2026-03-15T00:00:00.000Z');
+    });
+
+    it('handles year boundaries', () => {
+      const date = parseDate('2026-01-01');
+
+      expect(date.toISOString()).toBe('2026-01-01T00:00:00.000Z');
     });
   });
 
-  describe("getThisMonthStartEST", () => {
-    it("should return first day of current month UTC", () => {
-      const start = getThisMonthStartEST();
-      const iso = start.toISOString();
+  describe('toISOString', () => {
+    it('converts Date to ISO string', () => {
+      const date = new Date('2026-03-15T12:30:45.123Z');
+      const iso = toISOString(date);
 
-      expect(iso).toBe("2026-01-01T00:00:00.000Z");
+      expect(iso).toBe('2026-03-15T12:30:45.123Z');
     });
   });
 
-  describe("getThisMonthEndEST", () => {
-    it("should return last day of current month UTC", () => {
-      const end = getThisMonthEndEST();
-      const iso = end.toISOString();
+  describe('getDaysBetween', () => {
+    it('calculates days between two dates', () => {
+      const start = new Date('2026-01-01');
+      const end = new Date('2026-01-08');
 
-      expect(iso).toBe("2026-01-31T23:59:59.999Z");
-    });
-  });
-
-  describe("getDaysBetween", () => {
-    it("should calculate days between two dates", () => {
-      const start = new Date("2026-01-01");
-      const end = new Date("2026-01-10");
-
-      expect(getDaysBetween(start, end)).toBe(9);
+      expect(getDaysBetween(start, end)).toBe(7);
     });
 
-    it("should handle same date", () => {
-      const date = new Date("2026-01-01");
+    it('handles same day', () => {
+      const date = new Date('2026-01-01');
 
       expect(getDaysBetween(date, date)).toBe(0);
     });
-  });
 
-  describe("parseDate", () => {
-    it("should parse YYYY-MM-DD format", () => {
-      const date = parseDate("2026-01-15");
+    it('handles reversed dates (absolute value)', () => {
+      const start = new Date('2026-01-08');
+      const end = new Date('2026-01-01');
 
-      expect(date.getFullYear()).toBe(2026);
-      expect(date.getMonth()).toBe(0); // January
-      expect(date.getDate()).toBe(15);
+      expect(getDaysBetween(start, end)).toBe(7);
     });
   });
 });

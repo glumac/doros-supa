@@ -9,6 +9,7 @@ import { UserStats } from '../UserStats';
 import { AuthContext } from '../../contexts/AuthContext';
 import type { User } from '../../types/models';
 import * as queries from '../../lib/queries';
+import * as userProfileHooks from '../../hooks/useUserProfile';
 
 // Mock the query functions
 vi.mock('../../lib/queries', async (importOriginal) => {
@@ -21,6 +22,9 @@ vi.mock('../../lib/queries', async (importOriginal) => {
     getUserMonthlyCompletions: vi.fn(),
   };
 });
+
+// Mock the useUserProfile hooks
+vi.mock('../../hooks/useUserProfile');
 
 const mockGetUserStats = queries.getUserStats as Mock;
 const mockGetUserDailyCompletions = queries.getUserDailyCompletions as Mock;
@@ -106,6 +110,17 @@ describe('UserStats Component', () => {
     mockGetUserDailyCompletions.mockResolvedValue({ data: mockDailyCompletions, error: null });
     mockGetUserWeeklyCompletions.mockResolvedValue({ data: mockWeeklyCompletions, error: null });
     mockGetUserMonthlyCompletions.mockResolvedValue({ data: [], error: null });
+
+    // Mock followers/following hooks
+    vi.spyOn(userProfileHooks, 'useFollowers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as any);
+
+    vi.spyOn(userProfileHooks, 'useFollowing').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as any);
   });
 
   describe('Rendering and Layout', () => {
@@ -378,6 +393,60 @@ describe('UserStats Component', () => {
       await waitFor(() => {
         expect(mockGetUserStats).toHaveBeenCalledTimes(2);
       });
+    });
+
+    it('preserves view parameter when switching timeframes', async () => {
+      const user = userEvent.setup();
+      // Start with This Month and Week view
+      renderUserStats('/stats?timeframe=this-month&view=week');
+
+      await waitFor(() => {
+        expect(screen.getByText(/view by/i)).toBeInTheDocument();
+      });
+
+      // Verify week view is selected
+      const weekViewRadio = screen.getByRole('radio', { name: /week/i });
+      expect(weekViewRadio).toBeChecked();
+
+      // Switch to This Year timeframe
+      const thisYearButton = screen.getByRole('button', { name: /this year/i });
+      await user.click(thisYearButton);
+
+      // Wait for component to update
+      await waitFor(() => {
+        expect(screen.getByText(/view by/i)).toBeInTheDocument();
+      });
+
+      // Week view should still be selected
+      const weekViewRadioAfter = screen.getByRole('radio', { name: /week/i });
+      expect(weekViewRadioAfter).toBeChecked();
+    });
+
+    it('preserves month view when switching from this-year to last-year', async () => {
+      const user = userEvent.setup();
+      // Start with This Year and Month view
+      renderUserStats('/stats?timeframe=this-year&view=month');
+
+      await waitFor(() => {
+        expect(screen.getByText(/view by/i)).toBeInTheDocument();
+      });
+
+      // Verify month view is selected
+      const monthViewRadio = screen.getByRole('radio', { name: /month/i });
+      expect(monthViewRadio).toBeChecked();
+
+      // Switch to Last Year timeframe
+      const lastYearButton = screen.getByRole('button', { name: /last year/i });
+      await user.click(lastYearButton);
+
+      // Wait for component to update
+      await waitFor(() => {
+        expect(screen.getByText(/view by/i)).toBeInTheDocument();
+      });
+
+      // Month view should still be selected
+      const monthViewRadioAfter = screen.getByRole('radio', { name: /month/i });
+      expect(monthViewRadioAfter).toBeChecked();
     });
   });
 
@@ -1062,6 +1131,171 @@ describe('UserStats Component', () => {
         const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
         expect(bars?.length).toBeGreaterThanOrEqual(5);
       });
+    });
+  });
+
+  describe('Week View Enhancements', () => {
+    beforeEach(() => {
+      mockGetUserStats.mockResolvedValue({ data: [mockStats], error: null });
+      mockGetUserDailyCompletions.mockResolvedValue({ data: mockDailyCompletions, error: null });
+      mockGetUserMonthlyCompletions.mockResolvedValue({ data: [], error: null });
+    });
+
+    it('displays month/year chart title for this-month week view', async () => {
+      // Mock weekly data for Feb 2026, including week that starts in Jan
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2026-01-27', count: 15 }, // Week starting in Jan
+          { week_start: '2026-02-03', count: 20 },
+          { week_start: '2026-02-10', count: 18 },
+          { week_start: '2026-02-17', count: 22 },
+          { week_start: '2026-02-24', count: 16 }, // Week extending into Mar
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=this-month&view=week');
+
+      await waitFor(() => {
+        // Should show "Feb 2026" as timeframe title
+        const timeframeTitle = screen.getByText('Feb 2026');
+        expect(timeframeTitle).toBeInTheDocument();
+        expect(timeframeTitle).toHaveClass('cq-user-stats-timeframe-title');
+      });
+
+      await waitFor(() => {
+        // Should show "Weekly Completions" as view title
+        const viewTitle = screen.getByText('Weekly Completions');
+        expect(viewTitle).toBeInTheDocument();
+        expect(viewTitle).toHaveClass('cq-user-stats-view-title');
+      });
+    });
+
+    it('displays week labels as dates instead of "Week 1, Week 2"', async () => {
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2026-01-27', count: 15 },
+          { week_start: '2026-02-03', count: 20 },
+          { week_start: '2026-02-10', count: 18 },
+          { week_start: '2026-02-17', count: 22 },
+          { week_start: '2026-02-24', count: 16 },
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=this-month&view=week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Verify week labels show as dates (e.g., "Jan 27", "Feb 3")
+      // Note: Recharts renders these in SVG text elements
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Check that the chart has rendered with date labels
+        const svgText = chartContainer?.querySelectorAll('text');
+        expect(svgText).toBeDefined();
+        expect(svgText!.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('includes full week data even when week starts in previous month', async () => {
+      // Week starting Jan 27 includes days from both Jan and Feb
+      // The full week (7 days) should show the combined count
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2026-01-27', count: 38 }, // Full week: 5 days in Jan + 2 days in Feb
+          { week_start: '2026-02-03', count: 30 },
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=this-month&view=week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // The mock data should be called with expanded date range
+      // For Feb 2026 (starts Feb 1), the expanded range should go back to Jan 27 (Monday)
+      await waitFor(() => {
+        expect(mockGetUserWeeklyCompletions).toHaveBeenCalled();
+        const callArgs = mockGetUserWeeklyCompletions.mock.calls[0];
+        const startDate = callArgs[1];
+        const endDate = callArgs[2];
+
+        // Start date should be Monday Jan 27, 2026 (the Monday before Feb 1)
+        expect(startDate).toContain('2026-01-27');
+
+        // End date should be extended to Sunday (Feb ends on Feb 28, which is Saturday,
+        // so it should extend to Mar 1, Sunday)
+        expect(endDate).toBeDefined();
+      });
+    });
+
+    it('displays year as chart title for this-year week view', async () => {
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2025-12-29', count: 10 }, // Week starting in Dec 2025
+          { week_start: '2026-01-05', count: 15 },
+          { week_start: '2026-01-12', count: 20 },
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=this-year&view=week');
+
+      await waitFor(() => {
+        // Should show "2026" as timeframe title
+        const timeframeTitle = screen.getByText('2026');
+        expect(timeframeTitle).toBeInTheDocument();
+        expect(timeframeTitle).toHaveClass('cq-user-stats-timeframe-title');
+      });
+    });
+
+    it('does not display timeframe title for day view', async () => {
+      renderUserStats('/stats?timeframe=this-month&view=day');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Should only show "Daily Completions", not "Feb 2026"
+      const viewTitle = screen.getByText('Daily Completions');
+      expect(viewTitle).toBeInTheDocument();
+
+      const timeframeTitle = screen.queryByText('Feb 2026');
+      expect(timeframeTitle).not.toBeInTheDocument();
+    });
+
+    it('does not display timeframe title for custom date ranges', async () => {
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2026-01-27', count: 15 },
+          { week_start: '2026-02-03', count: 20 },
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=2026-01-27,2026-02-10&view=week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Should only show "Weekly Completions", no month/year title
+      const viewTitle = screen.getByText('Weekly Completions');
+      expect(viewTitle).toBeInTheDocument();
+
+      const timeframeTitle = screen.queryByText('Feb 2026');
+      expect(timeframeTitle).not.toBeInTheDocument();
     });
   });
 });

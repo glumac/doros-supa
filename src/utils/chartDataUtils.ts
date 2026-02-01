@@ -26,14 +26,14 @@ export interface MonthlyDataPoint {
 export function generateDateRange(startDate: Date, endDate: Date): string[] {
   const dates: string[] = [];
   const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
+  current.setUTCHours(0, 0, 0, 0);
 
   const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  end.setUTCHours(0, 0, 0, 0);
 
   while (current <= end) {
     dates.push(current.toISOString().split('T')[0]);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return dates;
@@ -49,18 +49,18 @@ export function generateWeekRange(startDate: Date, endDate: Date): string[] {
   const weeks: string[] = [];
   const current = new Date(startDate);
 
-  // Find the Monday of the week containing startDate
-  const day = current.getDay();
+  // Find the Monday of the week containing startDate (using UTC)
+  const day = current.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day; // If Sunday, go back 6 days, else go to Monday
-  current.setDate(current.getDate() + diff);
-  current.setHours(0, 0, 0, 0);
+  current.setUTCDate(current.getUTCDate() + diff);
+  current.setUTCHours(0, 0, 0, 0);
 
   const end = new Date(endDate);
-  end.setHours(23, 59, 59, 999); // Include the full end date
+  end.setUTCHours(23, 59, 59, 999); // Include the full end date
 
   while (current <= end) {
     weeks.push(current.toISOString().split('T')[0]);
-    current.setDate(current.getDate() + 7);
+    current.setUTCDate(current.getUTCDate() + 7);
   }
 
   return weeks;
@@ -74,12 +74,12 @@ export function generateWeekRange(startDate: Date, endDate: Date): string[] {
  */
 export function generateMonthRange(startDate: Date, endDate: Date): string[] {
   const months: string[] = [];
-  const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+  const current = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), 1));
 
   while (current <= end) {
     months.push(current.toISOString().split('T')[0]);
-    current.setMonth(current.getMonth() + 1);
+    current.setUTCMonth(current.getUTCMonth() + 1);
   }
 
   return months;

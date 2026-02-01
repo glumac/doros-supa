@@ -831,12 +831,12 @@ export async function findFirstPomodoroInRange(
   // Find the oldest pomodoro in the date range
   const { data: firstPomodoro, error: firstError } = await supabase
     .from("pomodoros")
-    .select("id, created_at")
+    .select("id, launch_at")
     .eq("user_id", userId)
     .eq("completed", true)
-    .gte("created_at", startDate)
-    .lte("created_at", endDate)
-    .order("created_at", { ascending: true }) // Oldest first
+    .gte("launch_at", startDate)
+    .lte("launch_at", endDate)
+    .order("launch_at", { ascending: true }) // Oldest first
     .limit(1)
     .maybeSingle();
 
@@ -851,7 +851,7 @@ export async function findFirstPomodoroInRange(
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("completed", true)
-    .gt("created_at", firstPomodoro.created_at);
+    .gt("launch_at", firstPomodoro.launch_at);
 
   if (countError) {
     return null;

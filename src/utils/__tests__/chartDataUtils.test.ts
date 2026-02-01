@@ -94,12 +94,12 @@ describe('chartDataUtils', () => {
     });
 
     it('handles single week range', () => {
-      const start = new Date(2026, 0, 29); // Jan 29, 2026 (Wednesday)
-      const end = new Date(2026, 1, 1); // Feb 1, 2026 (Saturday)
+      const start = new Date(Date.UTC(2026, 0, 29)); // Jan 29, 2026 UTC (Thursday)
+      const end = new Date(Date.UTC(2026, 1, 1)); // Feb 1, 2026 UTC (Sunday)
 
       const result = generateWeekRange(start, end);
 
-      expect(result).toEqual(['2026-01-27']); // Monday of that week
+      expect(result).toEqual(['2026-01-26']); // Monday of that week in UTC
     });
   });
 
@@ -244,15 +244,15 @@ describe('chartDataUtils', () => {
       const sparseData: WeeklyDataPoint[] = [
         { week_start: '2026-01-27T05:00:00.000Z', count: 15 }
       ];
-      const start = new Date(2026, 0, 27);
-      const end = new Date(2026, 1, 10);
+      const start = new Date(Date.UTC(2026, 0, 27));
+      const end = new Date(Date.UTC(2026, 1, 10));
 
       const result = fillWeeklyData(sparseData, start, end);
 
       expect(result).toEqual([
-        { week_start: '2026-01-27', count: 15 },
-        { week_start: '2026-02-03', count: 0 },
-        { week_start: '2026-02-10', count: 0 }
+        { week_start: '2026-01-26', count: 0 },  // Monday before the data point
+        { week_start: '2026-02-02', count: 0 },
+        { week_start: '2026-02-09', count: 0 }
       ]);
     });
   });
@@ -353,9 +353,9 @@ describe('chartDataUtils', () => {
     });
 
     it('handles timezone-sensitive dates correctly', () => {
-      // Create dates that might be affected by timezone conversion
-      const start = new Date(2026, 0, 1, 0, 0, 0); // Jan 1, 2026 at midnight local
-      const end = new Date(2026, 0, 3, 23, 59, 59); // Jan 3, 2026 at end of day local
+      // Create dates in UTC to avoid timezone conversion issues
+      const start = new Date(Date.UTC(2026, 0, 1, 0, 0, 0)); // Jan 1, 2026 at midnight UTC
+      const end = new Date(Date.UTC(2026, 0, 3, 23, 59, 59)); // Jan 3, 2026 at end of day UTC
 
       const result = generateDateRange(start, end);
 

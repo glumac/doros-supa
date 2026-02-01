@@ -16,7 +16,7 @@ describe('findFirstPomodoroInRange', () => {
   it('should find the first pomodoro in a date range and calculate correct page number', async () => {
     const mockFirstPomodoro = {
       id: 'pomodoro-123',
-      created_at: '2024-01-15T10:00:00Z',
+      launch_at: '2024-01-15T10:00:00Z',
     };
 
     // Mock the query chain for finding the first pomodoro
@@ -47,12 +47,12 @@ describe('findFirstPomodoroInRange', () => {
     // Mock the total count query
     const totalCountChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        count: 100,
-        error: null,
-      }),
+      eq: vi.fn().mockReturnThis(),
     };
-    totalCountChain.eq.mockReturnValue(totalCountChain); // Ensure chaining works for both eq() calls
+    totalCountChain.eq = vi.fn().mockReturnValueOnce(totalCountChain).mockResolvedValueOnce({
+      count: 100,
+      error: null,
+    });
 
     (supabase.from as any)
       .mockReturnValueOnce(firstPomodoroChain)
@@ -73,19 +73,19 @@ describe('findFirstPomodoroInRange', () => {
     });
 
     // Verify the first pomodoro query
-    expect(firstPomodoroChain.select).toHaveBeenCalledWith('id, created_at');
+    expect(firstPomodoroChain.select).toHaveBeenCalledWith('id, launch_at');
     expect(firstPomodoroChain.eq).toHaveBeenCalledWith('user_id', 'user-123');
     expect(firstPomodoroChain.eq).toHaveBeenCalledWith('completed', true);
-    expect(firstPomodoroChain.gte).toHaveBeenCalledWith('created_at', '2024-01-01T00:00:00');
-    expect(firstPomodoroChain.lte).toHaveBeenCalledWith('created_at', '2024-01-31T23:59:59');
-    expect(firstPomodoroChain.order).toHaveBeenCalledWith('created_at', { ascending: true });
+    expect(firstPomodoroChain.gte).toHaveBeenCalledWith('launch_at', '2024-01-01T00:00:00');
+    expect(firstPomodoroChain.lte).toHaveBeenCalledWith('launch_at', '2024-01-31T23:59:59');
+    expect(firstPomodoroChain.order).toHaveBeenCalledWith('launch_at', { ascending: true });
     expect(firstPomodoroChain.limit).toHaveBeenCalledWith(1);
   });
 
   it('should return page 1 when pomodoro is the most recent', async () => {
     const mockFirstPomodoro = {
       id: 'pomodoro-newest',
-      created_at: '2024-01-15T10:00:00Z',
+      launch_at: '2024-01-15T10:00:00Z',
     };
 
     const firstPomodoroChain = {
@@ -113,12 +113,12 @@ describe('findFirstPomodoroInRange', () => {
 
     const totalCountChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        count: 50,
-        error: null,
-      }),
+      eq: vi.fn().mockReturnThis(),
     };
-    totalCountChain.eq.mockReturnValue(totalCountChain);
+    totalCountChain.eq = vi.fn().mockReturnValueOnce(totalCountChain).mockResolvedValueOnce({
+      count: 50,
+      error: null,
+    });
 
     (supabase.from as any)
       .mockReturnValueOnce(firstPomodoroChain)
@@ -194,7 +194,7 @@ describe('findFirstPomodoroInRange', () => {
   it('should calculate correct page for last position', async () => {
     const mockFirstPomodoro = {
       id: 'pomodoro-oldest',
-      created_at: '2024-01-01T10:00:00Z',
+      launch_at: '2024-01-01T10:00:00Z',
     };
 
     const firstPomodoroChain = {
@@ -222,12 +222,12 @@ describe('findFirstPomodoroInRange', () => {
 
     const totalCountChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        count: 100,
-        error: null,
-      }),
+      eq: vi.fn().mockReturnThis(),
     };
-    totalCountChain.eq.mockReturnValue(totalCountChain);
+    totalCountChain.eq = vi.fn().mockReturnValueOnce(totalCountChain).mockResolvedValueOnce({
+      count: 100,
+      error: null,
+    });
 
     (supabase.from as any)
       .mockReturnValueOnce(firstPomodoroChain)

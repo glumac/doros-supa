@@ -24,20 +24,20 @@ import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
 import { removeStyle } from "../utils/styleDefs";
 import type { ChartDataPoint } from "../types/models";
 import {
-  getThisWeekStartEST,
-  getThisWeekEndEST,
-  getLastWeekStartEST,
-  getLastWeekEndEST,
-  getThisMonthStartEST,
-  getThisMonthEndEST,
-  getThisYearStartEST,
-  getThisYearEndEST,
-  getLastYearStartEST,
-  getLastYearEndEST,
+  getThisWeekStart,
+  getThisWeekEnd,
+  getThisMonthStart,
+  getThisMonthEnd,
+  getThisYearStart,
+  getThisYearEnd,
   getDaysBetween,
   toISOString,
   parseDate,
   createSafeDate,
+  getWeekStart,
+  getWeekEnd,
+  formatMonthYear,
+  formatWeekLabel,
 } from "../utils/dateUtils";
 import {
   fillDailyData,
@@ -119,28 +119,37 @@ export function UserStats() {
         setShowCustomInputs(true);
       } else {
         // Invalid custom range, fall back to this-week
-        start = getThisWeekStartEST();
-        end = getThisWeekEndEST();
+        start = getThisWeekStart();
+        end = getThisWeekEnd();
         preset = "this-week";
       }
     } else {
       preset = timeframeParam as TimeframePreset;
       switch (preset) {
         case "last-week":
-          start = getLastWeekStartEST();
-          end = getLastWeekEndEST();
+          const lastWeekStart = new Date(getThisWeekStart());
+          lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+          const lastWeekEnd = new Date(lastWeekStart);
+          lastWeekEnd.setDate(lastWeekEnd.getDate() + 6);
+          lastWeekEnd.setHours(23, 59, 59, 999);
+          start = lastWeekStart;
+          end = lastWeekEnd;
           break;
         case "this-month":
-          start = getThisMonthStartEST();
-          end = getThisMonthEndEST();
+          start = getThisMonthStart();
+          end = getThisMonthEnd();
           break;
         case "this-year":
-          start = getThisYearStartEST();
-          end = getThisYearEndEST();
+          start = getThisYearStart();
+          end = getThisYearEnd();
           break;
         case "last-year":
-          start = getLastYearStartEST();
-          end = getLastYearEndEST();
+          const lastYearStart = new Date(getThisYearStart());
+          lastYearStart.setFullYear(lastYearStart.getFullYear() - 1);
+          const lastYearEnd = new Date(getThisYearEnd());
+          lastYearEnd.setFullYear(lastYearEnd.getFullYear() - 1);
+          start = lastYearStart;
+          end = lastYearEnd;
           break;
         case "all-time":
           return {
@@ -150,8 +159,8 @@ export function UserStats() {
           };
         case "this-week":
         default:
-          start = getThisWeekStartEST();
-          end = getThisWeekEndEST();
+          start = getThisWeekStart();
+          end = getThisWeekEnd();
           preset = "this-week";
           break;
       }
@@ -215,29 +224,67 @@ export function UserStats() {
     }
   }, [startDate, endDate, timeframe, viewParam]);
 
+  // Expand date range to full weeks when viewing in week mode for preset timeframes
+  // BUT exclude "this-week" and "last-week" which already define a week
+  const { expandedStartDate, expandedEndDate, originalStartDate, originalEndDate } = useMemo(() => {
+    // For custom ranges, day view, or no dates, use original dates
+    if (isCustomRange || chartView !== "week" || !startDate || !endDate) {
+      return {
+        expandedStartDate: startDate,
+        expandedEndDate: endDate,
+        originalStartDate: startDate,
+        originalEndDate: endDate,
+      };
+    }
+
+    // CRITICAL: "this-week" and "last-week" already define Mon-Sun, never expand them
+    if (timeframe === "this-week" || timeframe === "last-week") {
+      return {
+        expandedStartDate: startDate,
+        expandedEndDate: endDate,
+        originalStartDate: startDate,
+        originalEndDate: endDate,
+      };
+    }
+
+    // For other preset timeframes with week view, expand to full weeks
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const expandedStart = getWeekStart(start);
+    const expandedEnd = getWeekEnd(end);
+
+    return {
+      expandedStartDate: toISOString(expandedStart),
+      expandedEndDate: toISOString(expandedEnd),
+      originalStartDate: startDate,
+      originalEndDate: endDate,
+    };
+  }, [startDate, endDate, timeframe, chartView, isCustomRange]);
+
   // Fetch stats and chart data
   const { data: stats, isLoading: statsLoading } = useUserStats(
     userProfile?.id,
-    startDate,
-    endDate
+    expandedStartDate,
+    expandedEndDate
   );
 
   const { data: dailyData } = useUserDailyCompletions(
     userProfile?.id,
-    startDate,
-    endDate
+    expandedStartDate,
+    expandedEndDate
   );
 
   const { data: weeklyData } = useUserWeeklyCompletions(
     userProfile?.id,
-    startDate,
-    endDate
+    expandedStartDate,
+    expandedEndDate
   );
 
   const { data: monthlyData } = useUserMonthlyCompletions(
     userProfile?.id,
-    startDate,
-    endDate
+    expandedStartDate,
+    expandedEndDate
   );
 
   // Handle timeframe selection
@@ -253,13 +300,13 @@ export function UserStats() {
         const endStr = toISOString(end).split('T')[0] || '';
         setCustomStart(startStr);
         setCustomEnd(endStr);
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams);
         params.set("timeframe", `${startStr},${endStr}`);
         setSearchParams(params);
       }
     } else {
       setShowCustomInputs(false);
-      const params = new URLSearchParams();
+      const params = new URLSearchParams(searchParams);
       params.set("timeframe", preset);
       setSearchParams(params);
     }
@@ -337,16 +384,16 @@ export function UserStats() {
       return [];
     }
 
-    // Convert ISO strings to local dates, handling timezone properly
+    // Convert ISO strings to UTC dates
     const startUTC = new Date(startDate);
     const endUTC = new Date(endDate);
 
-    // Create safe local dates from the UTC dates
+    // Create safe UTC dates from the UTC date objects
     const start = createSafeDate(
-      `${startUTC.getFullYear()}-${String(startUTC.getMonth() + 1).padStart(2, '0')}-${String(startUTC.getDate()).padStart(2, '0')}`
+      `${startUTC.getUTCFullYear()}-${String(startUTC.getUTCMonth() + 1).padStart(2, '0')}-${String(startUTC.getUTCDate()).padStart(2, '0')}`
     );
     const end = createSafeDate(
-      `${endUTC.getFullYear()}-${String(endUTC.getMonth() + 1).padStart(2, '0')}-${String(endUTC.getDate()).padStart(2, '0')}`
+      `${endUTC.getUTCFullYear()}-${String(endUTC.getUTCMonth() + 1).padStart(2, '0')}-${String(endUTC.getUTCDate()).padStart(2, '0')}`
     );
 
     if (chartView === "day") {
@@ -360,13 +407,13 @@ export function UserStats() {
       }));
     } else if (chartView === "week") {
       const filledData = fillWeeklyData(weeklyData || [], start, end);
-      return filledData.map((d, index) => {
+      return filledData.map((d) => {
         const weekStart = d.week_start;
         const weekEnd = new Date(weekStart + "T12:00:00");
         weekEnd.setDate(weekEnd.getDate() + 6);
 
         return {
-          date: `Week ${index + 1}`,
+          date: formatWeekLabel(weekStart),
           count: Number(d.count),
           startDate: weekStart,
           endDate: weekEnd.toISOString().split('T')[0],
@@ -392,6 +439,45 @@ export function UserStats() {
     }
     return [];
   }, [chartView, dailyData, weeklyData, monthlyData, startDate, endDate]);
+
+  // Generate chart title based on timeframe
+  const chartTitle = useMemo(() => {
+    if (!originalStartDate || !originalEndDate) {
+      return {
+        timeframeLabel: "All Time",
+        viewLabel: chartView === "day" ? "Daily Completions" :
+                   chartView === "week" ? "Weekly Completions" :
+                   chartView === "month" ? "Monthly Completions" :
+                   "Yearly Completions"
+      };
+    }
+
+    const start = new Date(originalStartDate);
+    const viewLabel = chartView === "day" ? "Daily Completions" :
+                     chartView === "week" ? "Weekly Completions" :
+                     chartView === "month" ? "Monthly Completions" :
+                     "Yearly Completions";
+
+    // For preset timeframes with week view, show month/year from original range
+    if (chartView === "week" && !isCustomRange) {
+      if (timeframe === "this-month") {
+        return {
+          timeframeLabel: formatMonthYear(start),
+          viewLabel
+        };
+      } else if (timeframe === "this-year" || timeframe === "last-year") {
+        return {
+          timeframeLabel: start.getFullYear().toString(),
+          viewLabel
+        };
+      }
+    }
+
+    return {
+      timeframeLabel: null,
+      viewLabel
+    };
+  }, [originalStartDate, originalEndDate, chartView, timeframe, isCustomRange]);
 
   // Handle chart bar click
   const handleBarClick = async (data: ChartDataPoint | undefined) => {
@@ -622,12 +708,16 @@ export function UserStats() {
 
             {/* Chart */}
             <div className="cq-user-stats-chart bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {chartView === "day" && "Daily Completions"}
-                {chartView === "week" && "Weekly Completions"}
-                {chartView === "month" && "Monthly Completions"}
-                {chartView === "year" && "Yearly Completions"}
-              </h2>
+              <div className="mb-4">
+                {chartTitle.timeframeLabel && (
+                  <h3 className="cq-user-stats-timeframe-title text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    {chartTitle.timeframeLabel}
+                  </h3>
+                )}
+                <h2 className="cq-user-stats-view-title text-lg font-semibold text-gray-900">
+                  {chartTitle.viewLabel}
+                </h2>
+              </div>
               <div className="cq-user-stats-daily-chart">
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData}>
