@@ -574,5 +574,3 @@ export function UserStats() {
     </div>
   );
 }
-
-export { UserStats };
