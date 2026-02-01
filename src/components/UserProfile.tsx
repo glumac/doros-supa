@@ -25,6 +25,7 @@ import FollowButton from "./FollowButton";
 import BlockButton from "./BlockButton";
 import Pagination from "./Pagination";
 import FollowersModal from "./FollowersModal";
+import { ProfileTabs } from "./ProfileTabs";
 import { addStyle, removeStyle } from "../utils/styleDefs";
 import { User, Doro, DecodedJWT } from "../types/models";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
@@ -318,6 +319,10 @@ const UserProfile = () => {
             </div>
           )}
         </div>
+
+        {/* Profile Tabs */}
+        <ProfileTabs userId={userId!} />
+
         <div className="cq-user-profile-pomodoros-header text-center mb-2 font-medium">
           <h3 className="cq-user-profile-pomodoros-title text-xl">Completed Pomodoros:</h3>
         </div>

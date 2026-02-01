@@ -760,3 +760,60 @@ export async function getRecentActiveUsers(limit: number = 20) {
 export async function updateLastSeen() {
   return supabase.rpc("update_last_seen");
 }
+
+// User Stats queries
+export async function getUserStats(
+  userId: string,
+  startDate?: string,
+  endDate?: string
+) {
+  const { data, error } = await supabase.rpc("get_user_stats", {
+    p_user_id: userId,
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  });
+
+  return { data: data?.[0] || null, error };
+}
+
+export async function getUserDailyCompletions(
+  userId: string,
+  startDate?: string,
+  endDate?: string
+) {
+  const { data, error } = await supabase.rpc("get_user_daily_completions", {
+    p_user_id: userId,
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  });
+
+  return { data, error };
+}
+
+export async function getUserWeeklyCompletions(
+  userId: string,
+  startDate?: string,
+  endDate?: string
+) {
+  const { data, error } = await supabase.rpc("get_user_weekly_completions", {
+    p_user_id: userId,
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  });
+
+  return { data, error };
+}
+
+export async function getUserMonthlyCompletions(
+  userId: string,
+  startDate?: string,
+  endDate?: string
+) {
+  const { data, error } = await supabase.rpc("get_user_monthly_completions", {
+    p_user_id: userId,
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  });
+
+  return { data, error };
+}

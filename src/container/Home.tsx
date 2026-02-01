@@ -3,6 +3,7 @@ import { HiMenu } from "react-icons/hi";
 import { AiFillCloseCircle } from "react-icons/ai";
 import { Link, Route, Routes } from "react-router-dom";
 import { Sidebar, UserProfile, FollowRequestsBanner, PrivacySettings } from "../components";
+import { UserStats } from "../components/UserStats";
 import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -233,6 +234,7 @@ const Home = () => {
               <Routes>
                 <Route path="/user/:userId" element={<UserProfile />} />
                 <Route path="/privacy-settings" element={<PrivacySettings />} />
+                <Route path="/stats" element={<UserStats />} />
                 <Route path="/*" element={<DoroWrapper user={userProfile} />} />
               </Routes>
             </div>
