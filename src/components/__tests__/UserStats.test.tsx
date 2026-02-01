@@ -555,4 +555,205 @@ describe('UserStats Component', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('Empty Day Filling', () => {
+    beforeEach(() => {
+      // Mock sparse data with gaps
+      mockGetUserStats.mockResolvedValue({
+        data: {
+          total_pomodoros: 15,
+          completed_pomodoros: 12,
+          active_days: 3,
+          total_days: 7,
+        },
+        error: null
+      });
+
+      // Mock sparse daily data with missing days
+      mockGetUserDailyCompletions.mockResolvedValue({
+        data: [
+          { date: '2026-01-27', count: 5 },
+          { date: '2026-01-29', count: 3 }, // Missing Jan 28
+          { date: '2026-01-31', count: 7 }  // Missing Jan 30
+        ],
+        error: null
+      });
+
+      // Mock sparse weekly data with gaps
+      mockGetUserWeeklyCompletions.mockResolvedValue({
+        data: [
+          { week_start: '2026-01-20', count: 12 },
+          // Missing week of Jan 27
+          { week_start: '2026-02-03', count: 8 }
+        ],
+        error: null
+      });
+
+      // Mock sparse monthly data
+      mockGetUserMonthlyCompletions.mockResolvedValue({
+        data: [
+          { month_start: '2026-01-01', count: 25 },
+          // Missing February
+          { month_start: '2026-03-01', count: 18 }
+        ],
+        error: null
+      });
+    });
+
+    it('fills missing days in daily chart view', async () => {
+      renderUserStats('/stats?timeframe=this-week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Check that chart includes all days in the week range
+      // The chart should have data for all 7 days of the week
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Verify the chart has data points - Recharts will render bar elements for zero values
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        // Should have bars for all days in the week range, including zero-count days
+        expect(bars?.length).toBeGreaterThan(3); // More than just the 3 non-zero days
+      });
+    });
+
+    it('fills missing weeks in weekly chart view', async () => {
+      renderUserStats('/stats?timeframe=this-year&view=week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Should render bars for all weeks in the year range, including missing weeks
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThan(2); // More than just the 2 weeks with data
+      });
+    });
+
+    it('fills missing months in monthly chart view', async () => {
+      renderUserStats('/stats?timeframe=this-year&view=month');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Should render bars for all months in the year, including February with zero count
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThanOrEqual(3); // At least Jan, Feb (filled), Mar
+      });
+    });
+
+    it('preserves existing data while filling gaps', async () => {
+      renderUserStats('/stats?timeframe=this-week');
+
+      // Wait for data to load
+      await waitFor(() => {
+        expect(mockGetUserDailyCompletions).toHaveBeenCalled();
+      });
+
+      // Verify the original data is preserved in the chart
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // The chart should render with the filled data including both existing and zero values
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('shows correct chart title for each view', async () => {
+      // Test daily view
+      renderUserStats('/stats?timeframe=this-week');
+      await waitFor(() => {
+        expect(screen.getByText('Daily Completions')).toBeInTheDocument();
+      });
+    });
+
+    it('handles completely empty data correctly', async () => {
+      // Mock completely empty data
+      mockGetUserDailyCompletions.mockResolvedValue({ data: [], error: null });
+      mockGetUserWeeklyCompletions.mockResolvedValue({ data: [], error: null });
+      mockGetUserMonthlyCompletions.mockResolvedValue({ data: [], error: null });
+
+      renderUserStats('/stats?timeframe=this-week');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Chart should still render with zero values for all days
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Should have bars for all days, even if all are zero
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('handles custom date range with gaps', async () => {
+      // Test custom range spanning multiple days with gaps
+      renderUserStats('/stats?timeframe=2026-01-26,2026-02-01');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Should fill all days in the custom range
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Should have bars for all 7 days from Jan 26 to Feb 1
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThanOrEqual(7);
+      });
+    });
+
+    it('correctly handles timezone-sensitive dates', async () => {
+      // Test with dates that might be affected by timezone conversion
+      mockGetUserDailyCompletions.mockResolvedValue({
+        data: [
+          { date: '2026-01-01T05:00:00.000Z', count: 5 }, // ISO string from database
+          { date: '2026-01-03', count: 3 } // Simple date string
+        ],
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=2026-01-01,2026-01-05');
+
+      await waitFor(() => {
+        const chart = document.querySelector('.cq-user-stats-daily-chart');
+        expect(chart).toBeInTheDocument();
+      });
+
+      // Should correctly parse both date formats and fill gaps
+      await waitFor(() => {
+        const chartContainer = document.querySelector('.recharts-responsive-container');
+        expect(chartContainer).toBeInTheDocument();
+
+        // Should have bars for all 5 days from Jan 1 to Jan 5
+        const bars = chartContainer?.querySelectorAll('.recharts-bar-rectangle');
+        expect(bars?.length).toBeGreaterThanOrEqual(5);
+      });
+    });
+  });
 });

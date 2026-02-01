@@ -22,5 +22,6 @@ export { default as PrivacySettings } from "./PrivacySettings";
 export { default as TocPrivacy } from "./TocPrivacy";
 export { default as ImageModal } from "./ImageModal";
 export { default as NotFound } from "./NotFound";
+export { default as LogoutButton } from "./LogoutButton";
 export { UserStats } from "./UserStats";
 export { ProfileTabs } from "./ProfileTabs";

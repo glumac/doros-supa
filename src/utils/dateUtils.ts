@@ -5,10 +5,10 @@
 
 // Get the current date in EST
 export function getCurrentDateEST(): Date {
+  // Use proper timezone conversion instead of manual calculation
   const now = new Date();
-  const estOffset = -5; // EST is UTC-5
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (3600000 * estOffset));
+  const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  return estTime;
 }
 
 // Get Monday of current week in EST
@@ -115,4 +115,10 @@ export function toISOString(date: Date): string {
 export function parseDate(dateStr: string): Date {
   const date = new Date(dateStr + 'T00:00:00');
   return date;
+}
+
+// Create a safe date from YYYY-MM-DD format that doesn't shift timezone
+export function createSafeDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }

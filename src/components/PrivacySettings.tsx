@@ -1,9 +1,14 @@
 import { useState, useRef } from 'react';
+import LogoutButton from './LogoutButton';
+// ...existing code...
+import { ProfileTabs } from './ProfileTabs';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProfile } from '../hooks/useUserProfile';
+import { supabase } from '../lib/supabaseClient';
+import { useUserProfile, useFollowers, useFollowing } from '../hooks/useUserProfile';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { useUpdatePrivacyMutation, useUnblockUserMutation, useUpdateNotificationPreferencesMutation } from '../hooks/useMutations';
 import { getAvatarPlaceholder } from '../utils/avatarPlaceholder';
+import { removeStyle } from '../utils/styleDefs';
 import DeleteAccountModal from './DeleteAccountModal';
 
 export default function PrivacySettings() {
@@ -15,11 +20,16 @@ export default function PrivacySettings() {
   // Use React Query hooks
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile(user?.id);
   const { data: blockedUsers = [], isLoading: loadingBlocks } = useBlockedUsers(user?.id);
+  const { data: followers } = useFollowers(user?.id);
+  const { data: following } = useFollowing(user?.id);
   const updatePrivacyMutation = useUpdatePrivacyMutation();
   const unblockMutation = useUnblockUserMutation();
   const updateNotificationsMutation = useUpdateNotificationPreferencesMutation();
 
+  const followerCount = followers?.length ?? 0;
+  const followingCount = following?.length ?? 0;
   const requireApproval = userProfile?.followers_only || false;
+
   const emailFollowRequests = userProfile?.notification_preferences?.email_follow_requests || false;
   const emailLikes = userProfile?.notification_preferences?.email_likes || false;
   const emailComments = userProfile?.notification_preferences?.email_comments || false;
@@ -89,15 +99,57 @@ export default function PrivacySettings() {
   const saving = updatePrivacyMutation.isPending;
 
   return (
-    <div className="cq-privacy-settings-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 className="cq-privacy-settings-title" style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
-        Privacy Settings
-      </h1>
-      <p className="cq-privacy-settings-description" style={{ color: '#666', marginBottom: '32px' }}>
-        Manage who can follow you and see your content
-      </p>
+    <div className="cq-user-profile-container relative pb-2 h-full justify-center items-center">
+      <div className="cq-user-profile-content flex flex-col pb-5">
+        <div className="cq-user-profile-header relative flex flex-col mb-4">
+          <div className="cq-user-stats-banner-container flex flex-col justify-center items-center">
+            <img
+              className="cq-user-stats-banner w-full h-28 2xl:h-40 shadow-lg object-cover"
+              src="/tomatoes-header.jpg"
+              alt="Profile banner"
+            />
+            <img
+              className="cq-user-stats-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
+              src={userProfile?.avatar_url || getAvatarPlaceholder(80)}
+              alt="user-pic"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getAvatarPlaceholder(80);
+              }}
+            />
+          </div>
+          <div className="cq-user-profile-name-row w-full mt-3 px-4 md:px-8">
+            <div className="flex items-center justify-between">
+              <div className="w-20" />
+              <h1 className="cq-user-profile-name text-green-700 font-medium text-5xl text-center flex-1">
+                {userProfile?.user_name}
+              </h1>
+              <LogoutButton />
+            </div>
+          </div>
+          <div className="cq-user-profile-stats flex justify-center gap-6 mt-3 mb-2">
+            <div className="cq-user-profile-followers-button text-center">
+              <div className="cq-user-profile-followers-count font-bold text-lg">{followerCount}</div>
+              <div className="cq-user-profile-followers-label text-gray-600 text-sm">Followers</div>
+            </div>
+            <div className="cq-user-profile-following-button text-center">
+              <div className="cq-user-profile-following-count font-bold text-lg">{followingCount}</div>
+              <div className="cq-user-profile-following-label text-gray-600 text-sm">Following</div>
+            </div>
+          </div>
+        </div>
+        {/* Tabs placed higher, as in My Stats */}
+        {user?.id && (
+          <ProfileTabs userId={user.id} />
+        )}
+        <div className="max-w-7xl mx-auto p-6">
+          <h1 className="cq-privacy-settings-title" style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+            Settings
+          </h1>
+          <p className="cq-privacy-settings-description" style={{ color: '#666', marginBottom: '32px' }}>
+            Manage who can follow you and see your content
+          </p>
 
-      <div
+          <div
         className="cq-privacy-settings-approval-section"
         style={{
           backgroundColor: '#fff',
@@ -503,6 +555,8 @@ export default function PrivacySettings() {
           triggerRef={deleteButtonRef}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { AiOutlineLogout } from "react-icons/ai";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import LogoutButton from './LogoutButton';
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -34,7 +34,6 @@ const UserProfile = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [modalTab, setModalTab] = useState<'followers' | 'following'>('followers');
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser, userProfile: authUserProfile, loading: authLoading } = useAuth();
@@ -172,25 +171,20 @@ const UserProfile = () => {
 
   const totalPages = Math.ceil(totalPomodoros / pageSize);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
   if (isLoadingProfile || !displayUser) return <Spinner message="Loading profile" />;
 
   return (
     <div className="cq-user-profile-container relative pb-2 h-full justify-center items-center">
       <div className="cq-user-profile-content flex flex-col pb-5">
         <div className="cq-user-profile-header relative flex flex-col mb-4">
-          <div className="cq-user-profile-banner-container flex flex-col justify-center items-center">
+          <div className="cq-user-stats-banner-container flex flex-col justify-center items-center">
             <img
-              className="cq-user-profile-banner w-full h-56 2xl:h-80 shadow-lg object-cover"
+              className="cq-user-stats-banner w-full h-28 2xl:h-40 shadow-lg object-cover"
               src="/tomatoes-header.jpg"
               alt="Profile banner"
             />
             <img
-              className="cq-user-profile-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
+              className="cq-user-stats-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
               src={displayUser?.avatar_url || getAvatarPlaceholder(80)}
               alt="user-pic"
               onError={(e) => {
@@ -198,9 +192,20 @@ const UserProfile = () => {
               }}
             />
           </div>
-          <h1 className="cq-user-profile-name text-green-700 font-medium text-5xl text-center mt-3">
-            {displayUser?.user_name}
-          </h1>
+          {/* Name row with logout right-aligned */}
+          <div className="cq-user-profile-name-row w-full mt-3 px-4 md:px-8">
+            <div className="flex items-center justify-between">
+              <div className="w-20" />
+              <h1 className="cq-user-profile-name text-green-700 font-medium text-5xl text-center flex-1">
+                {displayUser?.user_name}
+              </h1>
+              {userId === authUser?.id ? (
+                <LogoutButton />
+              ) : (
+                <div className="w-20" />
+              )}
+            </div>
+          </div>
 
           {/* Followers/Following Stats */}
           <div className="cq-user-profile-stats flex justify-center gap-6 mt-3 mb-2">
@@ -226,25 +231,8 @@ const UserProfile = () => {
             </button>
           </div>
 
-          <div className="cq-user-profile-actions text-red-600 p-2 flex justify-center items-center gap-3">
-            {userId === authUser?.id ? (
-              <div className="cq-user-profile-own-actions flex gap-2">
-                <button
-                  type="button"
-                  className={`cq-user-profile-privacy-button ${removeStyle}`}
-                  onClick={() => navigate('/privacy-settings')}
-                >
-                  Privacy Settings
-                </button>
-                <button
-                  type="button"
-                  className={`cq-user-profile-logout-button ${removeStyle}`}
-                  onClick={() => logout()}
-                >
-                  Log out
-                </button>
-              </div>
-            ) : (
+          {userId !== authUser?.id && (
+            <div className="cq-user-profile-actions text-red-600 p-2 flex justify-center items-center gap-3">
               <div className="cq-user-profile-visitor-actions flex gap-2 items-center">
                 <FollowButton
                   userId={userId!}
@@ -259,9 +247,11 @@ const UserProfile = () => {
                   />
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
+        <div className="cq-user-profile-content-section">
           {/* Follow Requests Section (only for own profile) */}
           {userId === authUser?.id && followRequests.length > 0 && (
             <div id="follow-requests" className="cq-user-profile-follow-requests-section mt-4 mx-4">
@@ -318,10 +308,10 @@ const UserProfile = () => {
               </div>
             </div>
           )}
-        </div>
 
-        {/* Profile Tabs */}
-        <ProfileTabs userId={userId!} />
+          {/* Profile Tabs */}
+          <ProfileTabs userId={userId!} />
+        </div>
 
         <div className="cq-user-profile-pomodoros-header text-center mb-2 font-medium">
           <h3 className="cq-user-profile-pomodoros-title text-xl">Completed Pomodoros:</h3>

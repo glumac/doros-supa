@@ -19,6 +19,8 @@ import {
   useRecentActiveUsers,
 } from "../hooks/useAdminDashboard";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
+import { fillDailyData } from "../utils/chartDataUtils";
+import { createSafeDate } from "../utils/dateUtils";
 
 type TimeRange = "7d" | "30d" | "all" | "custom";
 
@@ -163,18 +165,46 @@ export function AdminDashboard() {
   };
 
   const pomodoroChartData = useMemo(() => {
-    return (dailyPomodoros || []).map((d) => ({
-      date: formatDate(d.date),
+    if (!startDate || !endDate) return [];
+
+    // Convert ISO strings to local dates, handling timezone properly
+    const startUTC = new Date(startDate || "2020-01-01");
+    const endUTC = new Date(endDate || new Date().toISOString());
+
+    const start = createSafeDate(
+      `${startUTC.getFullYear()}-${String(startUTC.getMonth() + 1).padStart(2, '0')}-${String(startUTC.getDate()).padStart(2, '0')}`
+    );
+    const end = createSafeDate(
+      `${endUTC.getFullYear()}-${String(endUTC.getMonth() + 1).padStart(2, '0')}-${String(endUTC.getDate()).padStart(2, '0')}`
+    );
+
+    const filledData = fillDailyData(dailyPomodoros || [], start, end);
+    return filledData.map((d) => ({
+      date: formatDate(d.date + "T12:00:00"),
       count: Number(d.count),
     }));
-  }, [dailyPomodoros]);
+  }, [dailyPomodoros, startDate, endDate]);
 
   const signupChartData = useMemo(() => {
-    return (dailySignups || []).map((d) => ({
-      date: formatDate(d.date),
+    if (!startDate || !endDate) return [];
+
+    // Convert ISO strings to local dates, handling timezone properly
+    const startUTC = new Date(startDate || "2020-01-01");
+    const endUTC = new Date(endDate || new Date().toISOString());
+
+    const start = createSafeDate(
+      `${startUTC.getFullYear()}-${String(startUTC.getMonth() + 1).padStart(2, '0')}-${String(startUTC.getDate()).padStart(2, '0')}`
+    );
+    const end = createSafeDate(
+      `${endUTC.getFullYear()}-${String(endUTC.getMonth() + 1).padStart(2, '0')}-${String(endUTC.getDate()).padStart(2, '0')}`
+    );
+
+    const filledData = fillDailyData(dailySignups || [], start, end);
+    return filledData.map((d) => ({
+      date: formatDate(d.date + "T12:00:00"),
       count: Number(d.count),
     }));
-  }, [dailySignups]);
+  }, [dailySignups, startDate, endDate]);
 
   const { data: recentUsers, isLoading: recentUsersLoading } = useRecentActiveUsers(20);
 

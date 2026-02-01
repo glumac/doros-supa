@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { RiArrowLeftLine } from "react-icons/ri";
+import LogoutButton from './LogoutButton';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -12,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import {
   useUserStats,
@@ -19,7 +18,10 @@ import {
   useUserWeeklyCompletions,
   useUserMonthlyCompletions,
 } from "../hooks/useUserStats";
+import { useFollowers, useFollowing } from "../hooks/useUserProfile";
 import { ProfileTabs } from "./ProfileTabs";
+import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
+import { removeStyle } from "../utils/styleDefs";
 import {
   getThisWeekStartEST,
   getThisWeekEndEST,
@@ -34,7 +36,13 @@ import {
   getDaysBetween,
   toISOString,
   parseDate,
+  createSafeDate,
 } from "../utils/dateUtils";
+import {
+  fillDailyData,
+  fillWeeklyData,
+  fillMonthlyData,
+} from "../utils/chartDataUtils";
 
 type TimeframePreset =
   | "this-week"
@@ -74,6 +82,11 @@ function StatCard({ title, value, subtitle, loading, className = "" }: StatCardP
 export function UserStats() {
   const { userProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const { data: followers } = useFollowers(userProfile?.id);
+  const { data: following } = useFollowing(userProfile?.id);
+  const followerCount = followers?.length ?? 0;
+  const followingCount = following?.length ?? 0;
 
   // Parse timeframe from URL
   const timeframeParam = searchParams.get("timeframe") || "this-week";
@@ -247,26 +260,43 @@ export function UserStats() {
 
   // Format chart data
   const chartData = useMemo(() => {
+    if (!startDate || !endDate) return [];
+
+    // Convert ISO strings to local dates, handling timezone properly
+    const startUTC = new Date(startDate);
+    const endUTC = new Date(endDate);
+
+    // Create safe local dates from the UTC dates
+    const start = createSafeDate(
+      `${startUTC.getFullYear()}-${String(startUTC.getMonth() + 1).padStart(2, '0')}-${String(startUTC.getDate()).padStart(2, '0')}`
+    );
+    const end = createSafeDate(
+      `${endUTC.getFullYear()}-${String(endUTC.getMonth() + 1).padStart(2, '0')}-${String(endUTC.getDate()).padStart(2, '0')}`
+    );
+
     if (chartView === "day") {
-      return (dailyData || []).map((d: any) => ({
+      const filledData = fillDailyData(dailyData || [], start, end);
+      return filledData.map((d) => ({
         // Parse as local date to avoid timezone shift (YYYY-MM-DD + T12:00 prevents UTC interpretation)
         date: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         count: Number(d.count),
       }));
     } else if (chartView === "week") {
-      return (weeklyData || []).map((d: any, index: number) => ({
+      const filledData = fillWeeklyData(weeklyData || [], start, end);
+      return filledData.map((d, index) => ({
         date: `Week ${index + 1}`,
         count: Number(d.count),
       }));
     } else if (chartView === "month") {
-      return (monthlyData || []).map((d: any) => ({
+      const filledData = fillMonthlyData(monthlyData || [], start, end);
+      return filledData.map((d) => ({
         // Parse as local date to avoid timezone shift
         date: new Date(d.month_start + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         count: Number(d.count),
       }));
     }
     return [];
-  }, [chartView, dailyData, weeklyData, monthlyData]);
+  }, [chartView, dailyData, weeklyData, monthlyData, startDate, endDate]);
 
   // Timeframe preset buttons
   const presets: { label: string; value: TimeframePreset }[] = [
@@ -292,25 +322,60 @@ export function UserStats() {
   const hasData = stats && stats.total_pomodoros > 0;
 
   return (
-    <div className="cq-user-stats-container min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="cq-user-stats-header mb-6">
+    <div className="cq-user-stats-container min-h-screen bg-gray-50 back-pattern">
+      {/* Profile Header - matches UserProfile */}
+      <div className="cq-user-stats-header relative flex flex-col mb-4">
+        <div className="cq-user-stats-banner-container flex flex-col justify-center items-center">
+          <img
+            className="cq-user-stats-banner w-full h-28 2xl:h-40 shadow-lg object-cover"
+            src="/tomatoes-header.jpg"
+            alt="Profile banner"
+          />
+          <img
+            className="cq-user-stats-avatar rounded-full w-20 h-20 -mt-10 shadow-xl object-cover"
+            src={userProfile?.avatar_url || getAvatarPlaceholder(80)}
+            alt="user-pic"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = getAvatarPlaceholder(80);
+            }}
+          />
+        </div>
+        {/* Name row with logout right-aligned */}
+        <div className="cq-user-stats-name-row w-full mt-3 px-4 md:px-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">My Stats</h1>
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <RiArrowLeftLine />
-              <span>Back to Feed</span>
-            </Link>
+            <div className="w-20" />
+            <h1 className="cq-user-stats-name text-green-700 font-medium text-5xl text-center flex-1">
+              {userProfile?.user_name}
+            </h1>
+            <LogoutButton />
           </div>
         </div>
 
-        {/* Profile Tabs */}
-        <ProfileTabs userId={userProfile.id} />
+        {/* Followers/Following Stats */}
+        <div className="cq-user-stats-stats flex justify-center gap-6 mt-3 mb-2">
+          <Link
+            to={`/user/${userProfile.id}`}
+            className="cq-user-stats-followers-button text-center hover:underline cursor-pointer"
+            aria-label={`View ${followerCount} followers`}
+          >
+            <div className="cq-user-stats-followers-count font-bold text-lg">{followerCount}</div>
+            <div className="cq-user-stats-followers-label text-gray-600 text-sm">Followers</div>
+          </Link>
+          <Link
+            to={`/user/${userProfile.id}`}
+            className="cq-user-stats-following-button text-center hover:underline cursor-pointer"
+            aria-label={`View ${followingCount} following`}
+          >
+            <div className="cq-user-stats-following-count font-bold text-lg">{followingCount}</div>
+            <div className="cq-user-stats-following-label text-gray-600 text-sm">Following</div>
+          </Link>
+        </div>
+      </div>
 
+      {/* Profile Tabs - outside max-w-7xl to match UserProfile */}
+      <ProfileTabs userId={userProfile.id} />
+
+      <div className="max-w-7xl mx-auto p-6">
         {/* Timeframe Selector */}
         <div className="cq-user-stats-timeframe-selector mb-6">
           <div className="flex flex-wrap items-center gap-2">
