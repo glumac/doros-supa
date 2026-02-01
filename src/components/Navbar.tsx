@@ -14,7 +14,7 @@ const Navbar = ({ searchTerm, setSearchTerm, user }: NavbarProps) => {
 
   if (user) {
     return (
-      <div className="cq-navbar-container flex gap-2 justify-between md:gap-5 w-full mt-5 pb-7 ">
+      <div className="cq-navbar-container flex flex-col md:flex-row gap-2 justify-between md:gap-5 w-full mt-5 pb-7 ">
         <div className="flex items-center">
           <h2 className="text-lg font-semibold text-gray-700">
             New: See <Link to="/stats" className="text-red-600 hover:text-red-700 underline">My Stats</Link>!
