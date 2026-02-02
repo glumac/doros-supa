@@ -67,16 +67,16 @@ interface StatCardProps {
 
 function StatCard({ title, value, subtitle, loading, className = "" }: StatCardProps) {
   return (
-    <div className={`cq-stat-card bg-white rounded-lg shadow-md p-6 ${className}`}>
-      <h3 className="cq-stat-card-title text-sm font-medium text-gray-500 uppercase tracking-wide">
+    <div className={`cq-stat-card bg-white rounded-lg shadow-md p-4 md:p-6 ${className}`}>
+      <h3 className="cq-stat-card-title text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wide min-h-[2rem] md:min-h-0">
         {title}
       </h3>
       {loading ? (
-        <div className="cq-stat-card-loading mt-2 h-8 bg-gray-200 rounded animate-pulse w-20" />
+        <div className="cq-stat-card-loading mt-1 md:mt-2 h-6 md:h-8 bg-gray-200 rounded animate-pulse w-16 md:w-20" />
       ) : (
-        <p className="cq-stat-card-value mt-2 text-3xl font-bold text-gray-900">{value}</p>
+        <p className="cq-stat-card-value mt-1 md:mt-2 text-xl md:text-3xl font-bold text-gray-900">{value}</p>
       )}
-      {subtitle && <p className="cq-stat-card-subtitle mt-1 text-sm text-gray-500">{subtitle}</p>}
+      {subtitle && <p className="cq-stat-card-subtitle mt-0.5 md:mt-1 text-xs md:text-sm text-gray-500">{subtitle}</p>}
     </div>
   );
 }
@@ -659,7 +659,7 @@ export function UserStats() {
         </div>
 
         {/* Stats Grid */}
-        <div className="cq-user-stats-grid grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="cq-user-stats-grid grid grid-cols-3 md:grid-cols-3 gap-3 md:gap-6 mb-8">
           <StatCard
             title="Total Pomodoros"
             value={stats?.total_pomodoros?.toLocaleString() || 0}
