@@ -40,16 +40,16 @@ describe('Leaderboard Queries - Data Shape Validation', () => {
       expect(error).toBeNull();
       expect(data).toBeDefined();
       expect(Array.isArray(data)).toBe(true);
-      
+
       // Critical: Verify each item has user_id field, not id
       data?.forEach((item) => {
         expect(item).toHaveProperty('user_id');
         expect(item.user_id).toBeTruthy();
         expect(typeof item.user_id).toBe('string');
-        
+
         // Ensure it doesn't have 'id' field instead
         expect(item).not.toHaveProperty('id');
-        
+
         // Verify other required fields
         expect(item).toHaveProperty('user_name');
         expect(item).toHaveProperty('avatar_url');
@@ -58,6 +58,7 @@ describe('Leaderboard Queries - Data Shape Validation', () => {
 
       expect(supabase.rpc).toHaveBeenCalledWith('get_global_leaderboard', {
         p_current_user_id: 'current-user-id',
+        p_timezone: 'America/New_York',
       });
     });
 
@@ -82,6 +83,7 @@ describe('Leaderboard Queries - Data Shape Validation', () => {
       expect(data?.[0]).toHaveProperty('user_id');
       expect(supabase.rpc).toHaveBeenCalledWith('get_global_leaderboard', {
         p_current_user_id: null,
+        p_timezone: 'America/New_York',
       });
     });
 
@@ -147,10 +149,10 @@ describe('Leaderboard Queries - Data Shape Validation', () => {
         expect(item).toHaveProperty('user_id');
         expect(item.user_id).toBeTruthy();
         expect(typeof item.user_id).toBe('string');
-        
+
         // Ensure it doesn't have 'id' field instead
         expect(item).not.toHaveProperty('id');
-        
+
         // Verify other required fields
         expect(item).toHaveProperty('user_name');
         expect(item).toHaveProperty('avatar_url');
@@ -161,6 +163,7 @@ describe('Leaderboard Queries - Data Shape Validation', () => {
 
       expect(supabase.rpc).toHaveBeenCalledWith('get_friends_leaderboard', {
         p_user_id: 'current-user',
+        p_timezone: 'America/New_York',
       });
     });
 
