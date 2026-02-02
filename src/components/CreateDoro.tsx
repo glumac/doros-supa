@@ -209,6 +209,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
   const [saving, setSaving] = useState(false);
   const [convertingHeic, setConvertingHeic] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const navigate = useNavigate();
   const createPomodoroMutation = useCreatePomodoroMutation();
@@ -280,6 +281,36 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       }
     };
   }, [imageAsset?.url]);
+
+  // 30-second safety timeout for image upload
+  useEffect(() => {
+    if (loading || convertingHeic) {
+      // Start timeout
+      uploadTimeoutRef.current = setTimeout(() => {
+        setLoading(false);
+        setConvertingHeic(false);
+        setUploadError('Upload took too long. Please try again.');
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 30000); // 30 seconds
+    } else {
+      // Clear timeout when upload completes or errors
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+        uploadTimeoutRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+        uploadTimeoutRef.current = null;
+      }
+    };
+  }, [loading, convertingHeic]);
 
   useEffect(() => {
     if (!isActive || !title) return;
@@ -740,7 +771,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
 
                   <button
                     type="button"
-                    disabled={saving}
+                    disabled={saving || loading || convertingHeic}
                     onClick={saveDoro}
                     className="cq-create-doro-completed-share-button bg-red-600 text-white font-bold p-2 flex rounded-lg w-28 justify-center items-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -748,6 +779,11 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
                     <GiTomato />
                   </button>
                 </div>
+                {(loading || convertingHeic) && (
+                  <p className="cq-create-doro-upload-status text-sm text-gray-600 text-center mt-2">
+                    {convertingHeic ? 'Converting image...' : 'Uploading image...'}
+                  </p>
+                )}
               </div>
               <div className="cq-create-doro-completed-cancel-container flex justify-center">
                 <button
