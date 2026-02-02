@@ -725,7 +725,7 @@ export function UserStats() {
             )}
 
             {/* Chart */}
-            <div className="cq-user-stats-chart bg-white rounded-lg shadow-md p-6">
+            <div className="cq-user-stats-chart bg-white rounded-lg shadow-md p-3 md:p-6">
               <div className="mb-4">
                 {chartTitle.timeframeLabel && (
                   <h3 className="cq-user-stats-timeframe-title text-sm font-medium text-gray-500 uppercase tracking-wide">
@@ -738,10 +738,10 @@ export function UserStats() {
               </div>
               <div className="cq-user-stats-daily-chart">
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
+                  <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
-                    <YAxis />
+                    <YAxis width={30} />
                     <Tooltip />
                     <Bar
                       dataKey="count"
