@@ -12,6 +12,11 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
       blocks: {
@@ -544,7 +549,7 @@ export type Database = {
         }[]
       }
       get_friends_leaderboard: {
-        Args: { p_user_id: string }
+        Args: { p_timezone?: string; p_user_id: string }
         Returns: {
           avatar_url: string
           completion_count: number
@@ -554,7 +559,7 @@ export type Database = {
         }[]
       }
       get_global_leaderboard: {
-        Args: { p_current_user_id?: string }
+        Args: { p_current_user_id?: string; p_timezone?: string }
         Returns: {
           avatar_url: string
           completion_count: number

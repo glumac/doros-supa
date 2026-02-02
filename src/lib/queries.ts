@@ -261,17 +261,19 @@ export async function unfollowUser(myUserId: string, theirUserId: string) {
 }
 
 // Get global leaderboard (all users)
-export async function getGlobalLeaderboard(currentUserId?: string) {
+export async function getGlobalLeaderboard(currentUserId?: string, timezone?: string) {
   const { data, error } = await supabase.rpc("get_global_leaderboard", {
     p_current_user_id: currentUserId || null,
+    p_timezone: timezone || 'America/New_York',
   });
   return { data, error };
 }
 
 // Get friends leaderboard (followed users + self)
-export async function getFriendsLeaderboard(userId: string) {
+export async function getFriendsLeaderboard(userId: string, timezone?: string) {
   const { data, error } = await supabase.rpc("get_friends_leaderboard", {
     p_user_id: userId,
+    p_timezone: timezone || 'America/New_York',
   });
   return { data, error };
 }
