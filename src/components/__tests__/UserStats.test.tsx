@@ -206,6 +206,39 @@ describe('UserStats Component', () => {
         expect(statsCard).toHaveTextContent('out of 7 days');
       });
     });
+
+    it('displays correct total_days for "All Time" timeframe (not Unix epoch bug)', async () => {
+      // Mock stats for all-time with correct calculation
+      // From Dec 2022 to Feb 2026 should be ~1,150 days, NOT 20,492 (Unix epoch bug)
+      const mockAllTimeStats = {
+        total_pomodoros: 850,
+        completed_pomodoros: 750,
+        active_days: 701,
+        total_days: 1150, // Correct: days since first pomodoro
+      };
+
+      mockGetUserStats.mockResolvedValue({
+        data: mockAllTimeStats,
+        error: null
+      });
+
+      renderUserStats('/stats?timeframe=all-time');
+
+      await waitFor(() => {
+        const statsCard = screen.getByText('Active Days').closest('.cq-user-stats-active-days');
+        expect(statsCard).toHaveTextContent('701');
+        expect(statsCard).toHaveTextContent('out of 1150 days');
+
+        // Verify it's NOT showing the Unix epoch bug (20492 days)
+        expect(statsCard).not.toHaveTextContent('20492');
+
+        // Verify total_days is reasonable (between 1000-1300 days for app started in Dec 2022)
+        expect(statsCard.textContent).toMatch(/out of (1[0-2][0-9]{2}|[0-9]{3}) days/);
+      });
+
+      // Verify the RPC was called with null dates for all-time
+      expect(mockGetUserStats).toHaveBeenCalledWith('user-123', undefined, undefined);
+    });
   });
 
   describe('URL Parameter Handling', () => {
