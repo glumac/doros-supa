@@ -603,7 +603,7 @@ export function UserStats() {
       {/* Profile Tabs - outside max-w-7xl to match UserProfile */}
       <ProfileTabs userId={userProfile.id} />
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="cq-user-stats max-w-7xl mx-auto p-1 md:p-6">
         {/* Timeframe Selector */}
         <div className="cq-user-stats-timeframe-selector mb-6">
           <div className="flex flex-wrap items-center gap-2">
@@ -612,7 +612,7 @@ export function UserStats() {
                 <button
                   key={preset.value}
                   onClick={() => handleTimeframeChange(preset.value)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`px-2 py-2 text-xs md:px-4 md:text-sm font-medium transition-colors ${
                     timeframe === preset.value
                       ? "active bg-red-600 text-white"
                       : "bg-white text-gray-700 hover:bg-gray-50"
