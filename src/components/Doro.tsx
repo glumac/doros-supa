@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { linkify } from "../utils/linkify";
 import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
@@ -204,12 +205,14 @@ const Doro = ({ doro }: DoroProps) => {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  deletePin(id);
+                  if (window.confirm("Are you sure you want to delete this Pomodoro?")) {
+                    deletePin(id);
+                  }
                 }}
                 title="Delete Pomodoro"
                 onMouseEnter={() => setDeleteHovered(true)}
                 onMouseLeave={() => setDeleteHovered(false)}
-                className="cq-doro-delete-button bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
+                className="cq-doro-delete-button relative z-10 bg-white px-2 text-red-600 text-5xl rounded-full w-10 h-7 flex items-center justify-center outline-none"
               >
                 {deleteHovered ? <AiTwotoneDelete /> : <AiOutlineDelete />}
               </button>
@@ -250,7 +253,7 @@ const Doro = ({ doro }: DoroProps) => {
                 <dt className="cq-doro-notes-label font-bold text-gray-500 w-16 text-lg  shrink-0 leading-tight   ">
                   Notes:
                 </dt>
-                <dd className="cq-doro-notes-value text-dark text-lg leading-tight ">{notes}</dd>
+                <dd className="cq-doro-notes-value text-dark text-lg leading-tight ">{linkify(notes)}</dd>
               </div>
             )}
           </dl>

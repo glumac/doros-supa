@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { linkify } from "../utils/linkify";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AiTwotoneDelete, AiOutlineDelete } from "react-icons/ai";
@@ -212,7 +213,9 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deletePin(doro.id);
+                      if (window.confirm("Are you sure you want to delete this Pomodoro?")) {
+                        deletePin(doro.id);
+                      }
                     }}
                     title="Delete Pomodoro"
                     onMouseEnter={() => setDeleteHovered(true)}
@@ -262,7 +265,7 @@ const DoroDetail = ({ user }: DoroDetailProps) => {
                     Notes:
                   </dt>
                   <dd className="cq-doro-detail-notes-value text-dark text-lg leading-tight">
-                    {doro.notes}
+                    {linkify(doro.notes)}
                   </dd>
                 </div>
               )}
