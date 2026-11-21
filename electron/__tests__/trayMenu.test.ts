@@ -1,0 +1,77 @@
+// @vitest-environment node
+import { describe, it, expect, vi } from "vitest";
+import { buildTrayMenu, type TrayMenuActions } from "../trayMenu";
+import type { DesktopTimerState } from "../ipc";
+
+const actions = (): TrayMenuActions => ({
+  command: vi.fn(),
+  showWindow: vi.fn(),
+  quit: vi.fn(),
+});
+
+const idle: DesktopTimerState = { phase: "idle", isPaused: false, task: "" };
+const running: DesktopTimerState = { phase: "focus", endTime: 1, isPaused: false, task: "write chapter 3" };
+const paused: DesktopTimerState = { phase: "focus", pausedTimeLeft: 1, isPaused: true, task: "write chapter 3" };
+
+const labels = (items: ReturnType<typeof buildTrayMenu>) =>
+  items.filter((i) => i.type !== "separator").map((i) => i.label);
+const byLabel = (items: ReturnType<typeof buildTrayMenu>, label: string) => {
+  const item = items.find((i) => i.label === label);
+  if (!item) throw new Error(`no menu item "${label}" in ${JSON.stringify(labels(items))}`);
+  return item;
+};
+
+describe("buildTrayMenu", () => {
+  it("idle: offers to start a doro, Cancel is disabled", () => {
+    const a = actions();
+    const menu = buildTrayMenu(idle, a);
+    expect(labels(menu)).toEqual(["Start a Doro…", "Cancel Doro", "Show Doros", "Quit Doros"]);
+    expect(byLabel(menu, "Cancel Doro").enabled).toBe(false);
+
+    byLabel(menu, "Start a Doro…").click?.({} as never, undefined, {} as never);
+    expect(a.command).toHaveBeenCalledWith("start");
+  });
+
+  it("running: shows the task and offers Pause and Cancel", () => {
+    const a = actions();
+    const menu = buildTrayMenu(running, a);
+    expect(labels(menu)).toEqual(["🍅 Focus: write chapter 3", "Pause", "Cancel Doro", "Show Doros", "Quit Doros"]);
+    expect(menu[0]?.enabled).toBe(false);
+
+    byLabel(menu, "Pause").click?.({} as never, undefined, {} as never);
+    byLabel(menu, "Cancel Doro").click?.({} as never, undefined, {} as never);
+    expect(a.command).toHaveBeenNthCalledWith(1, "pause");
+    expect(a.command).toHaveBeenNthCalledWith(2, "stop");
+  });
+
+  it("paused: offers Resume", () => {
+    const a = actions();
+    const menu = buildTrayMenu(paused, a);
+    expect(labels(menu)).toEqual(["⏸ Paused: write chapter 3", "Resume", "Cancel Doro", "Show Doros", "Quit Doros"]);
+
+    byLabel(menu, "Resume").click?.({} as never, undefined, {} as never);
+    expect(a.command).toHaveBeenCalledWith("resume");
+  });
+
+  it("truncates a long task in the status line", () => {
+    const menu = buildTrayMenu({ ...running, task: "a".repeat(80) }, actions());
+    expect(menu[0]?.label).toBe(`🍅 Focus: ${"a".repeat(39)}…`);
+  });
+
+  it("Show and Quit call their actions", () => {
+    const a = actions();
+    const menu = buildTrayMenu(idle, a);
+    byLabel(menu, "Show Doros").click?.({} as never, undefined, {} as never);
+    byLabel(menu, "Quit Doros").click?.({} as never, undefined, {} as never);
+    expect(a.showWindow).toHaveBeenCalledTimes(1);
+    expect(a.quit).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds the dev paste item only when given", () => {
+    expect(labels(buildTrayMenu(idle, actions()))).not.toContain("Paste Auth Callback URL (dev)");
+    const a = { ...actions(), pasteAuthCallback: vi.fn() };
+    const menu = buildTrayMenu(idle, a);
+    byLabel(menu, "Paste Auth Callback URL (dev)").click?.({} as never, undefined, {} as never);
+    expect(a.pasteAuthCallback).toHaveBeenCalledTimes(1);
+  });
+});

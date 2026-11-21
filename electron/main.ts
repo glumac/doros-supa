@@ -1,15 +1,15 @@
 import * as path from "node:path";
-import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainEvent, type Tray } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, powerMonitor, shell, type IpcMainEvent } from "electron";
+import { IDLE_STATE, parseTimerState } from "./countdown";
 import { AuthCallbackRelay, DEEP_LINK_SCHEME, isAuthCallbackUrl } from "./deepLink";
-import { IPC } from "./ipc";
-import { createTray } from "./tray";
+import { IPC, type TrayCommand } from "./ipc";
+import { createTray, type DorosTray } from "./tray";
 
 const DOROS_URL = process.env.DOROS_URL ?? "https://crush.quest";
 const DOROS_ORIGIN = new URL(DOROS_URL).origin;
 
 let mainWindow: BrowserWindow | null = null;
-// Held in module scope so the tray icon isn't garbage-collected.
-let tray: Tray | null = null;
+let tray: DorosTray | null = null;
 let isQuitting = false;
 
 const authCallbacks = new AuthCallbackRelay((url) => {
@@ -77,9 +77,13 @@ function createWindow(): BrowserWindow {
     mainWindow = null;
   });
 
-  // A new page (load or reload) has to subscribe again before it gets deep links.
+  // A new page (load or reload) has to subscribe again before it gets deep links,
+  // and re-sends its timer state once it mounts.
   win.webContents.on("did-start-navigation", (details) => {
-    if (details.isMainFrame && !details.isSameDocument) authCallbacks.rendererGone();
+    if (details.isMainFrame && !details.isSameDocument) {
+      authCallbacks.rendererGone();
+      tray?.update(IDLE_STATE);
+    }
   });
 
   win.webContents.on("did-finish-load", () => {
@@ -116,6 +120,18 @@ function registerIpc(): void {
   ipcMain.on(IPC.authCallbackReady, (event) => {
     if (isTrustedSender(event)) authCallbacks.rendererReady();
   });
+  ipcMain.on(IPC.updateTimer, (event, payload: unknown) => {
+    if (!isTrustedSender(event)) return;
+    const state = parseTimerState(payload);
+    if (state) tray?.update(state);
+    else console.warn("[doros] ignored malformed timer state");
+  });
+}
+
+/** Tray menu → renderer timer. Pause/resume/stop work with the window hidden. */
+function sendTrayCommand(cmd: TrayCommand): void {
+  if (cmd === "show" || cmd === "start") showWindow();
+  if (cmd !== "show") mainWindow?.webContents.send(IPC.trayCommand, cmd);
 }
 
 /** doros://auth-callback#… from the system browser → renderer, then bring the window up. */
@@ -161,9 +177,12 @@ if (!app.requestSingleInstanceLock()) {
     registerIpc();
     mainWindow = createWindow();
     tray = createTray({
+      command: sendTrayCommand,
       showWindow,
       quit: () => app.quit(),
       ...(app.isPackaged ? {} : { pasteAuthCallback: () => void pasteAuthCallbackFromClipboard() }),
     });
+    // The countdown is computed from endTime, so after sleep one redraw is enough.
+    powerMonitor.on("resume", () => tray?.render());
   });
 }

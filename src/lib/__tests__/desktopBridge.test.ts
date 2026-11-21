@@ -4,6 +4,8 @@ import {
   getDesktopBridge,
   isDesktop,
   parseAuthCallback,
+  readSavedTimerTimes,
+  toDesktopTimerState,
 } from "../desktopBridge";
 import type { DorosBridge } from "../../types/desktop";
 
@@ -75,6 +77,68 @@ describe("desktopBridge", () => {
     it("returns null when a token is missing", () => {
       expect(parseAuthCallback("doros://auth-callback#access_token=a")).toBeNull();
       expect(parseAuthCallback("doros://auth-callback")).toBeNull();
+    });
+  });
+
+  describe("toDesktopTimerState", () => {
+    const base = { inProgress: true, isActive: true, isPaused: false, task: "write chapter 3" };
+
+    it("is idle when no doro is in progress", () => {
+      const idle = { phase: "idle", isPaused: false, task: "" };
+      expect(toDesktopTimerState({ ...base, inProgress: false, isActive: false }, null)).toEqual(idle);
+      expect(toDesktopTimerState({ ...base, isActive: false }, { endTime: 5 })).toEqual(idle);
+      // Finished, waiting to be logged: the timer itself is no longer running.
+      expect(toDesktopTimerState({ ...base, inProgress: false }, { endTime: 5 })).toEqual(idle);
+    });
+
+    it("sends the saved endTime while running", () => {
+      expect(toDesktopTimerState(base, { endTime: 1_800_000_000_000 })).toEqual({
+        phase: "focus",
+        endTime: 1_800_000_000_000,
+        isPaused: false,
+        task: "write chapter 3",
+      });
+    });
+
+    it("sends the saved pausedTimeLeft while paused", () => {
+      expect(toDesktopTimerState({ ...base, isPaused: true }, { pausedTimeLeft: 600_000 })).toEqual({
+        phase: "focus",
+        pausedTimeLeft: 600_000,
+        isPaused: true,
+        task: "write chapter 3",
+      });
+    });
+
+    it("leaves out times that aren't saved", () => {
+      expect(toDesktopTimerState(base, null)).toEqual({
+        phase: "focus",
+        isPaused: false,
+        task: "write chapter 3",
+      });
+    });
+  });
+
+  describe("readSavedTimerTimes", () => {
+    afterEach(() => localStorage.clear());
+
+    it("is null when nothing is saved or the JSON is broken", () => {
+      expect(readSavedTimerTimes()).toBeNull();
+      localStorage.setItem("timerState", "{not json");
+      expect(readSavedTimerTimes()).toBeNull();
+    });
+
+    it("reads endTime and pausedTimeLeft", () => {
+      localStorage.setItem("timerState", JSON.stringify({ endTime: 123, task: "t", isPaused: false }));
+      expect(readSavedTimerTimes()).toEqual({ endTime: 123 });
+      localStorage.setItem("timerState", JSON.stringify({ pausedTimeLeft: 456, isPaused: true }));
+      expect(readSavedTimerTimes()).toEqual({ pausedTimeLeft: 456 });
+    });
+
+    it("accepts a numeric-string endTime (the web app parseInt()s it) and drops junk", () => {
+      localStorage.setItem("timerState", JSON.stringify({ endTime: "789" }));
+      expect(readSavedTimerTimes()).toEqual({ endTime: 789 });
+      localStorage.setItem("timerState", JSON.stringify({ endTime: "soon", pausedTimeLeft: "5" }));
+      expect(readSavedTimerTimes()).toEqual({});
     });
   });
 });

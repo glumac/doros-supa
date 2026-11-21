@@ -1,6 +1,6 @@
 // Thin, React-free helpers around the Electron bridge (`window.doros`).
 // In a normal browser `window.doros` is undefined and every helper here is a no-op.
-import type { DorosBridge } from "../types/desktop";
+import type { DesktopTimerState, DorosBridge } from "../types/desktop";
 
 /** Where Supabase sends the desktop OAuth flow back to (registered in Supabase → Redirect URLs). */
 export const DESKTOP_AUTH_REDIRECT = "doros://auth-callback";
@@ -46,4 +46,54 @@ export function parseAuthCallback(url: string): AuthCallbackResult | null {
   const refreshToken = hash.get("refresh_token");
   if (!accessToken || !refreshToken) return null;
   return { type: "tokens", accessToken, refreshToken };
+}
+
+export const IDLE_TIMER_STATE: DesktopTimerState = { phase: "idle", isPaused: false, task: "" };
+
+export interface TimerSnapshot {
+  inProgress: boolean;
+  isActive: boolean;
+  isPaused: boolean;
+  task: string;
+}
+
+/** The parts of localStorage["timerState"] the tray needs. */
+export interface SavedTimerTimes {
+  endTime?: number;
+  pausedTimeLeft?: number;
+}
+
+/**
+ * Maps the web app's timer (DoroContext + the saved timerState) to the bridge state.
+ * The web app has no break timer, so the phase is only "idle" or "focus". A finished doro
+ * waiting to be logged is idle: its countdown is over.
+ */
+export function toDesktopTimerState(
+  timer: TimerSnapshot,
+  saved: SavedTimerTimes | null,
+): DesktopTimerState {
+  if (!timer.inProgress || !timer.isActive) return IDLE_TIMER_STATE;
+  const state: DesktopTimerState = { phase: "focus", isPaused: timer.isPaused, task: timer.task };
+  if (timer.isPaused) {
+    if (saved?.pausedTimeLeft !== undefined) state.pausedTimeLeft = saved.pausedTimeLeft;
+  } else if (saved?.endTime !== undefined) {
+    state.endTime = saved.endTime;
+  }
+  return state;
+}
+
+/** Reads endTime / pausedTimeLeft from localStorage["timerState"], tolerating bad data. */
+export function readSavedTimerTimes(): SavedTimerTimes | null {
+  try {
+    const raw = localStorage.getItem("timerState");
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    const times: SavedTimerTimes = {};
+    const endTime = Number(saved.endTime);
+    if (saved.endTime !== undefined && Number.isFinite(endTime)) times.endTime = endTime;
+    if (typeof saved.pausedTimeLeft === "number") times.pausedTimeLeft = saved.pausedTimeLeft;
+    return times;
+  } catch {
+    return null;
+  }
 }

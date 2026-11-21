@@ -8,6 +8,7 @@ import { uploadPomodoroImage } from "../lib/storage";
 import { getWeeklyLeaderboard } from "../lib/queries";
 import { useCreatePomodoroMutation } from "../hooks/useMutations";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { useTimerControls } from "../hooks/useTimerControls";
 import { validateImageFile, convertHeicIfNeeded, isHeicFile } from "../lib/imageValidation";
 import Spinner from "./Spinner";
 import whoosh from "../assets/whoosh.mp3";
@@ -342,52 +343,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
     setTimeLeft(durationInMinutes * 60 * 1000);
   };
 
-  const pauseTimer = () => {
-    const currentTimeLeft = timeLeft;
-    const savedStateStr = localStorage.getItem("timerState");
-    const originalDuration = savedStateStr
-      ? JSON.parse(savedStateStr).originalDuration
-      : 0;
-
-    const timerState: TimerState = {
-      task, // Ensure task is saved
-      launchAt: launchAt || "", // Ensure launchAt is saved
-      pausedTimeLeft: currentTimeLeft || undefined,
-      isPaused: true,
-      originalDuration,
-    };
-
-    localStorage.setItem("timerState", JSON.stringify(timerState));
-    setIsPaused(true);
-  };
-
-  const resumeTimer = () => {
-    const endTime = Date.now() + (timeLeft || 0);
-    const savedStateStr = localStorage.getItem("timerState");
-    const originalDuration = savedStateStr
-      ? JSON.parse(savedStateStr).originalDuration
-      : 0;
-
-    const timerState: TimerState = {
-      task, // Ensure task is saved
-      launchAt: launchAt || "", // Ensure launchAt is saved
-      endTime,
-      isPaused: false,
-      originalDuration,
-    };
-
-    localStorage.setItem("timerState", JSON.stringify(timerState));
-    setIsPaused(false);
-  };
-
-  const stopTimer = () => {
-    localStorage.removeItem("timerState");
-    console.log("stopping timer");
-    doroContext.setInProgress(false);
-    setIsActive(false);
-    setIsPaused(false);
-    setTimeLeft(null);
-  };
+  const { pauseTimer, resumeTimer, stopTimer } = useTimerControls();
 
   // Add visibility change handler
   useEffect(() => {

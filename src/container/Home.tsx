@@ -8,6 +8,8 @@ import DoroWrapper from "./DoroWrapper";
 import { DoroProvider } from "../utils/DoroContext";
 import { useAuth } from "../contexts/AuthContext";
 import { getAvatarPlaceholder } from "../utils/avatarPlaceholder";
+import DesktopTimerSync from "../components/DesktopTimerSync";
+import { isDesktop } from "../lib/desktopBridge";
 
 const Home = () => {
   const [toggleSidebar, setToggleSidebar] = useState(false);
@@ -179,6 +181,7 @@ const Home = () => {
 
   return (
     <DoroProvider value={contextStuff}>
+      {isDesktop() && <DesktopTimerSync />}
       <div>
         <div className="flex bg-gray-50 back-pattern md:flex-row flex-col h-screen transition-height duration-75 ease-out">
             <div className="hidden md:flex h-screen flex-initial">

@@ -11,7 +11,8 @@ export interface DesktopTimerState {
   task: string;
 }
 
-export type TrayCommand = "pause" | "resume" | "stop" | "show";
+/** "start" opens the new-doro form (a doro needs a task name, so it can't start from the tray). */
+export type TrayCommand = "pause" | "resume" | "stop" | "show" | "start";
 
 export interface DorosBridge {
   /** renderer → main */

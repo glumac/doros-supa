@@ -54,7 +54,9 @@ doros-supa/
     lib/desktopBridge.ts        # NEW: isDesktop(), getDesktopBridge(), parseAuthCallback()
     hooks/useDesktopAuthCallback.ts # NEW: doros://auth-callback → supabase.auth.setSession
     hooks/useDesktopTimerSync.ts# NEW: pushes timer state to main, handles tray commands
-    components/CreateDoro.tsx   # CHANGED: calls useDesktopTimerSync(timerState, actions)
+    hooks/useTimerControls.ts   # NEW: pause/resume/stop, moved unchanged out of CreateDoro
+    components/DesktopTimerSync.tsx # NEW: renders nothing; mounted in Home (desktop only)
+    components/CreateDoro.tsx   # CHANGED: uses useTimerControls()
     components/Login.tsx        # CHANGED: desktop path uses the system browser + deep link
   electron/                     # NEW: main process, compiled with tsc to electron-dist/
     tsconfig.json               # module: commonjs (or ESM), target node, outDir ../electron-dist
@@ -62,6 +64,7 @@ doros-supa/
     preload.ts                  # contextBridge.exposeInMainWorld("doros", …)
     ipc.ts                      # channel names + payload types (shared with src/types/desktop.d.ts)
     tray.ts                     # tray image + menu, rebuilt on every state change
+    trayMenu.ts                 # pure: buildTrayMenu(state, actions) → menu template
     deepLink.ts                 # pure: isAuthCallbackUrl(), AuthCallbackRelay (buffers until renderer listens)
     tomatoIcon.ts               # pure: buildSvg(text, variant) → string; render() → nativeImage
     countdown.ts                # pure: remainingMs(timerState, now), formatMMSS(ms)
@@ -87,7 +90,7 @@ export interface DesktopTimerState {
   isPaused: boolean;
   task: string;
 }
-export type TrayCommand = "pause" | "resume" | "stop" | "show";
+export type TrayCommand = "pause" | "resume" | "stop" | "show" | "start"; // "start" added in Phase 3
 
 export interface DorosBridge {
   updateTimer(state: DesktopTimerState): void;              // renderer → main
@@ -224,7 +227,7 @@ return to the app logged in as the same user as on the web, and the feed and lea
 
 ---
 
-## Phase 3: Timer sync (renderer → tray)
+## Phase 3: Timer sync (renderer → tray) ✅ DONE
 
 **Tasks**
 1. Read `CreateDoro.tsx` first. Find where `TimerState` (`endTime`, `pausedTimeLeft`, `isPaused`,
@@ -243,6 +246,38 @@ return to the app logged in as the same user as on the web, and the feed and lea
 
 **Done when:** starting a doro in the window shows the countdown in the tray. Pause, resume and stop
 from the tray change the timer in the window. The browser web app behaves exactly as before.
+
+**Status / deviations from the plan (Phase 3):**
+- **The timer doesn't live in `CreateDoro`.** State and the 1 s tick are in `Home` (the `DoroContext`
+  provider, mounted on every logged-in page), saved in `localStorage["timerState"]`. Only the
+  pause/resume/stop handlers were in `CreateDoro`, which is mounted on `/create-doro` alone. So:
+  the three handlers moved **unchanged** into `hooks/useTimerControls.ts` (CreateDoro uses it), and
+  `components/DesktopTimerSync.tsx` (renders nothing) is mounted inside `DoroProvider` in `Home`
+  as `{isDesktop() && <DesktopTimerSync />}`. Tray commands work on any page, window hidden or not,
+  and the web app renders nothing new.
+- `toDesktopTimerState()` / `readSavedTimerTimes()` (in `lib/desktopBridge.ts`) map context +
+  saved timer to the bridge state. No break timer in the web app, so phases are `idle`/`focus`.
+  A finished doro waiting to be logged is `idle`. The hook only sends when the state changes
+  (not every tick) and sends `idle` on unmount.
+- **Tray menu items pulled forward from Phase 5 (user request):** `Start a Doro…` (idle) /
+  `Pause` / `Resume`, `Cancel Doro` (disabled when idle), and a disabled `🍅 Focus: <task>` /
+  `⏸ Paused: <task>` status line. Built by pure `electron/trayMenu.ts`. The menu is rebuilt only
+  when phase/paused/task change.
+- New `TrayCommand` `"start"`: main shows the window and the renderer navigates to
+  `/create-doro` (a doro needs a task name, so it can't start from the tray). Pause/resume/cancel
+  don't show the window.
+- Countdown is `tray.setTitle("24:13", { fontType: "monospacedDigit" })` next to the static
+  tomato (`⏸ 24:13` while paused) until Phase 4 draws it inside the tomato. Ticks every 1 s only
+  while running; redraws on `powerMonitor` `resume`.
+- Main validates `updateTimer` payloads (`parseTimerState`, task capped at 200 chars) and resets
+  the tray to idle on a main-frame navigation (the new page re-sends its state).
+- ✅ Verified (packaged app → local Vite, over CDP): a running doro shows `24:55` in the menu bar
+  (screenshot); with the window hidden on the feed page, `pause` → banner "Pomodoro Paused" and
+  saved `pausedTimeLeft`; `resume` → new `endTime`; `cancel` → timer cleared, tray idle, window
+  stays hidden; `start` → `/create-doro`. Commands were sent over the same IPC channel the menu
+  uses; the native menu clicks themselves were left for the user (menu template is unit-tested).
+- Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +40 new passing
+  tests; `tsc -p electron` clean; `npm run build` OK.
 
 ---
 
@@ -263,7 +298,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ---
 
-## Phase 5: Tray menu
+## Phase 5: Tray menu (Pause/Resume, Cancel, Start a Doro… and the status line already done in Phase 3)
 
 ```
 🍅 Focus: "write chapter 3", 24:13 left   (disabled label)
