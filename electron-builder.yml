@@ -13,6 +13,11 @@ files:
   - "!src/**"
   - "!dist/**"
   - "!node_modules/**"
+# doros://auth-callback brings Google sign-in back from the system browser.
+protocols:
+  - name: Doros
+    schemes:
+      - doros
 mac:
   target: dir
   identity: null

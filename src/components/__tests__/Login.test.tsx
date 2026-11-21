@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import Login from '../Login';
 import * as supabaseClient from '../../lib/supabaseClient';
+import type { DorosBridge } from '../../types/desktop';
 
 // Mock Supabase
 vi.mock('../../lib/supabaseClient', () => ({
@@ -161,6 +162,97 @@ describe('Login CSS behavior', () => {
 
       const buttonContainer = screen.getByRole('button', { name: /sign in with google/i }).parentElement;
       expect(buttonContainer).toHaveClass('shadow-2xl');
+    });
+  });
+});
+
+describe('Login sign-in flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(supabaseClient.supabase.auth.signInWithOAuth).mockResolvedValue({
+      data: { provider: 'google', url: 'https://supabase.example/auth/v1/authorize?provider=google' },
+      error: null,
+    } as never);
+  });
+
+  afterEach(() => {
+    delete window.doros;
+  });
+
+  it('web: keeps the in-page redirect back to this origin', async () => {
+    renderLogin();
+    await userEvent.setup().click(screen.getByRole('button', { name: /sign in with google/i }));
+
+    await waitFor(() => {
+      expect(supabaseClient.supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: { access_type: 'offline' },
+        },
+      });
+    });
+  });
+
+  describe('desktop app (window.doros present)', () => {
+    let openExternal: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      openExternal = vi.fn();
+      const bridge: DorosBridge = {
+        updateTimer: vi.fn(),
+        onTrayCommand: vi.fn(() => () => {}),
+        openExternal,
+        onAuthCallback: vi.fn(() => () => {}),
+      };
+      window.doros = bridge;
+    });
+
+    it('asks Supabase for the OAuth URL with the doros:// redirect, without navigating', async () => {
+      renderLogin();
+      await userEvent.setup().click(screen.getByRole('button', { name: /sign in with google/i }));
+
+      await waitFor(() => {
+        expect(supabaseClient.supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+          provider: 'google',
+          options: {
+            redirectTo: 'doros://auth-callback',
+            skipBrowserRedirect: true,
+            queryParams: { access_type: 'offline' },
+          },
+        });
+      });
+    });
+
+    it('opens the OAuth URL in the system browser', async () => {
+      renderLogin();
+      await userEvent.setup().click(screen.getByRole('button', { name: /sign in with google/i }));
+
+      await waitFor(() => {
+        expect(openExternal).toHaveBeenCalledWith(
+          'https://supabase.example/auth/v1/authorize?provider=google',
+        );
+      });
+    });
+
+    it('shows an error and does not open the browser when Supabase fails', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(supabaseClient.supabase.auth.signInWithOAuth).mockResolvedValue({
+        data: { provider: 'google', url: null },
+        error: new Error('nope'),
+      } as never);
+
+      renderLogin();
+      await userEvent.setup().click(screen.getByRole('button', { name: /sign in with google/i }));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith('Failed to login. Please try again.');
+      });
+      expect(openExternal).not.toHaveBeenCalled();
+
+      alertSpy.mockRestore();
+      errorSpy.mockRestore();
     });
   });
 });

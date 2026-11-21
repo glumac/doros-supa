@@ -33,6 +33,8 @@ export const IPC = {
   trayCommand: "doros:tray-command",
   openExternal: "doros:open-external",
   authCallback: "doros:auth-callback",
+  /** preload → main: the page subscribed to auth callbacks, deliver any pending deep link. */
+  authCallbackReady: "doros:auth-callback-ready",
 } as const;
 
 export type IpcChannels = typeof IPC;

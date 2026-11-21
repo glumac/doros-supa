@@ -1,5 +1,6 @@
 import * as path from "node:path";
-import { app, BrowserWindow, ipcMain, shell, type IpcMainEvent, type Tray } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainEvent, type Tray } from "electron";
+import { AuthCallbackRelay, DEEP_LINK_SCHEME, isAuthCallbackUrl } from "./deepLink";
 import { IPC } from "./ipc";
 import { createTray } from "./tray";
 
@@ -10,6 +11,10 @@ let mainWindow: BrowserWindow | null = null;
 // Held in module scope so the tray icon isn't garbage-collected.
 let tray: Tray | null = null;
 let isQuitting = false;
+
+const authCallbacks = new AuthCallbackRelay((url) => {
+  mainWindow?.webContents.send(IPC.authCallback, url);
+});
 
 function parseUrl(url: string): URL | null {
   try {
@@ -72,6 +77,11 @@ function createWindow(): BrowserWindow {
     mainWindow = null;
   });
 
+  // A new page (load or reload) has to subscribe again before it gets deep links.
+  win.webContents.on("did-start-navigation", (details) => {
+    if (details.isMainFrame && !details.isSameDocument) authCallbacks.rendererGone();
+  });
+
   win.webContents.on("did-finish-load", () => {
     console.log(`[doros] loaded ${win.webContents.getURL()}`);
   });
@@ -103,6 +113,24 @@ function registerIpc(): void {
   ipcMain.on(IPC.openExternal, (event, url: unknown) => {
     if (isTrustedSender(event) && typeof url === "string") openInSystemBrowser(url);
   });
+  ipcMain.on(IPC.authCallbackReady, (event) => {
+    if (isTrustedSender(event)) authCallbacks.rendererReady();
+  });
+}
+
+/** doros://auth-callback#… from the system browser → renderer, then bring the window up. */
+function handleDeepLink(url: string): void {
+  if (!isAuthCallbackUrl(url)) return;
+  authCallbacks.receive(url);
+  // On a cold start the URL arrives before `ready`; the window is created then.
+  if (app.isReady()) showWindow();
+}
+
+/** Dev fallback: read a copied doros://auth-callback URL from the clipboard. */
+async function pasteAuthCallbackFromClipboard(): Promise<void> {
+  const url = (await clipboard.readText()).trim();
+  if (isAuthCallbackUrl(url)) handleDeepLink(url);
+  else console.warn("[doros] clipboard does not hold a doros://auth-callback URL");
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -114,6 +142,12 @@ if (!app.requestSingleInstanceLock()) {
     isQuitting = true;
   });
 
+  // macOS delivers deep links here, including the one that launched the app.
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+  });
+
   // Dock icon click (or relaunch from Finder) brings the window back.
   app.on("activate", () => showWindow());
 
@@ -121,8 +155,15 @@ if (!app.requestSingleInstanceLock()) {
   app.on("window-all-closed", () => {});
 
   void app.whenReady().then(() => {
+    // Only the packaged app claims doros://. An unpackaged run would register the
+    // generic Electron.app as the handler, so dev uses the tray's paste fallback.
+    if (app.isPackaged) app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
     registerIpc();
     mainWindow = createWindow();
-    tray = createTray({ showWindow, quit: () => app.quit() });
+    tray = createTray({
+      showWindow,
+      quit: () => app.quit(),
+      ...(app.isPackaged ? {} : { pasteAuthCallback: () => void pasteAuthCallbackFromClipboard() }),
+    });
   });
 }

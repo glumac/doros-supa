@@ -2,15 +2,42 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import tomatoes from "../assets/tomatoes.jpg";
 import { supabase } from "../lib/supabaseClient";
+import { DESKTOP_AUTH_REDIRECT, getDesktopBridge } from "../lib/desktopBridge";
+import type { DorosBridge } from "../types/desktop";
 
 const Login = () => {
   const [showingWhatIs2, setShowingWhatIs2] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Desktop app: Google blocks OAuth inside Electron windows, so sign in through the
+  // system browser, which comes back via the doros:// deep link (useDesktopAuthCallback).
+  const handleDesktopGoogleLogin = async (bridge: DorosBridge) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: DESKTOP_AUTH_REDIRECT,
+        skipBrowserRedirect: true,
+        queryParams: { access_type: "offline" },
+      },
+    });
+
+    if (error || !data.url) {
+      console.error("Login error:", error);
+      alert("Failed to login. Please try again.");
+      return;
+    }
+    bridge.openExternal(data.url);
+  };
+
   const handleGoogleLogin = async () => {
+    const bridge = getDesktopBridge();
     try {
       setLoading(true);
+      if (bridge) {
+        await handleDesktopGoogleLogin(bridge);
+        return;
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

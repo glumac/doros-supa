@@ -51,7 +51,8 @@ export const BLOCKED_DOMAINS = [
 doros-supa/
   src/                          # existing React app (web + desktop renderer)
     types/desktop.d.ts          # NEW: `window.doros?: DorosBridge` type
-    lib/desktopBridge.ts        # NEW: isDesktop(), thin wrappers around window.doros
+    lib/desktopBridge.ts        # NEW: isDesktop(), getDesktopBridge(), parseAuthCallback()
+    hooks/useDesktopAuthCallback.ts # NEW: doros://auth-callback → supabase.auth.setSession
     hooks/useDesktopTimerSync.ts# NEW: pushes timer state to main, handles tray commands
     components/CreateDoro.tsx   # CHANGED: calls useDesktopTimerSync(timerState, actions)
     components/Login.tsx        # CHANGED: desktop path uses the system browser + deep link
@@ -61,6 +62,7 @@ doros-supa/
     preload.ts                  # contextBridge.exposeInMainWorld("doros", …)
     ipc.ts                      # channel names + payload types (shared with src/types/desktop.d.ts)
     tray.ts                     # tray image + menu, rebuilt on every state change
+    deepLink.ts                 # pure: isAuthCallbackUrl(), AuthCallbackRelay (buffers until renderer listens)
     tomatoIcon.ts               # pure: buildSvg(text, variant) → string; render() → nativeImage
     countdown.ts                # pure: remainingMs(timerState, now), formatMMSS(ms)
     hostsFile.ts                # pure: addBlock(text, domains) / removeBlock(text)
@@ -155,7 +157,7 @@ to log in yet), the tray shows a tomato, and `npm run build`, `npm test` and `np
 
 ---
 
-## Phase 2: Login inside the desktop app
+## Phase 2: Login inside the desktop app 🧑 CODE DONE, awaiting the user's real sign-in check
 
 Google refuses OAuth inside an embedded Electron window, so desktop login goes through the system browser.
 
@@ -189,6 +191,34 @@ paste the callback URL into a hidden menu item.
 
 **Done when:** in the packaged app, you click Sign in with Google, the system browser opens, you
 return to the app logged in as the same user as on the web, and the feed and leaderboard load from Supabase.
+
+**Status / deviations from the plan (Phase 2):**
+- ✅ Verified by the agent: dev window over CDP (Sign in calls `openExternal` with the Supabase
+  `/authorize` URL, `provider=google`, `redirect_to=doros://auth-callback`; a fake callback reaches
+  `setSession`; other `doros://` URLs are ignored; a link that arrives mid-reload is held and
+  delivered once the new page subscribes). Packaged app: Info.plist has `CFBundleURLSchemes: doros`,
+  `isDefaultProtocolClient("doros")` is true, and a real `open "doros://auth-callback#…"` reaches
+  the hidden window, shows it, and runs `setSession`. A real Google login is the user's check.
+- **The packaged app loads https://crush.quest, which won't have the desktop `Login` branch until
+  this is merged and deployed.** Until then, test the packaged app against local Vite:
+  `DOROS_URL=http://localhost:5173 release/mac-arm64/Doros.app/Contents/MacOS/Doros`.
+  On crush.quest today, Sign in inside the desktop window still runs the web flow (Google blocks it).
+- Deep links can arrive before the page is listening (cold start, reload). `electron/deepLink.ts`
+  `AuthCallbackRelay` holds the latest URL until the preload says the page subscribed. That is a new
+  internal IPC channel `doros:auth-callback-ready` (preload → main). The `DorosBridge` API is unchanged.
+- `setAsDefaultProtocolClient("doros")` runs **only when packaged**. Unpackaged, it would register the
+  generic Electron.app as the `doros://` handler. Dev fallback: the tray menu shows
+  **Paste Auth Callback URL (dev)**, which reads a copied `doros://auth-callback#…` URL from the clipboard.
+  (In Electron 45 `clipboard.readText()` returns a Promise.)
+- `isDesktop()`, `getDesktopBridge()` and `parseAuthCallback()` live in `src/lib/desktopBridge.ts`
+  now (Phase 3 extends it). `src/types/desktop.d.ts` mirrors `electron/ipc.ts`.
+- `useDesktopAuthCallback()` is called at the top of `App` (outside `AuthProvider`, since it only
+  needs the Supabase client). Errors use the same `alert("Failed to login. Please try again.")`
+  as the web login.
+- `src/__tests__/setup.ts` now guards its `window` mocks, so `// @vitest-environment node` tests
+  in `electron/__tests__/` can load (before this they crashed on `window`).
+- Checks: 20 failing tests / 175 `tsc` errors, the same as the baseline (24 new tests pass);
+  `tsc -p electron` clean; `npm run build` OK.
 
 ---
 

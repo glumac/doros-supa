@@ -9,6 +9,7 @@ const CH: IpcChannels = {
   trayCommand: "doros:tray-command",
   openExternal: "doros:open-external",
   authCallback: "doros:auth-callback",
+  authCallbackReady: "doros:auth-callback-ready",
 };
 
 function subscribe<T>(channel: string, cb: (value: T) => void): () => void {
@@ -23,7 +24,12 @@ const bridge: DorosBridge = {
   updateTimer: (state: DesktopTimerState) => ipcRenderer.send(CH.updateTimer, state),
   onTrayCommand: (cb) => subscribe<TrayCommand>(CH.trayCommand, cb),
   openExternal: (url: string) => ipcRenderer.send(CH.openExternal, url),
-  onAuthCallback: (cb) => subscribe<string>(CH.authCallback, cb),
+  onAuthCallback: (cb) => {
+    const unsubscribe = subscribe<string>(CH.authCallback, cb);
+    // Lets main deliver a deep link that arrived before the page was listening.
+    ipcRenderer.send(CH.authCallbackReady);
+    return unsubscribe;
+  },
 };
 
 contextBridge.exposeInMainWorld("doros", bridge);

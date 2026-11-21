@@ -12,6 +12,7 @@ import Spinner from "./components/Spinner";
 import { queryClient } from "./lib/queryClient";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminGuard } from "./components/AdminGuard";
+import { useDesktopAuthCallback } from "./hooks/useDesktopAuthCallback";
 
 // Component that handles routing based on auth state
 // Must be inside AuthProvider to use useAuth()
@@ -74,6 +75,9 @@ function AppRoutes() {
 }
 
 function App() {
+  // Desktop app only (no-op in the browser): finish Google sign-in from the doros:// deep link.
+  useDesktopAuthCallback();
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
