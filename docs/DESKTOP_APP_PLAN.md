@@ -11,6 +11,17 @@ tasks, a definition of done, and how to check it. Do the phases in order and com
 **Stop and hand off to the user** at every step marked 🧑. Those steps need `sudo`, a macOS
 permission dialog, or the Supabase dashboard.
 
+### Progress (branch `desktop-app`)
+| Phase | Status |
+|---|---|
+| 1. Electron shell | ✅ done (`aa8cdcc`) |
+| 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
+| 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
+| 4. Tomato with the countdown inside it | ⏳ next |
+| 5. Tray menu | 🟡 partly done in Phase 3 (see the item list there) |
+| 6. Website blocking | ⏳ |
+| 7. Notifications and packaging | ⏳ (an unsigned `.app` already builds; see Phase 1 notes) |
+
 ---
 
 ## 0. Decisions (already made, don't revisit)
@@ -236,7 +247,7 @@ return to the app logged in as the same user as on the web, and the feed and lea
 
 ---
 
-## Phase 3: Timer sync (renderer → tray) ✅ DONE
+## Phase 3: Timer sync (renderer → tray) ✅ DONE (commit `2f48691`)
 
 **Tasks**
 1. Read `CreateDoro.tsx` first. Find where `TimerState` (`endTime`, `pausedTimeLeft`, `isPaused`,
@@ -309,24 +320,29 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ---
 
-## Phase 5: Tray menu (Pause/Resume, Cancel, Start a Doro… and the status line already done in Phase 3)
+## Phase 5: Tray menu 🟡 PARTLY DONE (items marked ✅ were built in Phase 3, user-verified)
 
 ```
-🍅 Focus: "write chapter 3", 24:13 left   (disabled label)
+✅ 🍅 Focus: write chapter 3   (disabled label; ⏸ Paused: … while paused)
+   ⏳ still to add: ", 24:13 left" (needs a menu rebuild each minute, or drop it: the title shows the time)
+✅ Start a Doro…                 (idle only → shows window on /create-doro)
+✅ Pause / Resume                (→ renderer)
+✅ Cancel Doro                   (→ renderer; disabled when idle; the plan called it "Stop")
 ───────────────
-Pause / Resume                (→ renderer)
-Stop                          (→ renderer)
-Show Doros                    (shows and focuses the window)
+✅ Show Doros                    (shows and focuses the window)
+✅ Paste Auth Callback URL (dev) (unpackaged only, from Phase 2)
 ───────────────
-Block sites now        ☐/☑    (manual override)
-Sites blocked: yes/no         (disabled status)
-Set up site blocking…         (only shown if the helper is missing)
+⏳ Block sites now        ☐/☑    (manual override)          ← Phase 6
+⏳ Sites blocked: yes/no         (disabled status)          ← Phase 6
+⏳ Set up site blocking…         (only shown if the helper is missing) ← Phase 6
 ───────────────
-Launch at login        ☐      (app.setLoginItemSettings)
-Quit Doros
+⏳ Launch at login        ☐      (app.setLoginItemSettings)
+✅ Quit Doros
 ```
 
-Starting a new doro needs a task name, so the start action is **Show Doros**. The React UI stays
+The menu template comes from pure `electron/trayMenu.ts` (unit-tested). Add new items there.
+
+Starting a new doro needs a task name, so the start action opens the form (**Start a Doro…**). The React UI stays
 the only place you create a doro. Optionally add a global shortcut `⌥⌘D` for Show Doros.
 
 **Done when:** every menu item works by hand.
@@ -393,8 +409,11 @@ to Supabase, and find it in the feed on the **website** too.
 ---
 
 ## Agent checklist per phase
-- [ ] Tests first for pure modules and new hooks (`countdown`, `hostsFile`, `tomatoIcon`, `useDesktopTimerSync`, `useDesktopAuthCallback`, the `Login` desktop branch)
+- [ ] Tests first for pure modules and new hooks (✅ done: `countdown`, `deepLink`, `trayMenu`,
+      `useDesktopTimerSync`, `useTimerControls`, `useDesktopAuthCallback`, the `Login` desktop branch;
+      ⏳ still to do: `tomatoIcon`, `hostsFile`)
 - [ ] `npm test`, `npx tsc --noEmit`, `npx tsc -p electron --noEmit`, and `npm run build` (web) all pass
+      (no **new** failures: the baseline from `dev` is 20 failing tests in 7 files and 175 `tsc` errors)
 - [ ] Web behavior unchanged when `window.doros` is undefined
 - [ ] Run `npm run desktop:dev` (or the packaged app for Phases 2 and 7) and describe what you saw
 - [ ] Work on a branch (`desktop-app`), one commit per phase
