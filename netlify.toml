@@ -8,7 +8,7 @@
   publish = "dist"
 
   # Node version (Vite 7 requires Node 20.19+ or 22.12+)
-  environment = { NODE_VERSION = "20" }
+  environment = { NODE_VERSION = "20", ELECTRON_SKIP_BINARY_DOWNLOAD = "1" }
 
 # Redirect all routes to index.html for SPA routing
 [[redirects]]

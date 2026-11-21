@@ -205,6 +205,33 @@ When writing tests, ensure:
 - ✅ Mutations update UI correctly
 - ✅ Query invalidation works (verify with spies)
 
+### 11. Electron (desktop app)
+
+The macOS desktop app is a thin Electron shell around this same web app. See
+`docs/DESKTOP_APP_PLAN.md` for the full design.
+
+**`electron/` is Node main-process code.** The React Query, Tailwind, `cq-` classname and
+component rules above do **not** apply there. Instead:
+
+- Compiled with its own `electron/tsconfig.json` (CommonJS) to `electron-dist/`. The root
+  `tsconfig.json` excludes `electron/`. Type-check with `npx tsc -p electron --noEmit`.
+- `electron-dist/package.json` (`"type": "commonjs"`) is committed on purpose, because the repo
+  root is `"type": "module"`. Everything else in `electron-dist/` is build output.
+- `preload.ts` runs sandboxed: it may only `import type` from local files (no runtime imports
+  except `electron`).
+- No Supabase calls from `electron/`. All Doros data stays in the renderer.
+- Keep logic pure and unit-tested where possible (`countdown`, `hostsFile`, `tomatoIcon`), with
+  Vitest tests in `electron/__tests__/` using `// @vitest-environment node`.
+- Never edit `/etc/hosts` or `/etc/sudoers.d` directly, and never run `sudo` without `-n`.
+
+**Renderer-side desktop code in `src/`** (the `window.doros` bridge, `useDesktop*` hooks,
+desktop branches in components) **follows all the rules above**. It must be a no-op when
+`window.doros` is undefined, so the web app at https://crush.quest behaves exactly as before.
+
+**Scripts:** `npm run desktop:dev` (Vite + `tsc -w` + Electron on `http://localhost:5173`),
+`npm run desktop:build` (packaged, unsigned `.app` in `release/`, which loads https://crush.quest).
+Set `DOROS_URL` to point the window at a different origin.
+
 ---
 
 ## Quick Reference

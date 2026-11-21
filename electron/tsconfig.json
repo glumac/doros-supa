@@ -1,0 +1,23 @@
+{
+  // Electron main + preload (Node). Compiled to ../electron-dist as CommonJS;
+  // electron-dist/package.json marks that folder "type": "commonjs" because the
+  // repo root is "type": "module". Tests in __tests__ run through Vitest.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "outDir": "../electron-dist",
+    "rootDir": ".",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["__tests__", "helper"]
+}

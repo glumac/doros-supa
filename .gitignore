@@ -35,3 +35,8 @@ migration-data/
 
 # Supabase
 .supabase/
+
+# Electron desktop app (compiled main process + packaged builds)
+electron-dist/*
+!electron-dist/package.json
+release/

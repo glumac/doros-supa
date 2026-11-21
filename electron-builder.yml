@@ -1,0 +1,19 @@
+# Doros desktop (macOS, personal use: unsigned, no auto-update).
+appId: com.doros.desktop
+productName: Doros
+directories:
+  output: release
+files:
+  - electron-dist/**
+  - electron/assets/**
+  - package.json
+  # The window loads the live site, so the web app's source, build and npm
+  # dependencies (React, Supabase, …) aren't packaged. Runtime deps the main
+  # process needs are listed back in explicitly.
+  - "!src/**"
+  - "!dist/**"
+  - "!node_modules/**"
+mac:
+  target: dir
+  identity: null
+  category: public.app-category.productivity
