@@ -110,7 +110,7 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
 
 ---
 
-## Phase 1: Electron shell that loads Doros
+## Phase 1: Electron shell that loads Doros ✅ DONE (commit `aa8cdcc`)
 
 **Tasks**
 1. Add dev dependencies: `electron`, `electron-builder`, `@resvg/resvg-js`, `concurrently`, `wait-on`.
@@ -133,6 +133,25 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
 
 **Done when:** `npm run desktop:dev` opens a window running Doros from Vite (you may not be able
 to log in yet), the tray shows a tomato, and `npm run build`, `npm test` and `npx tsc --noEmit` still pass.
+
+**Status / deviations from the plan (Phase 1):**
+- ✅ Verified: dev window loads Vite, packaged `.app` loads https://crush.quest, `window.doros` has
+  all 4 methods, no `require`/`process` in the page, close hides, Dock click re-shows, second
+  launch focuses the first, tomato visible in the menu bar (hidden behind the MacBook notch when
+  that menu bar is crowded).
+- `electron-dist/package.json` (`"type": "commonjs"`) is committed (gitignore exception), because
+  the repo root is `"type": "module"` and the main process compiles to CommonJS.
+- `desktop:dev` runs Electron with `env -u ELECTRON_RUN_AS_NODE` (VS Code sets it) and also waits
+  for `electron-dist/main.js`.
+- `backgroundThrottling: false` so the hidden renderer's timer isn't throttled.
+- Static tray icon is committed PNGs (`electron/assets/trayTomato{,@2x}.png`), generated once from
+  `trayTomato.svg` with resvg.
+- `electron-builder.yml` already exists (`mac.target: dir`, `identity: null`) and **excludes
+  `node_modules/**`** (402 MB → 271 MB). Phase 4 must add `@resvg/resvg-js` +
+  `@resvg/resvg-js-darwin-arm64` back to `files` (and `asarUnpack` the `.node` binary), and move
+  `@resvg/resvg-js` to `dependencies`.
+- Pre-existing on `dev` before this work: 20 failing tests (7 files) and 175 `tsc --noEmit` errors.
+  Each phase is checked for **no new** failures/errors rather than all-green.
 
 ---
 
@@ -159,7 +178,7 @@ Google refuses OAuth inside an embedded Electron window, so desktop login goes t
    The existing `AuthContext` takes it from there.
    (The client uses the default implicit flow. Don't switch the shared client to PKCE, because that
    changes the live web login.)
-4. 🧑 The user adds `doros://auth-callback` to **Supabase → Authentication → URL Configuration → Redirect URLs**.
+4. ✅ DONE by the user. `doros://auth-callback` is already in **Supabase → Authentication → URL Configuration → Redirect URLs**. Don't ask again.
 5. Tests: `Login` renders the desktop branch when `window.doros` is mocked and calls `openExternal`
    with the OAuth URL. The web branch is unchanged. `useDesktopAuthCallback` calls `setSession` with
    the parsed tokens.
