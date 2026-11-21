@@ -75,3 +75,31 @@ describe("buildTrayMenu", () => {
     expect(a.pasteAuthCallback).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("buildTrayMenu: Countdown Inside Tomato", () => {
+  it("is shown only when the tray can switch styles", () => {
+    expect(labels(buildTrayMenu(idle, actions()))).not.toContain("Countdown Inside Tomato");
+  });
+
+  it("is a checkbox reflecting the setting, just above Quit", () => {
+    const a = { ...actions(), setCountdownInTomato: vi.fn() };
+    const on = buildTrayMenu(running, a, { countdownInTomato: true });
+    const item = byLabel(on, "Countdown Inside Tomato");
+    expect(item.type).toBe("checkbox");
+    expect(item.checked).toBe(true);
+    expect(labels(on).slice(-2)).toEqual(["Countdown Inside Tomato", "Quit Doros"]);
+
+    const off = buildTrayMenu(running, a, { countdownInTomato: false });
+    expect(byLabel(off, "Countdown Inside Tomato").checked).toBe(false);
+  });
+
+  it("toggles the setting when clicked", () => {
+    const a = { ...actions(), setCountdownInTomato: vi.fn() };
+    byLabel(buildTrayMenu(idle, a, { countdownInTomato: true }), "Countdown Inside Tomato")
+      .click?.({} as never, undefined, {} as never);
+    byLabel(buildTrayMenu(idle, a, { countdownInTomato: false }), "Countdown Inside Tomato")
+      .click?.({} as never, undefined, {} as never);
+    expect(a.setCountdownInTomato).toHaveBeenNthCalledWith(1, false);
+    expect(a.setCountdownInTomato).toHaveBeenNthCalledWith(2, true);
+  });
+});

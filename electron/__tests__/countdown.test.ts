@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { formatMMSS, isRunning, parseTimerState, remainingMs } from "../countdown";
+import { formatMMSS, isRunning, parseTimerState, remainingMs, trayLabel } from "../countdown";
 import type { DesktopTimerState } from "../ipc";
 
 const NOW = 1_800_000_000_000;
@@ -108,5 +108,32 @@ describe("parseTimerState (untrusted IPC payload)", () => {
   it("caps very long task names", () => {
     const parsed = parseTimerState({ phase: "focus", isPaused: false, task: "x".repeat(500), endTime: NOW });
     expect(parsed?.task.length).toBe(200);
+  });
+});
+
+describe("trayLabel (the number inside the tomato)", () => {
+  it("shows whole minutes left, rounded up, while a minute or more is left", () => {
+    expect(trayLabel(25 * MIN)).toBe("25");
+    expect(trayLabel(24 * MIN + 13_000)).toBe("25");
+    expect(trayLabel(24 * MIN)).toBe("24");
+    expect(trayLabel(MIN + 1_000)).toBe("2");
+    expect(trayLabel(MIN)).toBe("1");
+  });
+
+  it("shows seconds in the last minute, matching the window's floored MM:SS", () => {
+    expect(trayLabel(MIN - 1)).toBe("59");
+    expect(trayLabel(45_500)).toBe("45");
+    expect(trayLabel(999)).toBe("0");
+    expect(trayLabel(0)).toBe("0");
+  });
+
+  it("agrees with formatMMSS at the minute boundary (01:00 → 1, 00:59 → 59)", () => {
+    expect(formatMMSS(MIN + 999)).toBe("01:00");
+    expect(trayLabel(MIN + 999)).toBe("1");
+  });
+
+  it("handles long sessions and negative input", () => {
+    expect(trayLabel(100 * MIN)).toBe("100");
+    expect(trayLabel(-5_000)).toBe("0");
   });
 });

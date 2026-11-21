@@ -13,6 +13,12 @@ export interface TrayMenuActions {
    * copied doros://auth-callback URL from the clipboard instead.
    */
   pasteAuthCallback?: () => void;
+  /** Switches between the countdown inside the tomato and the small tomato + text fallback. */
+  setCountdownInTomato?: (on: boolean) => void;
+}
+
+export interface TrayMenuOptions {
+  countdownInTomato: boolean;
 }
 
 const MAX_TASK_LABEL = 40;
@@ -24,7 +30,20 @@ function truncate(text: string, max: number): string {
 export function buildTrayMenu(
   state: DesktopTimerState,
   actions: TrayMenuActions,
+  options: TrayMenuOptions = { countdownInTomato: true },
 ): MenuItemConstructorOptions[] {
+  const { setCountdownInTomato } = actions;
+  const settingsItems: MenuItemConstructorOptions[] = setCountdownInTomato
+    ? [
+        {
+          label: "Countdown Inside Tomato",
+          type: "checkbox",
+          checked: options.countdownInTomato,
+          click: () => setCountdownInTomato(!options.countdownInTomato),
+        },
+      ]
+    : [];
+
   const active = state.phase !== "idle";
   const task = truncate(state.task.trim() || "Doro", MAX_TASK_LABEL);
 
@@ -46,6 +65,7 @@ export function buildTrayMenu(
       ? [{ label: "Paste Auth Callback URL (dev)", click: actions.pasteAuthCallback }]
       : []),
     { type: "separator" },
+    ...settingsItems,
     { label: "Quit Doros", click: () => actions.quit() },
   ];
 }

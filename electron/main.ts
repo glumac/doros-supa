@@ -1,8 +1,10 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, clipboard, ipcMain, powerMonitor, shell, type IpcMainEvent } from "electron";
 import { IDLE_STATE, parseTimerState } from "./countdown";
 import { AuthCallbackRelay, DEEP_LINK_SCHEME, isAuthCallbackUrl } from "./deepLink";
 import { IPC, type TrayCommand } from "./ipc";
+import { DEFAULT_SETTINGS, parseSettings, type DesktopSettings } from "./settings";
 import { createTray, type DorosTray } from "./tray";
 
 const DOROS_URL = process.env.DOROS_URL ?? "https://crush.quest";
@@ -142,6 +144,24 @@ function handleDeepLink(url: string): void {
   if (app.isReady()) showWindow();
 }
 
+const settingsPath = () => path.join(app.getPath("userData"), "doros-settings.json");
+
+function loadSettings(): DesktopSettings {
+  try {
+    return parseSettings(JSON.parse(fs.readFileSync(settingsPath(), "utf8")));
+  } catch {
+    return DEFAULT_SETTINGS; // first run, or an unreadable file
+  }
+}
+
+function saveSettings(settings: DesktopSettings): void {
+  try {
+    fs.writeFileSync(settingsPath(), `${JSON.stringify(settings, null, 2)}\n`);
+  } catch (err) {
+    console.error("[doros] couldn't save settings:", err);
+  }
+}
+
 /** Dev fallback: read a copied doros://auth-callback URL from the clipboard. */
 async function pasteAuthCallbackFromClipboard(): Promise<void> {
   const url = (await clipboard.readText()).trim();
@@ -176,12 +196,16 @@ if (!app.requestSingleInstanceLock()) {
     if (app.isPackaged) app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
     registerIpc();
     mainWindow = createWindow();
-    tray = createTray({
-      command: sendTrayCommand,
-      showWindow,
-      quit: () => app.quit(),
-      ...(app.isPackaged ? {} : { pasteAuthCallback: () => void pasteAuthCallbackFromClipboard() }),
-    });
+    tray = createTray(
+      {
+        command: sendTrayCommand,
+        showWindow,
+        quit: () => app.quit(),
+        ...(app.isPackaged ? {} : { pasteAuthCallback: () => void pasteAuthCallbackFromClipboard() }),
+      },
+      loadSettings(),
+      saveSettings,
+    );
     // The countdown is computed from endTime, so after sleep one redraw is enough.
     powerMonitor.on("resume", () => tray?.render());
   });

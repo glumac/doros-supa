@@ -17,7 +17,7 @@ permission dialog, or the Supabase dashboard.
 | 1. Electron shell | ✅ done (`aa8cdcc`) |
 | 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
-| 4. Tomato with the countdown inside it | ⏳ next |
+| 4. Tomato with the countdown inside it | ✅ done; 🧑 light/dark menu bar check pending |
 | 5. Tray menu | 🟡 partly done in Phase 3 (see the item list there) |
 | 6. Website blocking | ⏳ |
 | 7. Notifications and packaging | ⏳ (an unsigned `.app` already builds; see Phase 1 notes) |
@@ -34,7 +34,7 @@ permission dialog, or the Supabase dashboard.
 | Timer source of truth | **Stays in the React app** (the existing `CreateDoro` timer). The renderer pushes `{ endTime, pausedTimeLeft, isPaused, task }` to the main process over IPC. The main process draws the tray from that. | Logging a doro (task, image upload, Supabase insert) already works there. The tray is a view of that timer plus remote controls for it. |
 | Bridge | A `preload` script exposes a small typed `window.doros` API (`contextIsolation: true`, `nodeIntegration: false`). The web app checks `if (window.doros)`. In a normal browser it's `undefined` and nothing changes. | One build serves the web and the desktop app. |
 | Login | Google OAuth opens in the **system browser**, then comes back to the app through the deep link `doros://auth-callback`. The renderer calls `supabase.auth.setSession(...)`. | Google blocks OAuth sign-in inside embedded Electron windows. |
-| Tomato and countdown | Render an SVG (tomato plus `MM:SS`) to PNG with `@resvg/resvg-js`, then `tray.setImage()` | macOS template images are monochrome, and the tomato must be red. |
+| Tomato and countdown | Render an SVG (round tomato plus minutes left, seconds in the last minute; changed in Phase 4 at the user's request, was `MM:SS` in a wide tomato) to PNG with `@resvg/resvg-js`, then `tray.setImage()` | macOS template images are monochrome, and the tomato must be red. |
 | Website blocking | Edit `/etc/hosts` through a root-owned helper script allowed by a `sudoers.d` rule | Works in every browser and needs no extension. Blocking by IP with `pf` fails because these sites sit behind CDNs. |
 | When to block | Only while a **focus** timer is running, plus a manual "Block sites now" toggle in the tray | Default Pomodoro behavior. |
 | Closing the window | **Hides** it, so the timer keeps running in the hidden renderer. Quit is in the tray menu. | The tray needs the renderer to stay alive. |
@@ -75,9 +75,10 @@ doros-supa/
     preload.ts                  # contextBridge.exposeInMainWorld("doros", …)
     ipc.ts                      # channel names + payload types (shared with src/types/desktop.d.ts)
     tray.ts                     # tray image + menu, rebuilt on every state change
-    trayMenu.ts                 # pure: buildTrayMenu(state, actions) → menu template
+    trayMenu.ts                 # pure: buildTrayMenu(state, actions, settings) → menu template
+    settings.ts                 # pure: parseSettings() for userData/doros-settings.json (Phase 4)
     deepLink.ts                 # pure: isAuthCallbackUrl(), AuthCallbackRelay (buffers until renderer listens)
-    tomatoIcon.ts               # pure: buildSvg(text, variant) → string; render() → nativeImage
+    tomatoIcon.ts               # pure: buildSvg(text, variant) → string; renderPng() → PNG (tray.ts → nativeImage)
     countdown.ts                # pure: remainingMs(timerState, now), formatMMSS(ms)
     hostsFile.ts                # pure: addBlock(text, domains) / removeBlock(text)
     blocker.ts                  # sudo -n /usr/local/bin/doros-block on|off|status
@@ -174,7 +175,7 @@ to log in yet), the tray shows a tomato, and `npm run build`, `npm test` and `np
 - `electron-builder.yml` already exists (`mac.target: dir`, `identity: null`) and **excludes
   `node_modules/**`** (402 MB → 271 MB). Phase 4 must add `@resvg/resvg-js` +
   `@resvg/resvg-js-darwin-arm64` back to `files` (and `asarUnpack` the `.node` binary), and move
-  `@resvg/resvg-js` to `dependencies`.
+  `@resvg/resvg-js` to `dependencies`. (✅ Done in Phase 4.)
 - Pre-existing on `dev` before this work: 20 failing tests (7 files) and 175 `tsc --noEmit` errors.
   Each phase is checked for **no new** failures/errors rather than all-green.
 
@@ -303,7 +304,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ---
 
-## Phase 4: Tomato with the countdown inside it
+## Phase 4: Tomato with the countdown inside it ✅ DONE (🧑 light/dark check pending)
 
 **Tasks**
 1. Write `tomatoIcon.ts → buildSvg(text, variant)`. Draw a wide red tomato (`#E53935` body,
@@ -317,6 +318,49 @@ from the tray change the timer in the window. The browser web app behaves exactl
 4. Tests: the SVG contains the text and the correct fills for each variant. Add snapshot tests.
 
 **Done when:** 🧑 the user confirms the tomato countdown looks crisp in light and dark menu bars.
+
+**Status / deviations from the plan (Phase 4):**
+- **resvg loads only Helvetica Neue, not every system font.** `loadSystemFonts: true` took ~1.8 s
+  per render (it scans every font on the Mac), far too slow for a 1 s tick on the main thread.
+  `fontFiles: ["/System/Library/Fonts/HelveticaNeue.ttc"]` renders in ~3 ms. Helvetica Neue Bold
+  ships with macOS and has tabular digits, so the text doesn't jiggle. (The SF system font didn't
+  match by family name, and SF Rounded is a variable font that resvg draws only at regular weight.)
+- **Round tomato with minutes, not a wide one with `MM:SS` (user's call after seeing it).** The
+  44×22 pt tomato read as an oval in the menu bar. It's now a round **22×22 pt** tomato showing
+  `trayLabel(ms)` (pure, in `countdown.ts`): whole minutes left rounded up (`25` at the start, `1`
+  at 01:00), then seconds in the last minute (`59` … `0`), from the same floored seconds as
+  `formatMMSS` so it never disagrees with the window. No colon and no pause bars: paused is the
+  same tomato at 55% opacity (number stays opaque). The tooltip shows the exact time
+  (`Doros: 24:13 left`, `… (paused)`). Three digits (100+ min) shrink to fit.
+- `tomatoIcon.ts` stays pure Node (no `electron` import, so it's tested under Vitest):
+  `buildSvg(text, variant)`, `renderPng(text, variant, scale)` and a small LRU `createImageCache`.
+  `tray.ts` turns the PNGs into a `nativeImage` with **both 2× (44×44 px) and 1× (22×22 px)
+  representations**, so non-Retina screens get a real 1× render instead of a downscale. Images are
+  cached by `variant:text` (200 entries: every label of a doro) and `tray.setImage`/`setTitle` only run when they change.
+- Variants: `focus` red tomato, bold white 12 pt number with a thin `#7A1512` stroke; `paused`
+  dimmed; `idle` the original 18×18 pt tomato (same art as Phase 1), so idle looks as before.
+- **Fallback setting** is a tray checkbox **Countdown Inside Tomato** (on by default, just above
+  Quit). Off: the small tomato plus `tray.setTitle("24:13")` / `⏸ 24:13`, exactly the Phase 3 look.
+  Saved to `userData/doros-settings.json` (pure `electron/settings.ts` validates it). If resvg
+  ever fails to load, the tray logs once and uses that fallback with the static PNG.
+- Packaging: `@resvg/resvg-js` moved to `dependencies`; `electron-builder.yml` lists
+  `node_modules/@resvg/resvg-js/**` and `…-darwin-arm64/**` in `files` and
+  `asarUnpack: "**/*.node"`. The `.app` contains only those two packages from `node_modules`
+  (267 MB), with the `.node` file in `app.asar.unpacked`.
+- ✅ Verified by the agent, first (wide `MM:SS`) version (packaged app → local Vite, with a separate
+  `--user-data-dir` profile and states sent through `window.doros.updateTimer` over CDP): main
+  loaded resvg from the packaged app, the tray image had scale factors 2 and 1; menu bar
+  screenshots showed the countdown ticking inside the tomato, the paused and idle tomatoes, and the
+  fallback text. The round version was checked in rendered light/dark previews and its packaged
+  `tomatoIcon.js` confirmed; the real menu bar check is the 🧑 step.
+- **MacBook notch:** new menu bar items go leftmost, next to the notch, and macOS hides whatever
+  doesn't fit. The user's crowded bar hid the tomato (the window list showed the Doros status item
+  off-screen at x 966). Fix: make room once, then ⌘-drag the tomato to the right; macOS saves the
+  spot (`NSStatusItem Preferred Position Item-0` in `com.doros.desktop` defaults).
+- Tests: `tomatoIcon` (SVG text and fills per variant, 3 snapshots, PNG sizes at 1×/2×, digits
+  really drawn, < 50 ms per render, LRU cache), `trayLabel`, `settings`, and the menu checkbox.
+- Checks: 20 failing tests / 175 `tsc` errors, the same as the baseline (+25 new passing tests);
+  `tsc -p electron` clean; `npm run build` OK.
 
 ---
 
@@ -337,6 +381,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 ⏳ Set up site blocking…         (only shown if the helper is missing) ← Phase 6
 ───────────────
 ⏳ Launch at login        ☐      (app.setLoginItemSettings)
+✅ Countdown Inside Tomato ☑    (Phase 4 fallback setting: off = small tomato + text)
 ✅ Quit Doros
 ```
 
@@ -410,8 +455,8 @@ to Supabase, and find it in the feed on the **website** too.
 
 ## Agent checklist per phase
 - [ ] Tests first for pure modules and new hooks (✅ done: `countdown`, `deepLink`, `trayMenu`,
-      `useDesktopTimerSync`, `useTimerControls`, `useDesktopAuthCallback`, the `Login` desktop branch;
-      ⏳ still to do: `tomatoIcon`, `hostsFile`)
+      `useDesktopTimerSync`, `useTimerControls`, `useDesktopAuthCallback`, the `Login` desktop branch,
+      `tomatoIcon`, `settings`; ⏳ still to do: `hostsFile`)
 - [ ] `npm test`, `npx tsc --noEmit`, `npx tsc -p electron --noEmit`, and `npm run build` (web) all pass
       (no **new** failures: the baseline from `dev` is 20 failing tests in 7 files and 175 `tsc` errors)
 - [ ] Web behavior unchanged when `window.doros` is undefined

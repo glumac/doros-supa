@@ -47,3 +47,13 @@ export function parseTimerState(value: unknown): DesktopTimerState | null {
   if (v.pausedTimeLeft !== undefined) state.pausedTimeLeft = v.pausedTimeLeft as number;
   return state;
 }
+
+/**
+ * The number drawn inside the round tray tomato: whole minutes left (rounded up, so a
+ * fresh doro shows 25 and 01:00 shows 1), then seconds during the last minute (59 … 0).
+ * Works from the same floored seconds as formatMMSS, so it never disagrees with the window.
+ */
+export function trayLabel(ms: number): string {
+  const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
+  return String(totalSeconds >= 60 ? Math.ceil(totalSeconds / 60) : totalSeconds);
+}
