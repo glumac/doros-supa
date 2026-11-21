@@ -157,7 +157,7 @@ to log in yet), the tray shows a tomato, and `npm run build`, `npm test` and `np
 
 ---
 
-## Phase 2: Login inside the desktop app 🧑 CODE DONE, awaiting the user's real sign-in check
+## Phase 2: Login inside the desktop app ✅ DONE (commit `7fbda77`)
 
 Google refuses OAuth inside an embedded Electron window, so desktop login goes through the system browser.
 
@@ -198,7 +198,9 @@ return to the app logged in as the same user as on the web, and the feed and lea
   `setSession`; other `doros://` URLs are ignored; a link that arrives mid-reload is held and
   delivered once the new page subscribes). Packaged app: Info.plist has `CFBundleURLSchemes: doros`,
   `isDefaultProtocolClient("doros")` is true, and a real `open "doros://auth-callback#…"` reaches
-  the hidden window, shows it, and runs `setSession`. A real Google login is the user's check.
+  the hidden window, shows it, and runs `setSession`.
+- ✅ Verified by the user (2026-11-21): real Google sign-in in the packaged app (pointed at local
+  Vite) opened the system browser and came back logged in.
 - **The packaged app loads https://crush.quest, which won't have the desktop `Login` branch until
   this is merged and deployed.** Until then, test the packaged app against local Vite:
   `DOROS_URL=http://localhost:5173 release/mac-arm64/Doros.app/Contents/MacOS/Doros`.
