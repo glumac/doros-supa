@@ -113,6 +113,15 @@ Tray menu click ──onTrayCommand()──▶ React (pause/resume/stop via exis
 Logging the doro: unchanged. The existing React + React Query mutation inserts into Supabase.
 ```
 
+### Testing notes
+- **Doros last 5 seconds against local Vite.** `.env` has `VITE_DEV_SHORT_TIMER=true`, and
+  `CreateDoro` honours it only when `import.meta.env.DEV`, so `vite build` and crush.quest stay
+  at 25 minutes. Handy for a full run (tray countdown, blocking in Phase 6, the "done"
+  notification in Phase 7). Seed `localStorage["timerState"]` with a later `endTime` when a
+  longer session is needed.
+- The packaged app can be pointed at local Vite until desktop changes are deployed:
+  `DOROS_URL=http://localhost:5173 env -u ELECTRON_RUN_AS_NODE release/mac-arm64/Doros.app/Contents/MacOS/Doros`.
+
 ---
 
 ## Phase 1: Electron shell that loads Doros ✅ DONE (commit `aa8cdcc`)
@@ -276,6 +285,8 @@ from the tray change the timer in the window. The browser web app behaves exactl
   saved `pausedTimeLeft`; `resume` → new `endTime`; `cancel` → timer cleared, tray idle, window
   stays hidden; `start` → `/create-doro`. Commands were sent over the same IPC channel the menu
   uses; the native menu clicks themselves were left for the user (menu template is unit-tested).
+- ✅ Verified by the user (2026-11-21): Start a Doro…, Pause/Resume and Cancel from the real tray
+  menu work (with the 5 s dev timer, see Testing notes).
 - Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +40 new passing
   tests; `tsc -p electron` clean; `npm run build` OK.
 
