@@ -19,7 +19,7 @@ permission dialog, or the Supabase dashboard.
 |---|---|---|
 | Repo | **Inside `doros-supa`**, in a new top-level `electron/` folder. No workspaces and no monorepo. | The desktop window *is* the web app. Keeping both in one repo means one codebase, one feature set, and one set of types and queries. |
 | Electron's role | A thin shell. The main process owns the **tray, the site blocker, OAuth deep links, and window lifecycle**. All Doros features stay in the React app. | Nothing gets duplicated, and new web features show up in the desktop app automatically. |
-| What the window loads | Dev: `http://localhost:5173` (Vite). Packaged: the **deployed Netlify URL**. Both are set by `DOROS_URL`. | Avoids `file://` and `BrowserRouter` routing problems. The desktop app stays in sync with web deploys. Doros needs Supabase anyway, so there's no offline case to support. |
+| What the window loads | Dev: `http://localhost:5173` (Vite). Packaged: the **live site `https://crush.quest`**. Both are set by `DOROS_URL`. | Avoids `file://` and `BrowserRouter` routing problems. The desktop app stays in sync with web deploys. Doros needs Supabase anyway, so there's no offline case to support. |
 | Timer source of truth | **Stays in the React app** (the existing `CreateDoro` timer). The renderer pushes `{ endTime, pausedTimeLeft, isPaused, task }` to the main process over IPC. The main process draws the tray from that. | Logging a doro (task, image upload, Supabase insert) already works there. The tray is a view of that timer plus remote controls for it. |
 | Bridge | A `preload` script exposes a small typed `window.doros` API (`contextIsolation: true`, `nodeIntegration: false`). The web app checks `if (window.doros)`. In a normal browser it's `undefined` and nothing changes. | One build serves the web and the desktop app. |
 | Login | Google OAuth opens in the **system browser**, then comes back to the app through the deep link `doros://auth-callback`. The renderer calls `supabase.auth.setSession(...)`. | Google blocks OAuth sign-in inside embedded Electron windows. |
@@ -71,7 +71,7 @@ doros-supa/
     doros-block.sh              # generated from blocklist.ts at build time
     install-helper.sh           # 🧑 one-time sudo install
     uninstall-helper.sh
-  electron-builder.yml          # mac target, LSUIElement, appId com.doros.desktop, protocol "doros"
+  electron-builder.yml          # mac target, appId com.doros.desktop, protocol "doros"
 ```
 
 ### Bridge API (the contract between the two halves)
@@ -116,10 +116,10 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
 1. Add dev dependencies: `electron`, `electron-builder`, `@resvg/resvg-js`, `concurrently`, `wait-on`.
 2. Create `electron/main.ts`, `electron/preload.ts`, and `electron/tsconfig.json`, compiling to `electron-dist/`.
    Set `"main": "electron-dist/main.js"` in `package.json`.
-3. `BrowserWindow` loads `process.env.DOROS_URL ?? "<netlify prod URL>"` with the preload script,
+3. `BrowserWindow` loads `process.env.DOROS_URL ?? "https://crush.quest"` with the preload script,
    `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
    Open any non-Doros link in the system browser (`setWindowOpenHandler` → `shell.openExternal`).
-4. Hide the window on close instead of quitting. `app.dock.hide()` is optional; decide with 🧑 the user.
+4. Hide the window on close instead of quitting. Keep **both** a Dock icon and the menu bar tray (decided). Do not call `app.dock.hide()` or set `LSUIElement`. Clicking the Dock icon (`app.on("activate")`) shows the window.
    Use `app.requestSingleInstanceLock()`.
 5. Add a static tomato tray icon with a menu: **Show Doros**, **Quit**.
 6. Add scripts:
@@ -277,8 +277,8 @@ Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section o
 1. When the countdown hits 0 and the window is hidden, show a `Notification` ("Doro done 🍅,
    log it?"). Clicking it shows the window, where the existing completion flow (log, upload image) runs.
    🧑 The user allows notifications.
-2. `electron-builder.yml`: `mac.identity: null` (unsigned), `LSUIElement` (if the Dock icon is
-   hidden), tomato `.icns`, the `doros` protocol.
+2. `electron-builder.yml`: `mac.identity: null` (unsigned), Dock icon stays visible (no `LSUIElement`),
+   tomato `.icns`, the `doros` protocol.
 3. `npm run desktop:build` produces `release/mac-arm64/Doros.app`. 🧑 The user drags it to
    `/Applications` and right-clicks → Open the first time.
 
