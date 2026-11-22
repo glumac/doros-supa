@@ -19,7 +19,7 @@ permission dialog, or the Supabase dashboard.
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
 | 5. Tray menu | ✅ done (`8d6c50e`), user-verified (blocking items belong to Phase 6) |
-| 6. Website blocking | 🟡 built (6a+6b `63a0a3a`, 6c+6d next commit), agent-verified end to end; 🧑 waiting for the user's reddit check |
+| 6. Website blocking | ✅ done (6a+6b `63a0a3a`, 6c+6d `210041c`), user-verified; follow-up: tabs open before the block keep working (see 6c+6d notes) |
 | 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
 ---
@@ -449,7 +449,7 @@ the only place you create a doro. Optionally add a global shortcut `⌥⌘D` for
 
 ---
 
-## Phase 6: Website blocking
+## Phase 6: Website blocking ✅ DONE (commits `63a0a3a`, `210041c`)
 
 ### 6a. Pure hosts-file transform (TDD)
 `electron/hostsFile.ts`:
@@ -477,7 +477,8 @@ copies the helper, sets ownership and permissions, writes
   On `before-quit`, call `off`.
 
 ### 6d. Known limitations (put these in the README → `electron/README.md`, the repo has no README)
-- Tabs already open on a blocked site may keep working until reload. Chrome caches DNS for about a minute.
+- Tabs already open on a blocked site keep working, **even after a reload** (see the 6c+6d notes).
+  Chrome reuses its open connections and caches DNS for about a minute.
 - A VPN or custom DNS-over-HTTPS profile can bypass `/etc/hosts`.
 - Blocking only happens while the desktop app is running. The web app alone can't block sites.
 
@@ -525,6 +526,21 @@ Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section o
   byte-identical to before.
 - Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +25 new passing
   tests; `tsc -p electron` clean; `npm run build` OK.
+- **Already-open tabs aren't blocked (found in the user's first check).** With the section in
+  `/etc/hosts` and the system resolver returning `::`, refreshing an open reddit tab in the user's
+  Chrome still worked. A fresh headless Chrome (own profile) got `ERR_CONNECTION_REFUSED`, and
+  `lsof` showed the user's Chrome holding a TCP connection to `151.101.45.140:443` and a QUIC one to
+  `[2a04:4e42:b::396]:443` (reddit's Fastly addresses). Chrome reuses an open HTTP/2 or QUIC
+  connection without a new DNS lookup, so neither a reload nor a new tab hits `/etc/hosts`
+  while that connection is alive, and an open reddit tab keeps it alive. Nothing outside Chrome can
+  drop one site's connections (no `tcpdrop` on macOS, and `pf` by IP would hit everything else on
+  Fastly). Workaround: `chrome://net-internals/#sockets` → Flush socket pools, or quit Chrome.
+  Possible fix (not built): close the Chrome and Safari tabs on blocked sites when blocking starts
+  (AppleScript; 🧑 Automation permission), after measuring how long Chrome keeps an idle
+  connection once its tab is closed.
+- ✅ Verified by the user (2026-11-22): with no reddit connection left over (sockets flushed),
+  reddit is blocked while a doro runs and loads again after it ends.
+- The dev short timer is now 30 s (`fd3a079`), long enough to try a blocked site during a doro.
 
 **Status / deviations from the plan (6a + 6b):**
 - **Installed to `/Library/PrivilegedHelperTools/doros-block`, not `/usr/local/bin`.** On this Mac

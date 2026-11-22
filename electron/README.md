@@ -44,8 +44,10 @@ helper and the sudoers rule).
 
 ### Known limitations
 
-- Tabs already open on a blocked site may keep working until you reload them. Chrome also caches
-  DNS for about a minute.
+- **Sites you already have open keep working, even after a reload.** Chrome reuses its open
+  connection to the site without looking up the name again, and an open tab keeps that connection
+  alive. Close those tabs and, in Chrome, go to `chrome://net-internals/#sockets` → **Flush socket
+  pools** (or quit and reopen Chrome). Chrome also caches DNS for about a minute.
 - A VPN, or a custom DNS-over-HTTPS profile or browser setting, can bypass `/etc/hosts`.
 - Blocking only happens while the desktop app is running. The web app alone can't block sites.
 - It's a speed bump, not a lock: you can untick Block Sites Now, cancel the doro, or edit
