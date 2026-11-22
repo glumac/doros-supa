@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "desktop:dev": "concurrently -k -n vite,tsc,electron \"vite\" \"tsc -p electron -w --preserveWatchOutput\" \"wait-on http://localhost:5173 electron-dist/main.js && DOROS_URL=http://localhost:5173 env -u ELECTRON_RUN_AS_NODE electron .\"",
-    "desktop:build": "tsc -p electron && electron-builder --mac"
+    "desktop:build": "tsc -p electron && electron-builder --mac",
+    "helper:generate": "tsx electron/helper/generate.ts"
   },
   "dependencies": {
     "@react-oauth/google": "^0.5.1",

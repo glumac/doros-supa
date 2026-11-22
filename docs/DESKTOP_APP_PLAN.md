@@ -19,7 +19,7 @@ permission dialog, or the Supabase dashboard.
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
 | 5. Tray menu | 🟡 next: only **Launch at login** (+ optional ⌥⌘D) left; the rest was built in Phases 3–4, blocking items belong to Phase 6 |
-| 6. Website blocking | ⏳ |
+| 6. Website blocking | 🟡 6a+6b done (hostsFile, blocklist, helper scripts); 🧑 user installs the helper; 6c/6d next |
 | 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
 ---
@@ -81,11 +81,13 @@ doros-supa/
     tomatoIcon.ts               # pure: buildSvg(text, variant) → string; renderPng() → PNG (tray.ts → nativeImage)
     countdown.ts                # pure: remainingMs(timerState, now), formatMMSS(ms)
     hostsFile.ts                # pure: addBlock(text, domains) / removeBlock(text)
-    blocker.ts                  # sudo -n /usr/local/bin/doros-block on|off|status
+    blocker.ts                  # sudo -n /Library/PrivilegedHelperTools/doros-block on|off|status
     blocklist.ts
+    helperScript.ts             # pure: buildHelperScript(domains) → doros-block.sh (Phase 6)
     __tests__/                  # vitest: countdown, hostsFile, tomatoIcon
   electron/helper/
-    doros-block.sh              # generated from blocklist.ts at build time
+    doros-block.sh              # generated from blocklist.ts (`npm run helper:generate`), committed
+    generate.ts                 # the generator (run with tsx)
     install-helper.sh           # 🧑 one-time sudo install
     uninstall-helper.sh
   electron-builder.yml          # mac target, appId com.doros.desktop, protocol "doros"
@@ -422,16 +424,17 @@ the only place you create a doro. Optionally add a global shortcut `⌥⌘D` for
 
 ### 6b. Privileged helper
 `electron/helper/doros-block.sh` is generated from `blocklist.ts`. It's installed to
-`/usr/local/bin/doros-block`, owned by `root:wheel`, mode `755`.
+`/Library/PrivilegedHelperTools/doros-block` (the plan said `/usr/local/bin`, see the 6a+6b status
+note), owned by `root:wheel`, mode `755`.
 - `on` / `off` / `status`. The domains are **hard-coded in the script**, so the app can't pass arbitrary hosts to root.
 - Writes atomically (temp file, then `mv`), then runs `dscacheutil -flushcache; killall -HUP mDNSResponder`.
 
 `install-helper.sh` 🧑 (the **user** runs it once with `sudo`; the agent never does):
 copies the helper, sets ownership and permissions, writes
-`/etc/sudoers.d/doros` → `<username> ALL=(root) NOPASSWD: /usr/local/bin/doros-block`, and checks it with `visudo -cf` first.
+`/etc/sudoers.d/doros` → `<username> ALL=(root) NOPASSWD: <helper> on, <helper> off, <helper> status`, and checks it with `visudo -cf` first.
 
 ### 6c. Blocker in the main process
-- `execFile("sudo", ["-n", "/usr/local/bin/doros-block", "on"])`. Never prompt for or store a password.
+- `execFile("sudo", ["-n", HELPER_INSTALL_PATH, "on"])`. Never prompt for or store a password.
 - Block while `phase === "focus" && !isPaused`, or while the manual toggle is on. Otherwise unblock.
   Only call the helper when the desired state actually changes.
 - On launch, call `off` unless a focus session is running (this cleans up after a crash).
@@ -444,6 +447,43 @@ copies the helper, sets ownership and permissions, writes
 
 **Done when:** you start a doro, and `https://www.reddit.com` in a fresh tab fails to load.
 Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section only during focus.
+
+**Status / deviations from the plan (6a + 6b):**
+- **Installed to `/Library/PrivilegedHelperTools/doros-block`, not `/usr/local/bin`.** On this Mac
+  `/usr/local/bin` is owned by the user (Homebrew). Any process running as the user could rename
+  or replace a root-owned file in that folder, then run it with root and no password. That is a
+  local privilege escalation. `/Library/PrivilegedHelperTools` is root:wheel (sticky) and is where
+  macOS keeps root helpers. `install-helper.sh` refuses to install unless `/`, `/Library` and that
+  folder are root-owned and not writable by group or others. The path is `HELPER_INSTALL_PATH` in
+  `electron/helperScript.ts`.
+- **The sudoers rule names the three exact commands:** `<user> ALL=(root) NOPASSWD: <helper> on,
+  <helper> off, <helper> status`, instead of the helper with any arguments. The helper also rejects
+  anything but one of those words (exit 2).
+- **Generated, then committed instead of generated at build time.** `buildHelperScript()` (pure,
+  `electron/helperScript.ts`) puts `blockSection(BLOCKED_DOMAINS)` in a quoted heredoc.
+  `npm run helper:generate` (tsx, `electron/helper/generate.ts`) writes `electron/helper/doros-block.sh`.
+  A test fails if the committed script differs from the generator output, so it can't drift from
+  `blocklist.ts`, and you can read exactly what root will run. Building the `.app` doesn't change the
+  installed copy anyway; after editing the block list, regenerate and re-run the installer.
+- **The awk in the helper is tested against `hostsFile.ts`.** The tests generate an unprivileged
+  variant (`privileged: false`: no root check, `chown` or DNS flush) aimed at a temp file and
+  run it with `/bin/sh` on fixtures (CRLF, a missing final newline, empty files, an old block
+  list, two sections). `on`/`off` must produce exactly `addBlock`/`removeBlock`. It also checks the
+  atomic swap (new inode, mode 644, no temp files left), no rewrite or DNS flush when the file is
+  already in that state, and bad arguments. A real `sh electron/helper/doros-block.sh on` without
+  root stops at the root check. Also checked by hand on a copy of the real `/etc/hosts`: `on`
+  then `off` restored it byte for byte.
+- **A hand-broken section** (`# BEGIN DOROS BLOCK` with no END) makes `removeBlock` throw
+  `MalformedHostsError`. The helper exits 1 ("fix it by hand") and leaves the file as it was,
+  instead of guessing what to delete. Domains must be plain lowercase hostnames (`isValidDomain`),
+  so nothing odd can be written into a root-owned file.
+- `install-helper.sh` also checks that `SUDO_USER` is a real non-root user, that `/etc/sudoers`
+  includes `sudoers.d`, `visudo -cf` on the new rule, then `visudo -c` on the whole config (if that
+  fails it removes the file again). `uninstall-helper.sh` runs `off`, then removes both files.
+- Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +38 new passing
+  tests; `tsc -p electron` clean; `npm run build` OK.
+- 🧑 **User step:** `sudo sh electron/helper/install-helper.sh`, then
+  `sudo -n /Library/PrivilegedHelperTools/doros-block status` should print `off` with no password prompt.
 
 ---
 
@@ -474,7 +514,7 @@ to Supabase, and find it in the feed on the **website** too.
 ## Agent checklist per phase
 - [ ] Tests first for pure modules and new hooks (✅ done: `countdown`, `deepLink`, `trayMenu`,
       `useDesktopTimerSync`, `useTimerControls`, `useDesktopAuthCallback`, the `Login` desktop branch,
-      `tomatoIcon`, `settings`; ⏳ still to do: `hostsFile`)
+      `tomatoIcon`, `settings`, `hostsFile`, `helperScript`)
 - [ ] `npm test`, `npx tsc --noEmit`, `npx tsc -p electron --noEmit`, and `npm run build` (web) all pass
       (no **new** failures: the baseline from `dev` is 20 failing tests in 7 files and 175 `tsc` errors)
 - [ ] Web behavior unchanged when `window.doros` is undefined
