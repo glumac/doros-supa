@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import { Menu, Tray, nativeImage, type NativeImage } from "electron";
+import type { BlockerStatus } from "./blocker";
 import { IDLE_STATE, formatMMSS, isRunning, remainingMs, trayLabel } from "./countdown";
 import type { DesktopTimerState } from "./ipc";
 import type { DesktopSettings } from "./settings";
@@ -13,6 +14,8 @@ export interface DorosTray {
   render(): void;
   /** Show this global shortcut next to Show Doros (after main registered it). */
   setShowShortcut(accelerator: string | undefined): void;
+  /** Website blocking state for the menu (left out until set). */
+  setBlocking(status: BlockerStatus): void;
 }
 
 /** macOS login item (packaged app only). The OS keeps the setting, so it's read back each time. */
@@ -63,6 +66,7 @@ export function createTray(
   let shownToolTip = "";
   let ticker: NodeJS.Timeout | null = null;
   let showShortcut: string | undefined;
+  let blocking: BlockerStatus | undefined;
 
   const setImage = (variant: TomatoVariant, text: string) => {
     const key = drawFailed ? "static" : `${variant}:${text}`;
@@ -106,7 +110,7 @@ export function createTray(
 
   const rebuildMenu = () => {
     const launchAtLogin = loginItem?.get() ?? false;
-    const key = menuKey(state, settings, [launchAtLogin, showShortcut]);
+    const key = menuKey(state, settings, [launchAtLogin, showShortcut, blocking]);
     if (key === shownMenuKey) return;
     shownMenuKey = key;
     const menuActions: TrayMenuActions = {
@@ -120,6 +124,7 @@ export function createTray(
           countdownInTomato: settings.countdownInTomato,
           launchAtLogin,
           ...(showShortcut ? { showShortcut } : {}),
+          ...(blocking ? { blocking } : {}),
         }),
       ),
     );
@@ -154,6 +159,11 @@ export function createTray(
     rebuildMenu();
   };
 
+  const setBlocking = (status: BlockerStatus) => {
+    blocking = status;
+    rebuildMenu();
+  };
+
   update(IDLE_STATE);
-  return { update, render, setShowShortcut };
+  return { update, render, setShowShortcut, setBlocking };
 }

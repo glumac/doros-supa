@@ -19,7 +19,7 @@ permission dialog, or the Supabase dashboard.
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
 | 5. Tray menu | ✅ done (`8d6c50e`), user-verified (blocking items belong to Phase 6) |
-| 6. Website blocking | 🟡 6a+6b done (`63a0a3a`), helper installed by the user and checked; 6c/6d next |
+| 6. Website blocking | 🟡 built (6a+6b `63a0a3a`, 6c+6d next commit), agent-verified end to end; 🧑 waiting for the user's reddit check |
 | 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
 ---
@@ -81,7 +81,8 @@ doros-supa/
     tomatoIcon.ts               # pure: buildSvg(text, variant) → string; renderPng() → PNG (tray.ts → nativeImage)
     countdown.ts                # pure: remainingMs(timerState, now), formatMMSS(ms)
     hostsFile.ts                # pure: addBlock(text, domains) / removeBlock(text)
-    blocker.ts                  # sudo -n /Library/PrivilegedHelperTools/doros-block on|off|status
+    blocker.ts                  # shouldBlock() + createBlocker(): sudo -n /Library/PrivilegedHelperTools/doros-block on|off|status
+    README.md                   # desktop setup, site blocking, known limitations (Phase 6d)
     blocklist.ts
     helperScript.ts             # pure: buildHelperScript(domains) → doros-block.sh (Phase 6)
     __tests__/                  # vitest: countdown, hostsFile, tomatoIcon
@@ -144,6 +145,13 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
   can be driven over CDP. In main, load modules by absolute path
   (`process.mainModule.require(process.resourcesPath + "/app.asar/electron-dist/x.js")`). Quit it
   with `app.quit()` over the inspector.
+- **Blocking probes (no root needed except `sudo -n` on the helper):**
+  `sudo -n /Library/PrivilegedHelperTools/doros-block status`, `grep -c DOROS /etc/hosts`,
+  `dscacheutil -q host -a name www.reddit.com`, `curl -s -o /dev/null -w '%{http_code}' https://www.reddit.com/`.
+  Back up `/etc/hosts` to the scratchpad first and `cmp` at the end; quitting the test copy unblocks.
+- **Reading the real tray menu:** over the main inspector, wrap `Menu.buildFromTemplate` to keep the
+  templates, then make the menu rebuild with `window.doros.updateTimer(...)`. A kept item's `click()`
+  works like a real menu click.
 - **Is the tray item there?** On the MacBook the notch can hide it. Without accessibility
   permission, list status item windows with JXA
   (`osascript -l JavaScript`, `ObjC.import("CoreGraphics")`, `CGWindowListCopyWindowInfo`):
@@ -395,9 +403,9 @@ from the tray change the timer in the window. The browser web app behaves exactl
 ✅ Show Doros                    (shows and focuses the window)
 ✅ Paste Auth Callback URL (dev) (unpackaged only, from Phase 2)
 ───────────────
-⏳ Block sites now        ☐/☑    (manual override)          ← Phase 6
-⏳ Sites blocked: yes/no         (disabled status)          ← Phase 6
-⏳ Set up site blocking…         (only shown if the helper is missing) ← Phase 6
+✅ Block Sites Now        ☐/☑    (manual override)          ← Phase 6
+✅ Sites Blocked: Yes/No         (disabled status)          ← Phase 6
+✅ Set Up Site Blocking…         (only shown if the helper is missing; Update… if outdated) ← Phase 6
 ───────────────
 ✅ Launch at Login        ☐      (app.setLoginItemSettings; packaged app only)
 ✅ Countdown Inside Tomato ☑    (Phase 4 fallback setting: off = small tomato + text)
@@ -467,13 +475,55 @@ copies the helper, sets ownership and permissions, writes
 - On launch, call `off` unless a focus session is running (this cleans up after a crash).
   On `before-quit`, call `off`.
 
-### 6d. Known limitations (put these in the README)
+### 6d. Known limitations (put these in the README → `electron/README.md`, the repo has no README)
 - Tabs already open on a blocked site may keep working until reload. Chrome caches DNS for about a minute.
 - A VPN or custom DNS-over-HTTPS profile can bypass `/etc/hosts`.
 - Blocking only happens while the desktop app is running. The web app alone can't block sites.
 
 **Done when:** you start a doro, and `https://www.reddit.com` in a fresh tab fails to load.
 Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section only during focus.
+
+**Status / deviations from the plan (6c + 6d):**
+- `electron/blocker.ts` (no `electron` import; Vitest with a fake helper and fake timers):
+  `shouldBlock(timer, manual, now)` = manual, or focus and not paused **and `endTime` still ahead**.
+  So blocking also ends on its own if the renderer stops reporting (crash, logout); a timer fires
+  at `endTime`. `createBlocker()` runs helper calls one at a time, only when the wanted
+  state differs from what the helper last reported, and keeps the `status` it reports
+  (`setup: checking|missing|ready`, `outdated`, `blocked`, `manual`, `error`) for the menu.
+- **Blocking is immediate, unblocking waits 3 s.** A page reload resets the timer to idle (the
+  `did-start-navigation` reset), and the page re-sends focus about a second later. Without the
+  wait, every reload would unblock and block again, with two DNS flushes. Unticking Block Sites
+  Now unblocks right away.
+- **Crash cleanup waits 15 s.** On launch it reads `status`. If the sites are still blocked, it
+  calls `off` only if no running focus session arrives from the renderer within 15 s, so
+  restarting mid-doro doesn't unblock. Plan: "call `off` unless a focus session is running".
+- **Quit:** `will-quit` runs `sudo -n … off` synchronously (`execFileSync`, 5 s timeout), so this
+  also clears a manual block. Two Doros instances (only when testing) would fight over this.
+- **Helper missing / refused:** if `/Library/PrivilegedHelperTools/doros-block` doesn't exist, or
+  `sudo -n … status` fails, setup is `missing`. Block Sites Now is then disabled and **Set Up Site
+  Blocking…** shows a dialog with the install command (Copy Command / Check Again / Close). The
+  app never runs sudo with a password. A focus session starting while setup is `missing` checks
+  again, so after installing, the next doro just works. After waking from sleep it checks again too.
+- **Outdated helper:** the installed helper is compared with the bundled `doros-block.sh`
+  (both world-readable). If they differ, the old one keeps working and the menu adds **Update Site
+  Blocking…**. To make this work, and so the install command works without the repo,
+  `electron/helper/*.sh` is packaged and `asarUnpack`ed. The packaged app's command points
+  inside `Doros.app/Contents/Resources/app.asar.unpacked/electron/helper/`.
+- Menu (pure `trayMenu.ts`): `Block Sites Now` (checkbox) and `Sites Blocked: Yes/No` (disabled;
+  `… (last change failed)` after an error, `Checking…` at start), between Show Doros and the
+  settings, each group with its own separator.
+- 6d: the repo has no README, so the notes are in **`electron/README.md`**, along with setup,
+  changing the block list and uninstalling.
+- ✅ Verified by the agent against the real `/etc/hosts` (packaged copy built into the
+  scratchpad, separate profile, states sent through `window.doros.updateTimer`, menu clicks
+  through the captured template): a 20 s focus session blocked within about 1 s
+  (`dscacheutil` → `0.0.0.0`, `curl https://www.reddit.com` failed to connect). After `endTime`
+  it unblocked by itself (no idle sent) and curl got 200. Pause unblocked after the 3 s wait.
+  Block Sites Now on → `Sites Blocked: Yes`. `kill -9` while blocked → still blocked at +8 s after
+  relaunch, unblocked at +18 s. Quit with Block Sites Now on → unblocked. `/etc/hosts` ended
+  byte-identical to before.
+- Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +25 new passing
+  tests; `tsc -p electron` clean; `npm run build` OK.
 
 **Status / deviations from the plan (6a + 6b):**
 - **Installed to `/Library/PrivilegedHelperTools/doros-block`, not `/usr/local/bin`.** On this Mac
@@ -543,7 +593,7 @@ to Supabase, and find it in the feed on the **website** too.
 ## Agent checklist per phase
 - [ ] Tests first for pure modules and new hooks (✅ done: `countdown`, `deepLink`, `trayMenu`,
       `useDesktopTimerSync`, `useTimerControls`, `useDesktopAuthCallback`, the `Login` desktop branch,
-      `tomatoIcon`, `settings`, `hostsFile`, `helperScript`)
+      `tomatoIcon`, `settings`, `hostsFile`, `helperScript`, `blocker`)
 - [ ] `npm test`, `npx tsc --noEmit`, `npx tsc -p electron --noEmit`, and `npm run build` (web) all pass
       (no **new** failures: the baseline from `dev` is 20 failing tests in 7 files and 175 `tsc` errors)
 - [ ] Web behavior unchanged when `window.doros` is undefined

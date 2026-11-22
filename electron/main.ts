@@ -1,18 +1,22 @@
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   app,
   BrowserWindow,
   clipboard,
+  dialog,
   globalShortcut,
   ipcMain,
   powerMonitor,
   shell,
   type IpcMainEvent,
 } from "electron";
+import { createBlocker, inspectInstalledHelper, sudoHelperRunner, type Blocker } from "./blocker";
 import { IDLE_STATE, parseTimerState } from "./countdown";
 import { AuthCallbackRelay, DEEP_LINK_SCHEME, isAuthCallbackUrl } from "./deepLink";
-import { IPC, type TrayCommand } from "./ipc";
+import { HELPER_INSTALL_PATH } from "./helperScript";
+import { IPC, type DesktopTimerState, type TrayCommand } from "./ipc";
 import { DEFAULT_SETTINGS, parseSettings, type DesktopSettings } from "./settings";
 import { createTray, type DorosTray, type LoginItem } from "./tray";
 
@@ -23,7 +27,14 @@ const SHOW_SHORTCUT = "Alt+Command+D";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: DorosTray | null = null;
+let blocker: Blocker | null = null;
 let isQuitting = false;
+
+/** electron/helper/*.sh: the repo copy in dev, app.asar.unpacked in the packaged app (sh can't read asar). */
+const helperFile = (name: string) =>
+  path
+    .join(__dirname, "..", "electron", "helper", name)
+    .replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
 
 const authCallbacks = new AuthCallbackRelay((url) => {
   mainWindow?.webContents.send(IPC.authCallback, url);
@@ -95,7 +106,7 @@ function createWindow(): BrowserWindow {
   win.webContents.on("did-start-navigation", (details) => {
     if (details.isMainFrame && !details.isSameDocument) {
       authCallbacks.rendererGone();
-      tray?.update(IDLE_STATE);
+      timerChanged(IDLE_STATE);
     }
   });
 
@@ -136,9 +147,14 @@ function registerIpc(): void {
   ipcMain.on(IPC.updateTimer, (event, payload: unknown) => {
     if (!isTrustedSender(event)) return;
     const state = parseTimerState(payload);
-    if (state) tray?.update(state);
+    if (state) timerChanged(state);
     else console.warn("[doros] ignored malformed timer state");
   });
+}
+
+function timerChanged(state: DesktopTimerState): void {
+  tray?.update(state);
+  blocker?.setTimer(state);
 }
 
 /** Tray menu → renderer timer. Pause/resume/stop work with the window hidden. */
@@ -189,6 +205,60 @@ function registerShowShortcut(): void {
   tray?.setShowShortcut(ok ? SHOW_SHORTCUT : undefined);
 }
 
+function startBlocker(): void {
+  blocker = createBlocker({
+    run: sudoHelperRunner(HELPER_INSTALL_PATH),
+    inspect: () => inspectInstalledHelper(HELPER_INSTALL_PATH, helperFile("doros-block.sh")),
+    onChange: (status) => tray?.setBlocking(status),
+  });
+  tray?.setBlocking(blocker.status());
+  void blocker.start();
+}
+
+/** The app never runs sudo with a password: it shows the one-time install command instead. */
+async function showBlockingSetup(): Promise<void> {
+  const command = `sudo sh '${helperFile("install-helper.sh")}'`;
+  let note = "";
+  for (;;) {
+    const outdated = blocker?.status().outdated ?? false;
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      message: outdated ? "Update site blocking" : "Set up site blocking",
+      detail:
+        `${note}Doros blocks distracting sites during a focus session by editing /etc/hosts ` +
+        `through a small helper that runs as root. Doros never asks for your password, so ` +
+        `${outdated ? "update" : "install"} the helper once yourself by running this in Terminal:\n\n` +
+        `${command}\n\nThen click Check Again.`,
+      buttons: ["Copy Command", "Check Again", "Close"],
+      defaultId: 0,
+      cancelId: 2,
+    });
+    if (response === 0) {
+      clipboard.writeText(command);
+      note = "Copied. ";
+      continue;
+    }
+    if (response !== 1 || !blocker) return;
+    await blocker.refresh();
+    const s = blocker.status();
+    if (s.setup === "ready" && !s.outdated) return;
+    note = "Not set up yet. ";
+  }
+}
+
+/** Leave /etc/hosts unblocked when Doros quits. Synchronous: the app is about to exit. */
+function unblockOnQuit(): void {
+  if (!blocker) return;
+  const { setup } = blocker.status();
+  blocker.dispose();
+  if (setup !== "ready") return;
+  try {
+    execFileSync("/usr/bin/sudo", ["-n", HELPER_INSTALL_PATH, "off"], { timeout: 5000, stdio: "ignore" });
+  } catch (err) {
+    console.error("[doros] couldn't unblock sites on quit:", err);
+  }
+}
+
 /** Dev fallback: read a copied doros://auth-callback URL from the clipboard. */
 async function pasteAuthCallbackFromClipboard(): Promise<void> {
   const url = (await clipboard.readText()).trim();
@@ -205,7 +275,10 @@ if (!app.requestSingleInstanceLock()) {
     isQuitting = true;
   });
 
-  app.on("will-quit", () => globalShortcut.unregisterAll());
+  app.on("will-quit", () => {
+    globalShortcut.unregisterAll();
+    unblockOnQuit();
+  });
 
   // macOS delivers deep links here, including the one that launched the app.
   app.on("open-url", (event, url) => {
@@ -230,6 +303,8 @@ if (!app.requestSingleInstanceLock()) {
         command: sendTrayCommand,
         showWindow,
         quit: () => app.quit(),
+        setBlockManual: (on) => blocker?.setManual(on),
+        setUpBlocking: () => void showBlockingSetup(),
         ...(app.isPackaged ? {} : { pasteAuthCallback: () => void pasteAuthCallbackFromClipboard() }),
       },
       loadSettings(),
@@ -237,7 +312,12 @@ if (!app.requestSingleInstanceLock()) {
       app.isPackaged ? loginItem : undefined,
     );
     registerShowShortcut();
+    // Cleans up a block left behind by a crash, unless a focus session is still running.
+    startBlocker();
     // The countdown is computed from endTime, so after sleep one redraw is enough.
-    powerMonitor.on("resume", () => tray?.render());
+    powerMonitor.on("resume", () => {
+      tray?.render();
+      void blocker?.refresh(); // a session may have ended while the Mac slept
+    });
   });
 }

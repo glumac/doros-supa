@@ -140,3 +140,74 @@ describe("buildTrayMenu: Show Doros shortcut", () => {
     expect(byLabel(buildTrayMenu(idle, actions()), "Show Doros").accelerator).toBeUndefined();
   });
 });
+
+describe("buildTrayMenu: website blocking", () => {
+  const ready = { setup: "ready", outdated: false, blocked: false, manual: false, error: null } as const;
+  const withBlocking = () => ({ ...actions(), setBlockManual: vi.fn(), setUpBlocking: vi.fn() });
+  const opts = (blocking: Partial<typeof ready> | { setup: "missing" | "checking" }) => ({
+    countdownInTomato: true,
+    blocking: { ...ready, ...blocking },
+  });
+
+  it("is left out without a blocker", () => {
+    expect(labels(buildTrayMenu(idle, actions()))).not.toContain("Block Sites Now");
+  });
+
+  it("ready: a Block Sites Now checkbox and the current state, between Show Doros and the settings", () => {
+    const a = { ...withBlocking(), setCountdownInTomato: vi.fn() };
+    const menu = buildTrayMenu(idle, a, opts({}));
+    expect(labels(menu)).toEqual([
+      "Start a Doro…", "Cancel Doro", "Show Doros",
+      "Block Sites Now", "Sites Blocked: No",
+      "Countdown Inside Tomato", "Quit Doros",
+    ]);
+    const shape = menu.map((i) => (i.type === "separator" ? "---" : i.label));
+    expect(shape.slice(shape.indexOf("Show Doros"))).toEqual([
+      "Show Doros", "---", "Block Sites Now", "Sites Blocked: No", "---", "Countdown Inside Tomato", "Quit Doros",
+    ]);
+
+    const toggle = byLabel(menu, "Block Sites Now");
+    expect(toggle.type).toBe("checkbox");
+    expect(toggle.checked).toBe(false);
+    expect(byLabel(menu, "Sites Blocked: No").enabled).toBe(false);
+    toggle.click?.({} as never, undefined, {} as never);
+    expect(a.setBlockManual).toHaveBeenCalledWith(true);
+  });
+
+  it("shows when sites are blocked and turns the manual block off", () => {
+    const a = withBlocking();
+    const menu = buildTrayMenu(running, a, opts({ blocked: true, manual: true }));
+    expect(byLabel(menu, "Block Sites Now").checked).toBe(true);
+    expect(labels(menu)).toContain("Sites Blocked: Yes");
+    byLabel(menu, "Block Sites Now").click?.({} as never, undefined, {} as never);
+    expect(a.setBlockManual).toHaveBeenCalledWith(false);
+  });
+
+  it("says when the last change failed", () => {
+    const menu = buildTrayMenu(running, withBlocking(), opts({ blocked: false, error: "sudo: nope" }));
+    expect(labels(menu)).toContain("Sites Blocked: No (last change failed)");
+  });
+
+  it("missing: Block Sites Now is disabled and Set Up Site Blocking… is offered", () => {
+    const a = withBlocking();
+    const menu = buildTrayMenu(idle, a, opts({ setup: "missing" }));
+    expect(byLabel(menu, "Block Sites Now").enabled).toBe(false);
+    expect(labels(menu)).not.toContain("Sites Blocked: No");
+    byLabel(menu, "Set Up Site Blocking…").click?.({} as never, undefined, {} as never);
+    expect(a.setUpBlocking).toHaveBeenCalledTimes(1);
+  });
+
+  it("outdated: still usable, and offers to update the helper", () => {
+    const a = withBlocking();
+    const menu = buildTrayMenu(idle, a, opts({ outdated: true }));
+    expect(byLabel(menu, "Block Sites Now").enabled).not.toBe(false);
+    byLabel(menu, "Update Site Blocking…").click?.({} as never, undefined, {} as never);
+    expect(a.setUpBlocking).toHaveBeenCalledTimes(1);
+  });
+
+  it("checking: disabled until the helper answers", () => {
+    const menu = buildTrayMenu(idle, withBlocking(), opts({ setup: "checking" }));
+    expect(byLabel(menu, "Block Sites Now").enabled).toBe(false);
+    expect(byLabel(menu, "Sites Blocked: Checking…").enabled).toBe(false);
+  });
+});
