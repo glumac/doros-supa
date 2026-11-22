@@ -17,7 +17,7 @@ permission dialog, or the Supabase dashboard.
 | 1. Electron shell | ✅ done (`aa8cdcc`) |
 | 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
-| 4. Tomato with the countdown inside it | ✅ done; 🧑 light/dark menu bar check pending |
+| 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
 | 5. Tray menu | 🟡 partly done in Phase 3 (see the item list there) |
 | 6. Website blocking | ⏳ |
 | 7. Notifications and packaging | ⏳ (an unsigned `.app` already builds; see Phase 1 notes) |
@@ -304,7 +304,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ---
 
-## Phase 4: Tomato with the countdown inside it ✅ DONE (🧑 light/dark check pending)
+## Phase 4: Tomato with the countdown inside it ✅ DONE (commit `b7da574`)
 
 **Tasks**
 1. Write `tomatoIcon.ts → buildSvg(text, variant)`. Draw a wide red tomato (`#E53935` body,
@@ -352,7 +352,9 @@ from the tray change the timer in the window. The browser web app behaves exactl
   loaded resvg from the packaged app, the tray image had scale factors 2 and 1; menu bar
   screenshots showed the countdown ticking inside the tomato, the paused and idle tomatoes, and the
   fallback text. The round version was checked in rendered light/dark previews and its packaged
-  `tomatoIcon.js` confirmed; the real menu bar check is the 🧑 step.
+  `tomatoIcon.js` confirmed.
+- ✅ Verified by the user (2026-11-22): the round tomato with the minutes left looks good in the
+  real menu bar.
 - **MacBook notch:** new menu bar items go leftmost, next to the notch, and macOS hides whatever
   doesn't fit. The user's crowded bar hid the tomato (the window list showed the Doros status item
   off-screen at x 966). Fix: make room once, then ⌘-drag the tomato to the right; macOS saves the
