@@ -18,9 +18,9 @@ permission dialog, or the Supabase dashboard.
 | 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
-| 5. Tray menu | 🟡 partly done in Phase 3 (see the item list there) |
+| 5. Tray menu | 🟡 next: only **Launch at login** (+ optional ⌥⌘D) left; the rest was built in Phases 3–4, blocking items belong to Phase 6 |
 | 6. Website blocking | ⏳ |
-| 7. Notifications and packaging | ⏳ (an unsigned `.app` already builds; see Phase 1 notes) |
+| 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
 ---
 
@@ -133,6 +133,21 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
   longer session is needed.
 - The packaged app can be pointed at local Vite until desktop changes are deployed:
   `DOROS_URL=http://localhost:5173 env -u ELECTRON_RUN_AS_NODE release/mac-arm64/Doros.app/Contents/MacOS/Doros`.
+- Seed a 25-minute doro from DevTools (⌥⌘I) in the logged-in window:
+  `localStorage.setItem("timerState", JSON.stringify({ endTime: Date.now() + 25*60*1000, task: "Test", isPaused: false, originalDuration: 25*60*1000, launchAt: new Date().toISOString() })); location.reload();`
+- **Agent test instance while the user's app is running:** the agent may not quit the user's app,
+  and the single-instance lock would just focus it. Launch a second copy with its own profile:
+  add `--user-data-dir=<scratchpad>/profile --remote-debugging-port=9333 --inspect=9334`. That
+  profile is logged out, but `window.doros.updateTimer(...)` works on the login page, so the tray
+  can be driven over CDP. In main, load modules by absolute path
+  (`process.mainModule.require(process.resourcesPath + "/app.asar/electron-dist/x.js")`). Quit it
+  with `app.quit()` over the inspector.
+- **Is the tray item there?** On the MacBook the notch can hide it. Without accessibility
+  permission, list status item windows with JXA
+  (`osascript -l JavaScript`, `ObjC.import("CoreGraphics")`, `CGWindowListCopyWindowInfo`):
+  the Doros window at layer 25 with `kCGWindowIsOnscreen` false means hidden by the notch. The
+  user fixes it once by making room and ⌘-dragging the tomato right (macOS remembers). (`swift`
+  scripts don't work on this Mac: broken Command Line Tools module maps.)
 
 ---
 
@@ -370,7 +385,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ```
 ✅ 🍅 Focus: write chapter 3   (disabled label; ⏸ Paused: … while paused)
-   ⏳ still to add: ", 24:13 left" (needs a menu rebuild each minute, or drop it: the title shows the time)
+   ✅ dropped ", 24:13 left": the tray tooltip shows the exact time left (Phase 4)
 ✅ Start a Doro…                 (idle only → shows window on /create-doro)
 ✅ Pause / Resume                (→ renderer)
 ✅ Cancel Doro                   (→ renderer; disabled when idle; the plan called it "Stop")
@@ -437,9 +452,10 @@ Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section o
 1. When the countdown hits 0 and the window is hidden, show a `Notification` ("Doro done 🍅,
    log it?"). Clicking it shows the window, where the existing completion flow (log, upload image) runs.
    🧑 The user allows notifications.
-2. `electron-builder.yml`: `mac.identity: null` (unsigned), Dock icon stays visible (no `LSUIElement`),
-   tomato `.icns`, the `doros` protocol.
-3. `npm run desktop:build` produces `release/mac-arm64/Doros.app`. 🧑 The user drags it to
+2. `electron-builder.yml`: ✅ `mac.identity: null` (unsigned), ✅ Dock icon stays visible (no
+   `LSUIElement`), ⏳ tomato `.icns` (the app still uses the default Electron icon), ✅ the `doros`
+   protocol (Phase 2), ✅ resvg packaged with its `.node` unpacked (Phase 4).
+3. ✅ `npm run desktop:build` produces `release/mac-arm64/Doros.app`. ⏳ 🧑 The user drags it to
    `/Applications` and right-clicks → Open the first time.
 
 **Done when:** in the installed app you can log in, do a full doro with sites blocked, see it logged
