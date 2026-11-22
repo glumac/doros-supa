@@ -129,7 +129,8 @@ Logging the doro: unchanged. The existing React + React Query mutation inserts i
 ```
 
 ### Testing notes
-- **Doros last 5 seconds against local Vite.** `.env` has `VITE_DEV_SHORT_TIMER=true`, and
+- **Doros last 30 seconds against local Vite** (`DEV_SHORT_TIMER_SECONDS` in `CreateDoro`; was 5 s,
+  too short to try a blocked site during a doro). `.env` has `VITE_DEV_SHORT_TIMER=true`, and
   `CreateDoro` honours it only when `import.meta.env.DEV`, so `vite build` and crush.quest stay
   at 25 minutes. Handy for a full run (tray countdown, blocking in Phase 6, the "done"
   notification in Phase 7). Seed `localStorage["timerState"]` with a later `endTime` when a

@@ -186,8 +186,9 @@ const ImageUploadArea = ({
   );
 };
 
-// Dev flag: Set to true to make pomodoros last 5 seconds instead of 25 minutes
+// Dev flag: Set to true to make pomodoros last DEV_SHORT_TIMER_SECONDS instead of 25 minutes
 const DEV_MODE_SHORT_TIMER = import.meta.env.DEV && import.meta.env.VITE_DEV_SHORT_TIMER === 'true';
+const DEV_SHORT_TIMER_SECONDS = 30;
 
 // Helper function to give minutes and seconds
 const formatTime = (ms: number | null): FormatTimeResult => {
@@ -545,7 +546,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
           className="cq-create-doro-form bg-white border-solid border-2 border-red-600 rounded-3xl p-5 pb-7 max-w-lg lg:max-w-2xl mx-auto"
           onSubmit={(e) => {
             e.preventDefault();
-            const durationInMinutes = DEV_MODE_SHORT_TIMER ? 5 / 60 : 25;
+            const durationInMinutes = DEV_MODE_SHORT_TIMER ? DEV_SHORT_TIMER_SECONDS / 60 : 25;
             startTimer(durationInMinutes);
           }}
         >
@@ -564,7 +565,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
             >
               deep work
             </a>{" "}
-            will you focus on for the next {DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}?
+            will you focus on for the next {DEV_MODE_SHORT_TIMER ? `${DEV_SHORT_TIMER_SECONDS} seconds` : '25 minutes'}?
           </label>
           <div className="cq-create-doro-input-container flex items-stretch mt-5 gap-2 flex-wrap">
             <input
@@ -589,7 +590,7 @@ const CreateDoro = ({ user }: CreateDoroProps) => {
       {doroContext.inProgress && (
         <div className="cq-create-doro-timer-container bg-white border-solid border-2 border-red-600 rounded-3xl p-5 max-w-lg lg:max-w-2xl mx-auto">
           <div className="cq-create-doro-timer-header flex mb-3 justify-between items-center relative">
-            <h3 className="cq-create-doro-timer-duration text-dark text-lg">{DEV_MODE_SHORT_TIMER ? '5 seconds' : '25 minutes'}</h3>
+            <h3 className="cq-create-doro-timer-duration text-dark text-lg">{DEV_MODE_SHORT_TIMER ? `${DEV_SHORT_TIMER_SECONDS} seconds` : '25 minutes'}</h3>
             <div className="cq-create-doro-timer-started">
               {launchAt && (
                 <div className="cq-create-doro-timer-started-info flex gap-2">
