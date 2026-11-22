@@ -1,14 +1,25 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { app, BrowserWindow, clipboard, ipcMain, powerMonitor, shell, type IpcMainEvent } from "electron";
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  globalShortcut,
+  ipcMain,
+  powerMonitor,
+  shell,
+  type IpcMainEvent,
+} from "electron";
 import { IDLE_STATE, parseTimerState } from "./countdown";
 import { AuthCallbackRelay, DEEP_LINK_SCHEME, isAuthCallbackUrl } from "./deepLink";
 import { IPC, type TrayCommand } from "./ipc";
 import { DEFAULT_SETTINGS, parseSettings, type DesktopSettings } from "./settings";
-import { createTray, type DorosTray } from "./tray";
+import { createTray, type DorosTray, type LoginItem } from "./tray";
 
 const DOROS_URL = process.env.DOROS_URL ?? "https://crush.quest";
 const DOROS_ORIGIN = new URL(DOROS_URL).origin;
+/** Global shortcut for Show Doros (⌥⌘D). */
+const SHOW_SHORTCUT = "Alt+Command+D";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: DorosTray | null = null;
@@ -162,6 +173,22 @@ function saveSettings(settings: DesktopSettings): void {
   }
 }
 
+/** macOS login item. Only for the packaged app: unpackaged, it would add the generic Electron.app. */
+const loginItem: LoginItem = {
+  get: () => app.getLoginItemSettings().openAtLogin,
+  set: (on) => {
+    app.setLoginItemSettings({ openAtLogin: on });
+    const { openAtLogin, status } = app.getLoginItemSettings();
+    if (openAtLogin !== on) console.warn(`[doros] launch at login is still ${openAtLogin} (status: ${status})`);
+  },
+};
+
+function registerShowShortcut(): void {
+  const ok = globalShortcut.register(SHOW_SHORTCUT, showWindow);
+  if (!ok) console.warn(`[doros] couldn't register ${SHOW_SHORTCUT} (another app has it)`);
+  tray?.setShowShortcut(ok ? SHOW_SHORTCUT : undefined);
+}
+
 /** Dev fallback: read a copied doros://auth-callback URL from the clipboard. */
 async function pasteAuthCallbackFromClipboard(): Promise<void> {
   const url = (await clipboard.readText()).trim();
@@ -177,6 +204,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on("before-quit", () => {
     isQuitting = true;
   });
+
+  app.on("will-quit", () => globalShortcut.unregisterAll());
 
   // macOS delivers deep links here, including the one that launched the app.
   app.on("open-url", (event, url) => {
@@ -205,7 +234,9 @@ if (!app.requestSingleInstanceLock()) {
       },
       loadSettings(),
       saveSettings,
+      app.isPackaged ? loginItem : undefined,
     );
+    registerShowShortcut();
     // The countdown is computed from endTime, so after sleep one redraw is enough.
     powerMonitor.on("resume", () => tray?.render());
   });

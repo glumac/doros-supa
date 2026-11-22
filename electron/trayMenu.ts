@@ -15,10 +15,16 @@ export interface TrayMenuActions {
   pasteAuthCallback?: () => void;
   /** Switches between the countdown inside the tomato and the small tomato + text fallback. */
   setCountdownInTomato?: (on: boolean) => void;
+  /** Packaged app only: adds or removes Doros from the macOS login items. */
+  setLaunchAtLogin?: (on: boolean) => void;
 }
 
 export interface TrayMenuOptions {
   countdownInTomato: boolean;
+  /** Whether macOS opens Doros at login (read from the OS, not saved by Doros). */
+  launchAtLogin?: boolean;
+  /** The global Show Doros shortcut, if it registered; shown next to the item as a hint. */
+  showShortcut?: string;
 }
 
 const MAX_TASK_LABEL = 40;
@@ -32,17 +38,37 @@ export function buildTrayMenu(
   actions: TrayMenuActions,
   options: TrayMenuOptions = { countdownInTomato: true },
 ): MenuItemConstructorOptions[] {
-  const { setCountdownInTomato } = actions;
-  const settingsItems: MenuItemConstructorOptions[] = setCountdownInTomato
-    ? [
-        {
-          label: "Countdown Inside Tomato",
-          type: "checkbox",
-          checked: options.countdownInTomato,
-          click: () => setCountdownInTomato(!options.countdownInTomato),
-        },
-      ]
-    : [];
+  const { setCountdownInTomato, setLaunchAtLogin } = actions;
+  const launchAtLogin = options.launchAtLogin ?? false;
+  const settingsItems: MenuItemConstructorOptions[] = [
+    ...(setLaunchAtLogin
+      ? [
+          {
+            label: "Launch at Login",
+            type: "checkbox" as const,
+            checked: launchAtLogin,
+            click: () => setLaunchAtLogin(!launchAtLogin),
+          },
+        ]
+      : []),
+    ...(setCountdownInTomato
+      ? [
+          {
+            label: "Countdown Inside Tomato",
+            type: "checkbox" as const,
+            checked: options.countdownInTomato,
+            click: () => setCountdownInTomato(!options.countdownInTomato),
+          },
+        ]
+      : []),
+  ];
+
+  const showItem: MenuItemConstructorOptions = { label: "Show Doros", click: () => actions.showWindow() };
+  if (options.showShortcut) {
+    // Only a hint: the shortcut itself is a globalShortcut registered by main.ts.
+    showItem.accelerator = options.showShortcut;
+    showItem.registerAccelerator = false;
+  }
 
   const active = state.phase !== "idle";
   const task = truncate(state.task.trim() || "Doro", MAX_TASK_LABEL);
@@ -60,7 +86,7 @@ export function buildTrayMenu(
     ...timerItems,
     { label: "Cancel Doro", enabled: active, click: () => actions.command("stop") },
     { type: "separator" },
-    { label: "Show Doros", click: () => actions.showWindow() },
+    showItem,
     ...(actions.pasteAuthCallback
       ? [{ label: "Paste Auth Callback URL (dev)", click: actions.pasteAuthCallback }]
       : []),

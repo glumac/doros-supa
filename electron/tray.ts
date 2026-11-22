@@ -11,6 +11,14 @@ export interface DorosTray {
   update(state: DesktopTimerState): void;
   /** Redraw the countdown now (e.g. after the Mac wakes up). */
   render(): void;
+  /** Show this global shortcut next to Show Doros (after main registered it). */
+  setShowShortcut(accelerator: string | undefined): void;
+}
+
+/** macOS login item (packaged app only). The OS keeps the setting, so it's read back each time. */
+export interface LoginItem {
+  get(): boolean;
+  set(on: boolean): void;
 }
 
 // electron-dist/tray.js → electron/assets (same layout inside the packaged app.asar).
@@ -19,8 +27,8 @@ const TICK_MS = 1000;
 /** Every label of a 25-minute doro (25 minutes + 60 seconds, focus and paused) stays cached. */
 const IMAGE_CACHE_SIZE = 200;
 
-const menuKey = (s: DesktopTimerState, settings: DesktopSettings) =>
-  JSON.stringify([s.phase, s.isPaused, s.task, settings.countdownInTomato]);
+const menuKey = (s: DesktopTimerState, settings: DesktopSettings, extra: unknown[]) =>
+  JSON.stringify([s.phase, s.isPaused, s.task, settings.countdownInTomato, ...extra]);
 
 /** 1× and 2× renders, so the text is crisp on Retina and non-Retina menu bars alike. */
 function drawTomato(key: string): NativeImage {
@@ -33,9 +41,10 @@ function drawTomato(key: string): NativeImage {
 }
 
 export function createTray(
-  actions: Omit<TrayMenuActions, "setCountdownInTomato">,
+  actions: Omit<TrayMenuActions, "setCountdownInTomato" | "setLaunchAtLogin">,
   initialSettings: DesktopSettings,
   saveSettings: (settings: DesktopSettings) => void,
+  loginItem?: LoginItem,
 ): DorosTray {
   // Used only if the tomato can't be drawn (e.g. resvg's native module failed to load).
   // nativeImage picks up trayTomato@2x.png automatically on Retina screens.
@@ -53,6 +62,7 @@ export function createTray(
   let shownTitle: string | null = null;
   let shownToolTip = "";
   let ticker: NodeJS.Timeout | null = null;
+  let showShortcut: string | undefined;
 
   const setImage = (variant: TomatoVariant, text: string) => {
     const key = drawFailed ? "static" : `${variant}:${text}`;
@@ -95,13 +105,30 @@ export function createTray(
   };
 
   const rebuildMenu = () => {
-    const key = menuKey(state, settings);
+    const launchAtLogin = loginItem?.get() ?? false;
+    const key = menuKey(state, settings, [launchAtLogin, showShortcut]);
     if (key === shownMenuKey) return;
     shownMenuKey = key;
+    const menuActions: TrayMenuActions = {
+      ...actions,
+      setCountdownInTomato,
+      ...(loginItem ? { setLaunchAtLogin } : {}),
+    };
     tray.setContextMenu(
-      Menu.buildFromTemplate(buildTrayMenu(state, { ...actions, setCountdownInTomato }, settings)),
+      Menu.buildFromTemplate(
+        buildTrayMenu(state, menuActions, {
+          countdownInTomato: settings.countdownInTomato,
+          launchAtLogin,
+          ...(showShortcut ? { showShortcut } : {}),
+        }),
+      ),
     );
   };
+
+  function setLaunchAtLogin(on: boolean) {
+    loginItem?.set(on);
+    rebuildMenu(); // the checkbox shows what macOS actually did
+  }
 
   function setCountdownInTomato(on: boolean) {
     settings = { ...settings, countdownInTomato: on };
@@ -122,6 +149,11 @@ export function createTray(
     }
   };
 
+  const setShowShortcut = (accelerator: string | undefined) => {
+    showShortcut = accelerator;
+    rebuildMenu();
+  };
+
   update(IDLE_STATE);
-  return { update, render };
+  return { update, render, setShowShortcut };
 }

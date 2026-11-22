@@ -18,8 +18,8 @@ permission dialog, or the Supabase dashboard.
 | 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
-| 5. Tray menu | 🟡 next: only **Launch at login** (+ optional ⌥⌘D) left; the rest was built in Phases 3–4, blocking items belong to Phase 6 |
-| 6. Website blocking | 🟡 6a+6b done (hostsFile, blocklist, helper scripts); 🧑 user installs the helper; 6c/6d next |
+| 5. Tray menu | 🟡 Launch at Login + ⌥⌘D built; 🧑 waiting for the user's hand check (blocking items belong to Phase 6) |
+| 6. Website blocking | 🟡 6a+6b done (`63a0a3a`), helper installed by the user and checked; 6c/6d next |
 | 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
 ---
@@ -399,7 +399,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 ⏳ Sites blocked: yes/no         (disabled status)          ← Phase 6
 ⏳ Set up site blocking…         (only shown if the helper is missing) ← Phase 6
 ───────────────
-⏳ Launch at login        ☐      (app.setLoginItemSettings)
+✅ Launch at Login        ☐      (app.setLoginItemSettings; packaged app only)
 ✅ Countdown Inside Tomato ☑    (Phase 4 fallback setting: off = small tomato + text)
 ✅ Quit Doros
 ```
@@ -410,6 +410,31 @@ Starting a new doro needs a task name, so the start action opens the form (**Sta
 the only place you create a doro. Optionally add a global shortcut `⌥⌘D` for Show Doros.
 
 **Done when:** every menu item works by hand.
+
+**Status / deviations from the plan (Phase 5 leftovers):**
+- **Launch at Login** checkbox (pure `trayMenu.ts`, just above Countdown Inside Tomato). Only the
+  packaged app gets it: unpackaged, `setLoginItemSettings` would add the generic Electron.app.
+  macOS owns the setting, so it isn't in `doros-settings.json`. `tray.ts` reads
+  `app.getLoginItemSettings().openAtLogin` whenever it rebuilds the menu and again after a click, so
+  the checkbox shows what macOS actually did (a refusal is logged with its `status`). At login the
+  window opens as on any launch (`openAsHidden` doesn't work on macOS 13+).
+  The login item points at wherever the `.app` is when you tick it. After moving it to
+  `/Applications` (Phase 7), untick and tick it again.
+- **⌥⌘D shows Doros** (`globalShortcut`, `SHOW_SHORTCUT` in `main.ts`, unregistered on
+  `will-quit`). If registering fails it's logged and the hint is left off. Show Doros shows `⌥⌘D` as
+  a hint (`registerAccelerator: false`). **Note:** ⌥⌘D is also macOS's default "Turn Dock Hiding
+  On/Off" (System Settings → Keyboard → Keyboard Shortcuts → Launchpad & Dock), and it's at its
+  default on this Mac. Electron registered it fine (`globalShortcut.isRegistered` true), but which
+  one wins on a real key press is part of the 🧑 hand check.
+- ✅ Verified by the agent (packaged copy built into the scratchpad, separate `--user-data-dir`,
+  menu template captured by wrapping `Menu.buildFromTemplate` over the inspector): the menu has
+  `Launch at Login` (unchecked) above `Countdown Inside Tomato`, and `Show Doros` carries the
+  `Alt+Command+D` hint. Login item status `not-found` / `openAtLogin: false`, left untouched (the agent
+  never ticks it, so no test login item gets registered).
+- **Don't rebuild `release/` while the user's Doros runs from it.** Agent builds go elsewhere:
+  `npx electron-builder --mac -c.directories.output=<scratchpad>/release`.
+- Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +4 new passing
+  tests; `tsc -p electron` clean; `npm run build` OK.
 
 ---
 
@@ -482,8 +507,10 @@ Stop or finish the doro and it loads again. `cat /etc/hosts` shows the section o
   fails it removes the file again). `uninstall-helper.sh` runs `off`, then removes both files.
 - Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +38 new passing
   tests; `tsc -p electron` clean; `npm run build` OK.
-- 🧑 **User step:** `sudo sh electron/helper/install-helper.sh`, then
-  `sudo -n /Library/PrivilegedHelperTools/doros-block status` should print `off` with no password prompt.
+- ✅ 🧑 Installed by the user (2026-11-22) with `sudo sh electron/helper/install-helper.sh`.
+  `sudo -n /Library/PrivilegedHelperTools/doros-block status` prints `off` without a password
+  (checked by the user and the agent). The installed copy is byte-identical to the committed
+  script; it's root:wheel 755, and `/etc/sudoers.d/doros` is 440.
 
 ---
 

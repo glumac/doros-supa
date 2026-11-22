@@ -103,3 +103,40 @@ describe("buildTrayMenu: Countdown Inside Tomato", () => {
     expect(a.setCountdownInTomato).toHaveBeenNthCalledWith(2, true);
   });
 });
+
+describe("buildTrayMenu: Launch at Login", () => {
+  it("is shown only when the app can register a login item (packaged)", () => {
+    expect(labels(buildTrayMenu(idle, actions()))).not.toContain("Launch at Login");
+  });
+
+  it("is a checkbox reflecting the login item, above the tomato setting", () => {
+    const a = { ...actions(), setLaunchAtLogin: vi.fn(), setCountdownInTomato: vi.fn() };
+    const on = buildTrayMenu(idle, a, { countdownInTomato: true, launchAtLogin: true });
+    const item = byLabel(on, "Launch at Login");
+    expect(item.type).toBe("checkbox");
+    expect(item.checked).toBe(true);
+    expect(labels(on).slice(-3)).toEqual(["Launch at Login", "Countdown Inside Tomato", "Quit Doros"]);
+
+    const off = buildTrayMenu(idle, a, { countdownInTomato: true, launchAtLogin: false });
+    expect(byLabel(off, "Launch at Login").checked).toBe(false);
+  });
+
+  it("toggles the login item when clicked", () => {
+    const a = { ...actions(), setLaunchAtLogin: vi.fn() };
+    byLabel(buildTrayMenu(idle, a, { countdownInTomato: true, launchAtLogin: false }), "Launch at Login")
+      .click?.({} as never, undefined, {} as never);
+    byLabel(buildTrayMenu(idle, a, { countdownInTomato: true, launchAtLogin: true }), "Launch at Login")
+      .click?.({} as never, undefined, {} as never);
+    expect(a.setLaunchAtLogin).toHaveBeenNthCalledWith(1, true);
+    expect(a.setLaunchAtLogin).toHaveBeenNthCalledWith(2, false);
+  });
+});
+
+describe("buildTrayMenu: Show Doros shortcut", () => {
+  it("shows the global shortcut as the accelerator hint when it's registered", () => {
+    const menu = buildTrayMenu(idle, actions(), { countdownInTomato: true, showShortcut: "Alt+Command+D" });
+    expect(byLabel(menu, "Show Doros").accelerator).toBe("Alt+Command+D");
+    expect(byLabel(menu, "Show Doros").registerAccelerator).toBe(false);
+    expect(byLabel(buildTrayMenu(idle, actions()), "Show Doros").accelerator).toBeUndefined();
+  });
+});
