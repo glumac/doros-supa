@@ -18,7 +18,7 @@ permission dialog, or the Supabase dashboard.
 | 2. Login via system browser + `doros://` | ✅ done (`7fbda77`), user-verified |
 | 3. Timer sync + tray Pause/Resume/Cancel/Start | ✅ done (`2f48691`), user-verified |
 | 4. Tomato with the countdown inside it | ✅ done (`b7da574`), user-verified |
-| 5. Tray menu | 🟡 Launch at Login + ⌥⌘D built; 🧑 waiting for the user's hand check (blocking items belong to Phase 6) |
+| 5. Tray menu | ✅ done (`8d6c50e`), user-verified (blocking items belong to Phase 6) |
 | 6. Website blocking | 🟡 6a+6b done (`63a0a3a`), helper installed by the user and checked; 6c/6d next |
 | 7. Notifications and packaging | ⏳ (unsigned `.app`, Dock icon, `doros` protocol already done; see the Phase 7 list) |
 
@@ -383,7 +383,7 @@ from the tray change the timer in the window. The browser web app behaves exactl
 
 ---
 
-## Phase 5: Tray menu 🟡 PARTLY DONE (items marked ✅ were built in Phase 3, user-verified)
+## Phase 5: Tray menu ✅ DONE (commit `8d6c50e`; most items were built in Phases 3–4)
 
 ```
 ✅ 🍅 Focus: write chapter 3   (disabled label; ⏸ Paused: … while paused)
@@ -435,6 +435,8 @@ the only place you create a doro. Optionally add a global shortcut `⌥⌘D` for
   `npx electron-builder --mac -c.directories.output=<scratchpad>/release`.
 - Checks: 20 failing tests / 175 `tsc` errors (identical set) as the baseline, +4 new passing
   tests; `tsc -p electron` clean; `npm run build` OK.
+- ✅ Verified by the user (2026-11-22): ⌥⌘D shows the window (it beat macOS's Dock-hiding
+  shortcut), and Launch at Login adds Doros to and removes it from Login Items.
 
 ---
 
